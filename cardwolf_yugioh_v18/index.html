@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#111827">
+    <meta name="description" content="遊戯王カードを使って狼カードを見つける会話型推理ゲーム「遊戯王カードウルフ」">
+    <title>遊戯王カードウルフ | 会話型カード推理ゲーム</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kaisei+Decol:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="grain" aria-hidden="true"></div>
+
+    <header class="site-header ygo-header">
+        <a class="brand" href="#" aria-label="遊戯王カードウルフ トップ">
+            <span class="brand-mark ygo-mark" aria-hidden="true"><span>Yu-Gi-Oh!</span></span>
+            <span class="brand-copy">
+                <strong>遊戯王カードウルフ</strong>
+                <small>WHO HOLDS THE WOLF CARD?</small>
+            </span>
+        </a>
+        <button class="text-button" id="poolButton" type="button">カードプール</button>
+        <button class="text-button" id="rulesButton" type="button">遊び方</button>
+    </header>
+
+    <main>
+        <section class="setup-screen" id="setupScreen">
+            <div class="hero-copy">
+                <p class="kicker"><span>DUEL TABLE</span> 遊戯王カード × 会話型推理</p>
+                <h1><span class="hero-catch">信用できるのは、<br><em>自分だけ。</em></span></h1>
+                <p class="hero-lead">
+                    みんな似たカードを持っている。<br>
+                    ただひとりだけ、違うカードを持つ「狼」がいる。<br>
+                    信じるか、疑うか。言葉だけで正体を見抜け。
+                </p>
+                <div class="hero-wolf-art" aria-hidden="true"><img src="assets/wolf-art.jpg" alt=""></div>
+            </div>
+
+            <div class="setup-card ygo-setup-card">
+                <span class="corner corner-top">✦</span>
+                <span class="corner corner-bottom">✦</span>
+                <div class="setup-inner">
+                    <p class="step-label">DUEL SETUP</p>
+                    <h2>ゲームを始める</h2>
+                    <p>名前と参加人数を決めて、カードウルフへ。</p>
+
+                    <div class="name-field">
+                        <label for="playerName"><strong>あなたの名前</strong><span>ゲーム中のプレイヤー名になります</span></label>
+                        <input id="playerName" type="text" maxlength="12" placeholder="名前を入力（未入力でもOK）" autocomplete="off">
+                    </div>
+
+                    <div class="player-count" role="group" aria-label="参加人数">
+                        <button class="count-control" id="decreasePlayers" type="button" aria-label="人数を減らす">−</button>
+                        <output id="playerCount" aria-live="polite">4</output>
+                        <button class="count-control" id="increasePlayers" type="button" aria-label="人数を増やす">＋</button>
+                    </div>
+                    <p class="count-note">3〜8人でプレイできます</p>
+
+                    <div class="setup-score">
+                        <div><span>勝利</span><strong id="winCount">0</strong></div>
+                        <div><span>敗北</span><strong id="lossCount">0</strong></div>
+                    </div>
+
+                    <div class="setup-actions">
+                        <button class="secondary-button" id="advancedSettingsButton" type="button">詳細設定</button>
+                        <button class="secondary-button reset-score-button" id="resetScoreButton" type="button">勝利数をリセット</button>
+                    </div>
+
+                    <button class="primary-button" id="startButton" type="button">
+                        <span>ゲームをはじめる</span>
+                        <span aria-hidden="true">→</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="ygo-feature-strip"><span>MONSTER</span><span>ATTRIBUTE</span><span>RACE</span><span>ATK / DEF</span><span>LEVEL</span></div>
+
+            <ol class="rule-strip" aria-label="ゲームの流れ">
+                <li><span>01</span><strong>カード確認</strong><small>自分の1枚だけを見る</small></li>
+                <li><span>02</span><strong>特徴を発言</strong><small>本当でも、嘘でもOK</small></li>
+                <li><span>03</span><strong>狼に投票</strong><small>違うカードの人を探す</small></li>
+                <li><span>04</span><strong>逆転チャンス</strong><small>狼は市民カードを当てる</small></li>
+            </ol>
+        </section>
+
+        <section class="game-screen" id="gameScreen" hidden>
+            <div class="game-heading">
+                <div>
+                    <p class="phase-label" id="phaseLabel">PHASE 1 / 特徴を話す</p>
+                    <h1 id="phaseTitle">カードを確認しよう</h1>
+                </div>
+                <button class="text-button" id="restartButton" type="button">最初から</button>
+            </div>
+
+            <div class="game-layout">
+                <section class="table-panel" aria-label="プレイヤーテーブル">
+                    <div class="table-felt">
+                        <div class="deck-mark ygo-deck-mark" aria-hidden="true">
+                            <span>✦</span>
+                            <strong>Yu-Gi-Oh!<br>CARD WOLF</strong>
+                            <span>✦</span>
+                        </div>
+                        <div class="players" id="players"></div>
+                    </div>
+                </section>
+
+                <aside class="play-panel">
+                    <section class="your-card-panel" aria-labelledby="yourCardTitle">
+                        <div class="panel-heading">
+                            <div>
+                                <p>YOUR DUEL CARD</p>
+                                <h2 id="yourCardTitle">あなたのカード</h2>
+                            </div>
+                            <span class="secret-tag">秘密のカード</span>
+                        </div>
+                        <div class="playing-card" id="yourCard"></div>
+                        <p class="card-help">このカードを知っているのは、あなただけです。</p>
+                    </section>
+
+                    <section class="action-panel" id="actionPanel" aria-live="polite"></section>
+                </aside>
+            </div>
+
+            <section class="talk-log" aria-labelledby="talkLogTitle">
+                <div class="log-heading">
+                    <p id="talkLogTitle">TABLE TALK</p>
+                    <span id="logCount">0 messages</span>
+                </div>
+                <div class="log-list" id="talkLog"></div>
+            </section>
+        </section>
+    </main>
+
+    <dialog class="rules-dialog settings-dialog" id="settingsDialog">
+        <button class="dialog-close" id="closeSettingsButton" type="button" aria-label="閉じる">×</button>
+        <p class="step-label">ADVANCED SETTINGS</p>
+        <h2>詳細設定</h2>
+        <p class="dialog-note">ゲームの追加設定はここで変更できます。</p>
+        <div class="game-settings advanced-settings" aria-label="詳細ゲーム設定">
+            <div class="setting-row">
+                <label for="speechCount"><strong>発言回数</strong><span>2回目は順番を逆にします</span></label>
+                <select id="speechCount">
+                    <option value="2" selected>2回（おすすめ）</option>
+                    <option value="1">1回</option>
+                </select>
+            </div>
+            <div class="setting-row">
+                <label for="liePenalty"><strong>狼の嘘ペナルティ</strong><span>2回以上の嘘で逆転権なし</span></label>
+                <input id="liePenalty" type="checkbox" checked>
+            </div>
+            <div class="setting-row">
+                <label for="showLieCount"><strong>嘘の回数を表示しない</strong><span>チェック時はゲーム中の嘘の回数を隠します</span></label>
+                <input id="showLieCount" type="checkbox" checked>
+            </div>
+        </div>
+        <button class="primary-button compact" id="closeSettingsButtonBottom" type="button">設定を閉じる</button>
+    </dialog>
+
+    <dialog class="rules-dialog" id="rulesDialog">
+        <button class="dialog-close" id="closeRulesButton" type="button" aria-label="閉じる">×</button>
+        <p class="step-label">HOW TO PLAY</p>
+        <h2>遊び方</h2>
+        <ol>
+            <li><span>1</span><p>全員にカードが1枚ずつ配られます。1人だけが<strong>狼カード</strong>、残りは同じ<strong>市民カード</strong>です。自分のカードは見えますが、自分の役割は分かりません。</p></li>
+            <li><span>2</span><p>設定した回数だけ、順番にカードの特徴を話します。2回設定では、2回目の発言順が逆になります。前の人と同じ特徴は選べません。</p></li>
+            <li><span>3</span><p>全員の発言後、狼だと思う人へ投票します。最多票が市民なら狼の勝利です。</p></li>
+            <li><span>4</span><p>最多票が狼なら逆転チャンス。ただし「狼の嘘ペナルティ」がONで、狼が2回以上嘘をついていた場合は逆転チャンスを失います。</p></li>
+        </ol>
+        <p class="dialog-note">同票の場合は、最多票のプレイヤーからランダムに1人が選ばれます。</p>
+    </dialog>
+
+    <dialog class="rules-dialog pool-dialog" id="poolDialog">
+        <button class="dialog-close" id="closePoolButton" type="button" aria-label="閉じる">×</button>
+        <p class="step-label">CARD POOL</p>
+        <h2>使用カード 40種</h2>
+        <p class="dialog-note">現在のゲームで使用するカードです。</p>
+        <div class="pool-grid" id="poolGrid"></div>
+    </dialog>
+    <script src="data/cards.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
