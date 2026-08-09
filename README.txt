@@ -1,4 +1,7 @@
-Yu-Gi-Oh Card Wolf v22 update
+Yu-Gi-Oh Card Wolf v23 update
 
-Upload these two files to the existing GitHub repository and replace the existing app.js and styles.css.
-This update only changes the result-screen player layout so both speech rounds remain visible; it does not replace images/data.
+Changes:
+- Added a small v23 version indicator to the setup screen for deployment verification.
+- Added horizontal breathing room around the setup screen content.
+- Moved the hero copy slightly inward.
+- Reduced the setup card rotation and added right-side spacing to prevent the diagonal card from being clipped.

@@ -1654,3 +1654,36 @@ button:not(:disabled) { cursor:pointer; }
   .player-seat.is-reveal{padding-bottom:10px !important;}
   .player-seat.is-reveal .result-meta{justify-content:flex-start;}
 }
+
+/* v23: setup screen spacing and unobtrusive build version */
+@media (min-width: 901px){
+  .setup-screen{
+    padding-left:clamp(18px,3vw,48px);
+    padding-right:clamp(18px,3vw,48px);
+  }
+  .hero-copy{
+    padding-left:clamp(6px,1vw,18px);
+  }
+  .setup-card{
+    margin-right:clamp(8px,1.8vw,26px);
+    transform:rotate(1deg);
+  }
+}
+.build-version{
+  position:absolute;
+  right:clamp(12px,2vw,28px);
+  bottom:10px;
+  z-index:3;
+  padding:3px 7px;
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:5px;
+  background:rgba(3,7,14,.34);
+  color:rgba(232,238,247,.52);
+  font-size:.58rem;
+  line-height:1;
+  letter-spacing:.08em;
+  pointer-events:none;
+}
+@media (max-width:700px){
+  .build-version{bottom:7px;right:10px;font-size:.55rem;}
+}
