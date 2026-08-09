@@ -1608,3 +1608,49 @@ button:not(:disabled) { cursor:pointer; }
     padding-bottom:50px !important;
   }
 }
+
+/* v22: result clue layout - keep both speech lines in normal document flow */
+.player-seat.is-reveal{
+  grid-template-columns:48px minmax(0,1fr) !important;
+  grid-template-rows:auto auto !important;
+  align-items:start !important;
+  min-height:0 !important;
+  height:auto !important;
+  overflow:visible !important;
+  padding-bottom:12px !important;
+}
+.player-seat.is-reveal .avatar{grid-column:1;grid-row:1;}
+.player-seat.is-reveal .seat-copy{grid-column:2;grid-row:1;min-width:0;overflow:visible;}
+.player-seat.is-reveal .player-clues{overflow:visible;}
+.player-seat.is-reveal .player-clues p{
+  display:block !important;
+  margin:4px 0 0 !important;
+  white-space:normal !important;
+  overflow:visible !important;
+  text-overflow:clip !important;
+  max-width:none !important;
+  line-height:1.5 !important;
+}
+.player-seat.is-reveal .result-meta{
+  grid-column:1 / -1;
+  grid-row:2;
+  display:flex;
+  justify-content:flex-end;
+  align-items:center;
+  min-width:0;
+  margin-top:10px;
+  padding-top:8px;
+  border-top:1px solid rgba(255,255,255,.12);
+}
+.player-seat.is-reveal .role-reveal{
+  position:static !important;
+  display:inline-block;
+  max-width:100% !important;
+  white-space:normal !important;
+  overflow:visible !important;
+  text-overflow:clip !important;
+}
+@media (max-width:760px){
+  .player-seat.is-reveal{padding-bottom:10px !important;}
+  .player-seat.is-reveal .result-meta{justify-content:flex-start;}
+}
