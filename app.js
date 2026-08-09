@@ -126,11 +126,4 @@ window.addEventListener("error", function(e){
   }
 });
 
-/* v23 version badge */
-if (setupScreen) {
-  const buildVersion = document.createElement("div");
-  buildVersion.className = "build-version";
-  buildVersion.textContent = "v23";
-  buildVersion.setAttribute("aria-label", "ゲームバージョン v23");
-  setupScreen.appendChild(buildVersion);
-}
+/* v24: build version is rendered directly in index.html for reliable cache/deploy verification. */
