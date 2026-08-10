@@ -35,3 +35,10 @@ v45 update notes:
 - Voice Chat Mode skips clue-selection buttons; players discuss via external voice chat, then vote.
 - CPU setting is shown to the host only in the online lobby.
 - This release ZIP intentionally omits the images folder. Keep the existing images folder in the GitHub repository when updating files.
+
+
+v46 update notes:
+- Fixed host-side voice-chat discussion countdown rendering so Firebase snapshots do not reset the visible timer.
+- Added host-only same-room replay from the result screen.
+- Kept the host-only force-end discussion control.
+- Version labels and package directory are aligned to v46.

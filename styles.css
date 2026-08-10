@@ -2031,3 +2031,6 @@ button:not(:disabled) { cursor:pointer; }
 .voice-discussion-state span{color:#d8e0ea;font-size:.78rem}
 .voice-timer{font-family:ui-monospace,monospace;font-size:clamp(3rem,10vw,5.2rem);font-weight:800;letter-spacing:.04em;color:#ffe08a;text-shadow:0 3px 18px rgba(0,0,0,.35)}
 @media(max-width:700px){.online-voice-setting{grid-template-columns:1fr}.voice-discussion-state{min-height:240px}.voice-timer{font-size:3.5rem}}
+
+/* v46: stable online replay / discussion UI */
+.online-replay-wait{margin:14px 0;padding:12px 16px;border-radius:12px;text-align:center;color:#f4f6f8;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18)}

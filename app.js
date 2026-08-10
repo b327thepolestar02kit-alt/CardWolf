@@ -439,23 +439,31 @@ async function onlineSubmitClue(id){
   if(!ok){onlinePendingAction=null;renderOnlineClue();}
 }
 function renderOnlineDiscussion(){
-  clearInterval(onlineDiscussionTimer);
   phaseLabel.textContent="VOICE CHAT / DISCUSSION";
   phaseTitle.textContent="カードを見て、みんなで議論しよう";
   const seconds=Math.max(60,Number(onlineGame.settings?.discussionSeconds||120));
   const started=Number(onlineGame.discussionStartedAt||Date.now());
-  actionPanel.innerHTML=`<div class="voice-discussion-state"><div class="voice-timer" id="voiceDiscussionTimer">--:--</div><p>ボイスチャットで自由に議論してください。</p><span>時間になると自動的に投票へ進みます。</span>${onlineHost?'<button class="secondary-button compact discussion-force-end" id="discussionForceEndButton" type="button">議論を強制終了</button>':''}</div>`;
-  const timerEl=document.getElementById("voiceDiscussionTimer");
-  const update=()=>{
-    const left=Math.max(0,Math.ceil((started+seconds*1000-Date.now())/1000));
-    if(timerEl){const m=Math.floor(left/60),sec=String(left%60).padStart(2,"0");timerEl.textContent=`${m}:${sec}`;}
-    if(left<=0) clearInterval(onlineDiscussionTimer);
-  };
-  update(); onlineDiscussionTimer=setInterval(update,250);
-  if(onlineHost){
+  // Keep the discussion DOM stable. Re-rendering from Firebase snapshots must not
+  // restart the countdown on the host (or briefly reset the displayed time).
+  const existing=document.getElementById("voiceDiscussionTimer");
+  if(!existing){
+    actionPanel.innerHTML=`<div class="voice-discussion-state"><div class="voice-timer" id="voiceDiscussionTimer">--:--</div><p>ボイスチャットで自由に議論してください。</p><span>時間になると自動的に投票へ進みます。</span>${onlineHost?'<button class="secondary-button compact discussion-force-end" id="discussionForceEndButton" type="button">議論を強制終了</button>':''}</div>`;
     const force=document.getElementById("discussionForceEndButton");
     if(force) force.addEventListener("click",()=>hostForceEndDiscussion());
   }
+  clearInterval(onlineDiscussionTimer);
+  const timerEl=document.getElementById("voiceDiscussionTimer");
+  const update=()=>{
+    if(!onlineGame||onlineGame.phase!=="discussion") return;
+    const left=Math.max(0,Math.ceil((started+seconds*1000-Date.now())/1000));
+    if(timerEl){const m=Math.floor(left/60),sec=String(left%60).padStart(2,"0");timerEl.textContent=`${m}:${sec}`;}
+    if(left<=0){
+      clearInterval(onlineDiscussionTimer);
+      if(onlineHost) hostEndDiscussion();
+    }
+  };
+  update();
+  onlineDiscussionTimer=setInterval(update,250);
 }
 async function hostEndDiscussion(){
   if(!onlineHost||!onlineGame||onlineGame.phase!=="discussion")return;
@@ -531,7 +539,9 @@ function renderOnlineResult(){
   const rev=onlineGame.reveal?.reverseGuess;
   const citizen=onlineGame.reveal?.citizenCard,wolfCard=onlineGame.reveal?.wolfCard;
   const msg=onlineGame.result==="wolf"? "選ばれたプレイヤーは市民でした。狼は正体を隠し切りました。":onlineGame.result==="wolf-reversal"?`狼が市民カード「${jpName(citizen)}」を見事に当て、逆転しました。`:`狼の宣言は「${jpName(rev||{})}」。正解は「${jpName(citizen||{})}」でした。`;
-  actionPanel.innerHTML=`<div class="result-banner ${wolfWon?"wolf-win":"citizen-win"}"><p>${wolfWon?"狼チームの勝利":"市民チームの勝利"}</p><h2>${wolfWon?"狼の勝利":"市民の勝利"}</h2><span>${msg}</span></div><div class="answer-cards">${citizen?`<div><small>市民カード</small><img class="ygo-thumb" src="${cardImage(citizen)}"><strong>${jpName(citizen)}</strong><em>${cardInfo(citizen)}${cardStats(citizen)?" · "+cardStats(citizen):""}</em></div>`:""}${wolfCard?`<div><small>狼カード</small><img class="ygo-thumb" src="${cardImage(wolfCard)}"><strong>${jpName(wolfCard)}</strong><em>${cardInfo(wolfCard)}${cardStats(wolfCard)?" · "+cardStats(wolfCard):""}</em></div>`:""}</div><button class="primary-button compact" id="onlineBackButton" type="button"><span>ロビーへ戻る</span><span>↩</span></button>`;
+  const replayButton=onlineHost?`<button class="primary-button compact" id="onlineReplayButton" type="button"><span>同じ部屋でもう一度遊ぶ</span><span>↻</span></button>`:`<div class="online-replay-wait">ホストがもう一度ゲームを開始するのを待っています。</div>`;
+  actionPanel.innerHTML=`<div class="result-banner ${wolfWon?"wolf-win":"citizen-win"}"><p>${wolfWon?"狼チームの勝利":"市民チームの勝利"}</p><h2>${wolfWon?"狼の勝利":"市民の勝利"}</h2><span>${msg}</span></div><div class="answer-cards">${citizen?`<div><small>市民カード</small><img class="ygo-thumb" src="${cardImage(citizen)}"><strong>${jpName(citizen)}</strong><em>${cardInfo(citizen)}${cardStats(citizen)?" · "+cardStats(citizen):""}</em></div>`:""}${wolfCard?`<div><small>狼カード</small><img class="ygo-thumb" src="${cardImage(wolfCard)}"><strong>${jpName(wolfCard)}</strong><em>${cardInfo(wolfCard)}${cardStats(wolfCard)?" · "+cardStats(wolfCard):""}</em></div>`:""}</div>${replayButton}<button class="secondary-button compact" id="onlineBackButton" type="button"><span>ロビーへ戻る</span><span>↩</span></button>`;
+  if(onlineHost){document.getElementById("onlineReplayButton").addEventListener("click",async()=>{if(confirm("同じ部屋のメンバーでもう一度ゲームを開始しますか？")){await startOnlineHostGame();}});}
   document.getElementById("onlineBackButton").addEventListener("click",async()=>{if(confirm("オンライン対戦を終了して部屋から退出しますか？")){await leaveOnlineRoom({returnToSetup:true});}});
   if(!onlineScoreRecorded){const myRole=onlineGame.reveal?.roles?.[firebaseUid];const won=(myRole==="wolf"&&wolfWon)||(myRole==="citizen"&&!wolfWon);if(won)matchRecord.wins++;else matchRecord.losses++;onlineScoreRecorded=true;renderRecord();}
 }
@@ -551,7 +561,7 @@ async function submitOnlineAction(action){
     // Each client gets its own immutable action entry. The host acknowledges
     // acceptance/rejection separately so a client never remains stuck in a
     // fake "waiting" state when the host rejects a stale action.
-    await set(actionRef,{...action,uid:firebaseUid,actionId,clientVersion:"v45",createdAt:Date.now()});
+    await set(actionRef,{...action,uid:firebaseUid,actionId,clientVersion:"v46",createdAt:Date.now()});
     return await new Promise((resolve)=>{
       let settled=false;
       const finish=(ok)=>{if(settled)return;settled=true;off(resultRef,"value",listener);onlineActionPromises.delete(actionId);resolve(Boolean(ok));};
