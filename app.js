@@ -131,12 +131,25 @@ function renderResultPhase(){recordFinishedGame();phaseLabel.textContent="GAME O
 function returnToSetup(){
   clearTimeout(cpuTimer);
   clearTimeout(onlineCpuTimer);
-  // Do not wait for Firebase here. The setup screen must return immediately
-  // even if the network is slow or Firebase is temporarily unavailable.
-  if(onlineRoomCodeValue){
-    leaveOnlineRoom().catch(e=>console.warn("online cleanup failed",e));
-  }else{
-    try{onlineDialog.close();}catch{}
+  // Detach Firebase listeners immediately; cleanup is best-effort and never
+  // blocks the UI from returning to the setup screen.
+  if(onlineRoomUnsubscribe){try{onlineRoomUnsubscribe();}catch{}}
+  if(onlineActionUnsubscribe){try{onlineActionUnsubscribe();}catch{}}
+  onlineRoomUnsubscribe=null;
+  onlineActionUnsubscribe=null;
+  const oldRoom=onlineRoomCodeValue;
+  onlineRoomCodeValue="";
+  onlineHost=false;
+  onlineHostSecrets=null;
+  onlineGame=null;
+  onlineMyCard=null;
+  onlineLastActionId="";
+  onlineScoreRecorded=false;
+  try{onlineDialog.close();}catch{}
+  onlineDialog.removeAttribute("open");
+  if(oldRoom){
+    // Best-effort removal of this user's membership. Never await it here.
+    firebaseAuthPromise.then(()=>remove(ref(firebaseDb,`rooms/${oldRoom}/players/${firebaseUid}`))).catch(()=>{});
   }
   onlineMode=false;
   window.cardWolfOnlineMode=false;
@@ -146,14 +159,17 @@ function returnToSetup(){
   onlineModeButton.setAttribute("aria-pressed","false");
   playerCountNote.textContent="3〜8人でプレイできます";
   game=null;
-  gameScreen.hidden=true;
   setupScreen.hidden=false;
-  window.scrollTo({top:0,behavior:"smooth"});
+  gameScreen.hidden=true;
+  actionPanel.innerHTML="";
+  talkLog.innerHTML="";
+  logCount.textContent="0 messages";
+  window.scrollTo({top:0,behavior:"auto"});
 }
 function openPool(){poolGrid.innerHTML=CARD_POOL.map(c=>`<div class="pool-card"><img src="${cardImage(c)}" alt="${escapeHtml(jpName(c))}">${cardDisplay(c)}</div>`).join("");poolDialog.showModal();}
 decreasePlayersButton.addEventListener("click",()=>updatePlayerCount(-1));increasePlayersButton.addEventListener("click",()=>updatePlayerCount(1));
 startButton.addEventListener("click",()=>{ if(window.cardWolfOnlineMode){ if(!onlineDialog.open) setMode(true); return; } startGame(); });
-restartButton.addEventListener("click",returnToSetup);document.getElementById("rulesButton").addEventListener("click",()=>rulesDialog.showModal());document.getElementById("closeRulesButton").addEventListener("click",()=>rulesDialog.close());document.getElementById("poolButton").addEventListener("click",openPool);document.getElementById("closePoolButton").addEventListener("click",()=>poolDialog.close());advancedSettingsButton.addEventListener("click",()=>settingsDialog.showModal());closeSettingsButton.addEventListener("click",()=>settingsDialog.close());closeSettingsButtonBottom.addEventListener("click",()=>settingsDialog.close());resetScoreButton.addEventListener("click",()=>{matchRecord={wins:0,losses:0};renderRecord();});rulesDialog.addEventListener("click",e=>{if(e.target===rulesDialog)rulesDialog.close();});poolDialog.addEventListener("click",e=>{if(e.target===poolDialog)poolDialog.close();});settingsDialog.addEventListener("click",e=>{if(e.target===settingsDialog)settingsDialog.close();});updatePlayerCount(0);renderRecord();setMode(false);if(CARD_POOL.length===0)startButton.disabled=true;
+restartButton.addEventListener("click",returnToSetup);document.getElementById("rulesButton").addEventListener("click",()=>rulesDialog.showModal());document.getElementById("closeRulesButton").addEventListener("click",()=>rulesDialog.close());document.getElementById("poolButton").addEventListener("click",openPool);document.getElementById("closePoolButton").addEventListener("click",()=>poolDialog.close());advancedSettingsButton.addEventListener("click",()=>settingsDialog.showModal());closeSettingsButton.addEventListener("click",()=>settingsDialog.close());closeSettingsButtonBottom.addEventListener("click",()=>settingsDialog.close());resetScoreButton.addEventListener("click",()=>{matchRecord={wins:0,losses:0};renderRecord();});rulesDialog.addEventListener("click",e=>{if(e.target===rulesDialog)rulesDialog.close();});poolDialog.addEventListener("click",e=>{if(e.target===poolDialog)poolDialog.close();});settingsDialog.addEventListener("click",e=>{if(e.target===settingsDialog)settingsDialog.close();});updatePlayerCount(0);renderRecord();if(CARD_POOL.length===0)startButton.disabled=true;
 
 
 
@@ -566,6 +582,11 @@ joinRoomButton.addEventListener("click",joinOnlineRoom);
 leaveRoomButton.addEventListener("click",leaveOnlineRoom);
 onlineStartButton.addEventListener("click",startOnlineHostGame);
 onlineCpuCount.addEventListener("change",()=>{if(onlineHost&&onlineRoomCodeValue){update(ref(firebaseDb,`rooms/${onlineRoomCodeValue}`),{cpuWanted:Number(onlineCpuCount.value||0)});}});
+
+// Initialize the mode only after the online state variables and listeners exist.
+// Calling setMode() earlier hit the temporal-dead-zone of let onlineMode, which
+// stopped the rest of the script and made Online appear unresponsive.
+setMode(false);
 
 
 /* v20 reverse safety */

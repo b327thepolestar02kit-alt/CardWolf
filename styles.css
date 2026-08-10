@@ -1915,7 +1915,7 @@ button:not(:disabled) { cursor:pointer; }
 }
 
 
-/* v28: reliable mode switching, reset behavior, and dialog readability */
+/* v29: reliable mode switching, reset behavior, and dialog readability */
 .hero-catch{display:inline-flex!important;flex-direction:column!important;white-space:nowrap!important;line-height:.92!important}
 .catch-line-one,.catch-line-two{display:block!important;white-space:nowrap!important}
 .mode-button{color:#f7f9ff!important;background:#101a2b!important}
