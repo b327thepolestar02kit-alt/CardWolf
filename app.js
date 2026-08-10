@@ -312,7 +312,7 @@ function openOnlineLobby(){
     if(!data){onlineLobbyStatus.textContent="ルームが終了しました";return;}
     renderOnlineLobby(data);
     if(data.status==="playing" && data.game){
-      onlineGame=data.game;
+      onlineGame={...data.game, usedClueIds:Array.isArray(data.game.usedClueIds)?data.game.usedClueIds:[], logs:Array.isArray(data.game.logs)?data.game.logs:[], players:Array.isArray(data.game.players)?data.game.players:[], settings:data.game.settings||onlineSettings(), order:Array.isArray(data.game.order)?data.game.order:[], orderIndex:Number.isFinite(data.game.orderIndex)?data.game.orderIndex:0};
       loadOnlineOwnCard(data).then(()=>renderOnlineGame());
       onlineDialog.close();
       setupScreen.hidden=true;gameScreen.hidden=false;
@@ -353,11 +353,11 @@ async function leaveOnlineRoom(options={}){
   if(options.returnToSetup) returnToSetup();
 }
 function onlineFeatureOptions(card,used,playerClues){
-  const usedSet=new Set(used||[]);
+  const usedSet=new Set(Array.isArray(used)?used:[]);
   let truthful=shuffle(statementsFor(card)).filter(s=>!usedSet.has(s.id));
   let falsehoods=shuffle(falseStatementsFor(card)).filter(s=>!usedSet.has(s.id));
   let options=[...truthful.slice(0,4),...falsehoods.slice(0,2)];
-  if((onlineGame.settings.speechRounds||2)>=2 && !(playerClues||[]).some(c=>c.ambiguous)){
+  if((onlineGame?.settings?.speechRounds||2)>=2 && !(playerClues||[]).some(c=>c.ambiguous)){
     const vague=shuffle(AMBIGUOUS_CLUES).filter(v=>!usedSet.has(v.id));
     if(vague.length)options.push(vague[0]);
   }
@@ -398,7 +398,9 @@ function onlineSubmitClue(id){
   if(onlineGame.phase!=="clue"||String(onlineCurrentId())!==String(firebaseUid))return;
   const card=onlineMyCard;if(!card)return;
   const me=onlinePlayerById(firebaseUid), opts=onlineFeatureOptions(card,onlineGame.usedClueIds,me?.clues);
-  const st=opts.find(s=>s.id===id);if(!st||onlineGame.usedClueIds.includes(st.id))return;
+  const usedIds=Array.isArray(onlineGame.usedClueIds)?onlineGame.usedClueIds:[];
+  onlineGame.usedClueIds=usedIds;
+  const st=opts.find(s=>s.id===id);if(!st||usedIds.includes(st.id))return;
   submitOnlineAction({type:"clue",clueId:id,at:Date.now()});
 }
 function renderOnlineClue(){
@@ -448,7 +450,8 @@ function renderOnlineGame(){
   if(onlineGame.phase==="clue")renderOnlineClue();else if(onlineGame.phase==="vote")renderOnlineVote();else if(onlineGame.phase==="reverse")renderOnlineReverse();else renderOnlineResult();
 }
 async function submitOnlineAction(action){
-  if(!onlineRoomCodeValue||!firebaseUid)return false;
+  if(!onlineRoomCodeValue||!firebaseUid){console.warn("online action ignored: room/auth not ready");return false;}
+  if(!onlineGame){console.warn("online action ignored: game state not ready");return false;}
   const actionId=`${firebaseUid}-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
   try{
     // Keep a per-player action queue instead of overwriting one shared action key.
@@ -487,6 +490,8 @@ async function hostApplyClue(uid,clueId){
   if(!onlineHost||!onlineGame||onlineGame.phase!=="clue")return false;
   if(String(uid)!==String(onlineCurrentId()))return false;
   const player=onlinePlayerById(uid),card=onlineHostSecrets.cards[uid];if(!player||!card)return;
+  onlineGame.usedClueIds=Array.isArray(onlineGame.usedClueIds)?onlineGame.usedClueIds:[];
+  onlineGame.logs=Array.isArray(onlineGame.logs)?onlineGame.logs:[];
   let st=[...featureList(card),...AMBIGUOUS_CLUES].find(s=>s.id===clueId);
   if(!st||onlineGame.usedClueIds.includes(st.id))return false;
   if(st.ambiguous && (player.clues||[]).some(c=>c.ambiguous))return false;

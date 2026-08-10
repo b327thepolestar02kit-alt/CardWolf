@@ -24,3 +24,4 @@ Important:
 
 
 v35: Online CPU turn watchdog, awaited turn advancement, and startup listener ordering fix.
+v36: Fixed online clue buttons crashing when usedClueIds was missing from a room snapshot; normalized online game state and added safer action submission.
