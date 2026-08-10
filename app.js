@@ -7,13 +7,29 @@ const firebaseApp = initializeApp(firebaseConfig);
 const firebaseDb = getDatabase(firebaseApp);
 const firebaseAuth = getAuth(firebaseApp);
 let firebaseUid = null;
-let firebaseAuthPromise = signInAnonymously(firebaseAuth).then(cred => {
-  firebaseUid = cred.user.uid;
-  return firebaseUid;
-}).catch(err => {
-  console.error("Firebase anonymous auth failed:", err);
-  throw err;
-});
+let firebaseAuthPromise = null;
+
+function firebaseAuthErrorText(err){
+  const code = err?.code ? String(err.code) : "unknown";
+  const message = err?.message ? String(err.message) : String(err || "不明なエラー");
+  return `Firebase認証に失敗しました。\\n\\nエラーコード: ${code}\\n${message}\\n\\nFirebaseコンソールの「Authentication → ログイン方法 → 匿名」が有効か確認してください。`;
+}
+
+function ensureFirebaseAuth(){
+  if(firebaseUid) return Promise.resolve(firebaseUid);
+  if(firebaseAuthPromise) return firebaseAuthPromise;
+  firebaseAuthPromise = signInAnonymously(firebaseAuth)
+    .then(cred => {
+      firebaseUid = cred.user.uid;
+      return firebaseUid;
+    })
+    .catch(err => {
+      firebaseAuthPromise = null;
+      console.error("Firebase anonymous auth failed:", err);
+      throw err;
+    });
+  return firebaseAuthPromise;
+}
 
 const CARD_POOL = Array.isArray(window.CARD_POOL_DATA) ? window.CARD_POOL_DATA.filter(card => card && card.name) : [];
 const JP_NAMES = {
@@ -239,8 +255,12 @@ async function hostWriteGame(){
   await update(onlineRoomRef(),{game:onlineSnapshot({reveal:onlineGame.reveal||null})});
 }
 async function ensureFirebase(){
-  try{return await firebaseAuthPromise;}
-  catch(e){alert("オンライン機能の認証に失敗しました。Firebase Authentication の「匿名」を有効にしてください。");throw e;}
+  try{
+    return await ensureFirebaseAuth();
+  }catch(e){
+    alert(firebaseAuthErrorText(e));
+    throw e;
+  }
 }
 function lobbyPlayersFromValue(v){return Object.values(v?.players||{});}
 function renderOnlineLobby(data){
@@ -577,8 +597,12 @@ closeOnlineButton.addEventListener("click",()=>{
   if(onlineRoomCodeValue) leaveOnlineRoom().catch(e=>console.warn("online leave failed",e));
   setMode(false);
 });
-createRoomButton.addEventListener("click",createOnlineRoom);
-joinRoomButton.addEventListener("click",joinOnlineRoom);
+createRoomButton.addEventListener("click",()=>{
+  createOnlineRoom().catch(e=>console.error("create room failed:",e));
+});
+joinRoomButton.addEventListener("click",()=>{
+  joinOnlineRoom().catch(e=>console.error("join room failed:",e));
+});
 leaveRoomButton.addEventListener("click",leaveOnlineRoom);
 onlineStartButton.addEventListener("click",startOnlineHostGame);
 onlineCpuCount.addEventListener("change",()=>{if(onlineHost&&onlineRoomCodeValue){update(ref(firebaseDb,`rooms/${onlineRoomCodeValue}`),{cpuWanted:Number(onlineCpuCount.value||0)});}});
@@ -598,4 +622,4 @@ window.addEventListener("error", function(e){
   }
 });
 
-/* v24: build version is rendered directly in index.html for reliable cache/deploy verification. */
+/* v30: lazy Firebase anonymous auth + detailed authentication diagnostics. */
