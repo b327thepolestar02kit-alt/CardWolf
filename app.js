@@ -411,9 +411,10 @@ async function onlineSubmitClue(id){
   const usedIds=Array.isArray(onlineGame.usedClueIds)?onlineGame.usedClueIds:[];
   onlineGame.usedClueIds=usedIds;
   const st=opts.find(s=>String(s.id)===String(id));if(!st||usedIds.includes(st.id))return;
-  onlinePendingAction={type:"clue",clueId:String(id)};
-  actionPanel.querySelectorAll("[data-online-clue]").forEach(b=>b.disabled=true);
-  const ok=await submitOnlineAction({type:"clue",clueId:st.id,round:onlineGame.round,orderIndex:onlineGame.orderIndex,at:Date.now()});
+  const turnRound=Number(onlineGame.round),turnIndex=Number(onlineGame.orderIndex);
+  onlinePendingAction={type:"clue",clueId:String(id),round:turnRound,orderIndex:turnIndex};
+  actionPanel.querySelectorAll("[data-online-clue]").forEach(b=>{b.disabled=true;b.classList.add("is-sending");});
+  const ok=await submitOnlineAction({type:"clue",clueId:st.id,round:turnRound,orderIndex:turnIndex,at:Date.now()});
   if(!ok){onlinePendingAction=null;renderOnlineClue();}
 }
 function renderOnlineClue(){
@@ -485,7 +486,7 @@ async function submitOnlineAction(action){
     // Each client gets its own immutable action entry. The host acknowledges
     // acceptance/rejection separately so a client never remains stuck in a
     // fake "waiting" state when the host rejects a stale action.
-    await set(actionRef,{...action,uid:firebaseUid,actionId,clientVersion:"v42",createdAt:Date.now()});
+    await set(actionRef,{...action,uid:firebaseUid,actionId,clientVersion:"v43",createdAt:Date.now()});
     return await new Promise((resolve)=>{
       let settled=false;
       const finish=(ok)=>{if(settled)return;settled=true;off(resultRef,"value",listener);onlineActionPromises.delete(actionId);resolve(Boolean(ok));};
@@ -634,6 +635,7 @@ async function hostEvaluateVotes(){
     else {
       onlineGame.phase="reverse";
       await hostWriteGame();
+      renderOnlineGame();
       if((onlinePlayerById(onlineHostSecrets.wolfUid)?.isHuman)===false){
         const wolf=onlinePlayerById(onlineHostSecrets.wolfUid);
         onlineCpuTimer=setTimeout(async()=>{
@@ -659,6 +661,7 @@ async function hostFinishResult(reverseGuess){
   onlineGame.players.forEach(p=>{reveal.roles[p.id]=onlineHostSecrets.wolves[p.id]?"wolf":"citizen";reveal.cards[p.id]=onlineHostSecrets.cards[p.id];});
   onlineGame.reveal=reveal;onlineGame.phase="result";
   await hostWriteGame();
+  renderOnlineGame();
 }
 async function hostProcessAction(action){
   if(!onlineHost||!onlineGame||!action)return false;
@@ -723,6 +726,7 @@ function attachOnlineHostActionListener(){
             console.warn("online action cleanup failed",e);
           }
           onlineHostProcessing=false;
+          if(onlineHost&&onlineGame) renderOnlineGame();
         }
       });
     }
@@ -771,10 +775,19 @@ createRoomButton.addEventListener("click",()=>{
 joinRoomButton.addEventListener("click",()=>{
   joinOnlineRoom().catch(e=>console.error("join room failed:",e));
 });
-leaveRoomButton.addEventListener("click",async()=>{
+leaveRoomButton.addEventListener("click",async(e)=>{
+  e.preventDefault(); e.stopPropagation();
   if(!onlineRoomCodeValue)return;
   if(!confirm("このオンライン対戦の部屋から退出しますか？"))return;
   await leaveOnlineRoom({returnToSetup:true});
+});
+onlineDialog.addEventListener("click",e=>{
+  if(e.target===onlineDialog && onlineRoomCodeValue){
+    leaveOnlineRoom({returnToSetup:true}).catch(err=>console.warn("online backdrop leave failed",err));
+  }
+});
+onlineDialog.addEventListener("cancel",e=>{
+  if(onlineRoomCodeValue){e.preventDefault();leaveOnlineRoom({returnToSetup:true}).catch(err=>console.warn("online cancel leave failed",err));}
 });
 onlineStartButton.addEventListener("click",startOnlineHostGame);
 onlineCpuCount.addEventListener("change",()=>{if(onlineHost&&onlineRoomCodeValue){update(ref(firebaseDb,`rooms/${onlineRoomCodeValue}`),{cpuWanted:Number(onlineCpuCount.value||0)});}});

@@ -1980,3 +1980,36 @@ button:not(:disabled) { cursor:pointer; }
   .action-panel .choice-list,
   .action-panel .vote-grid { min-height: 210px; }
 }
+
+
+/* v43: online interaction stability and visual polish */
+.hero-copy .kicker{display:none!important}
+.catch-line-one{white-space:nowrap!important}
+.catch-line-two{white-space:nowrap!important}
+.catch-line-two::first-letter{color:inherit}
+.catch-line-two{ }
+/* Emphasize only the word 自分 in the catchphrase without sacrificing contrast. */
+.catch-line-two{font-size:1em}
+.catch-line-two{ }
+.action-panel .choice-button.is-sending{opacity:.72!important;transform:none!important}
+.action-panel .choice-button.is-sending::after{content:"送信中…";font-size:.72em;margin-left:.55em;opacity:.9}
+.action-panel .choice-button:disabled{min-height:48px}
+.online-dialog .online-cpu-setting label span{font-size:.72rem!important;line-height:1.45!important;color:#1f2937!important}
+.online-dialog .online-lobby-head span{font-size:.72rem!important;color:#1f2937!important}
+.online-dialog .online-lobby-head strong{font-size:.9rem!important;color:#111827!important}
+.online-dialog .online-player-row{min-height:46px}
+.online-dialog .online-leave-button{position:relative;z-index:5;pointer-events:auto!important}
+@media(max-width:700px){.online-dialog .online-cpu-setting label span{font-size:.76rem!important}}
+
+.catch-self{color:#e26b6b!important;text-shadow:0 2px 16px rgba(226,107,107,.28)}
+
+/* v43: feature list spacing */
+.feature-strip,.rule-strip,.howto-list{padding-left:0}
+.howto-list li{padding-left:18px!important;margin-left:6px!important}
+.howto-list li>span{margin-left:0!important;min-width:30px}
+.howto-list li strong,.howto-list li small{margin-left:4px}
+
+/* v43: prevent numbered how-to items from touching the left rule */
+.rule-strip li{padding-left:18px!important;box-sizing:border-box}
+.rule-strip li>span{flex:0 0 30px;margin-left:0!important}
+.rule-strip li strong,.rule-strip li small{margin-left:3px}
