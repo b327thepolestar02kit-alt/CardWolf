@@ -30,7 +30,7 @@ v36: Fixed online clue buttons crashing when usedClueIds was missing from a room
 v39: Fixed online action permission handling by explicitly validating per-player action queues, added client-version tagging, and cache-busted app.js so GitHub Pages loads the new build.
 v43: Added per-action host acknowledgements so clue/vote submissions cannot remain stuck after a stale or rejected request; fixed Firebase listener cleanup and stabilized multi-human voting.
 
-v44 update notes:
+v45 update notes:
 - Added online Voice Chat Mode with a discussion timer (default 2 minutes).
 - Voice Chat Mode skips clue-selection buttons; players discuss via external voice chat, then vote.
 - CPU setting is shown to the host only in the online lobby.

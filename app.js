@@ -444,14 +444,33 @@ function renderOnlineDiscussion(){
   phaseTitle.textContent="カードを見て、みんなで議論しよう";
   const seconds=Math.max(60,Number(onlineGame.settings?.discussionSeconds||120));
   const started=Number(onlineGame.discussionStartedAt||Date.now());
+  actionPanel.innerHTML=`<div class="voice-discussion-state"><div class="voice-timer" id="voiceDiscussionTimer">--:--</div><p>ボイスチャットで自由に議論してください。</p><span>時間になると自動的に投票へ進みます。</span>${onlineHost?'<button class="secondary-button compact discussion-force-end" id="discussionForceEndButton" type="button">議論を強制終了</button>':''}</div>`;
+  const timerEl=document.getElementById("voiceDiscussionTimer");
   const update=()=>{
     const left=Math.max(0,Math.ceil((started+seconds*1000-Date.now())/1000));
-    const m=Math.floor(left/60), sec=String(left%60).padStart(2,"0");
-    actionPanel.innerHTML=`<div class="voice-discussion-state"><div class="voice-timer">${m}:${sec}</div><p>ボイスチャットで自由に議論してください。</p><span>時間になると自動的に投票へ進みます。</span></div>`;
+    if(timerEl){const m=Math.floor(left/60),sec=String(left%60).padStart(2,"0");timerEl.textContent=`${m}:${sec}`;}
     if(left<=0) clearInterval(onlineDiscussionTimer);
   };
   update(); onlineDiscussionTimer=setInterval(update,250);
+  if(onlineHost){
+    const force=document.getElementById("discussionForceEndButton");
+    if(force) force.addEventListener("click",()=>hostForceEndDiscussion());
+  }
 }
+async function hostEndDiscussion(){
+  if(!onlineHost||!onlineGame||onlineGame.phase!=="discussion")return;
+  clearInterval(onlineDiscussionTimer);clearTimeout(onlineCpuTimer);
+  onlineGame.phase="vote";onlineGame.orderIndex=0;
+  await hostAssignCpuVotes();
+  await hostWriteGame();
+  renderOnlineGame();
+}
+async function hostForceEndDiscussion(){
+  if(!onlineHost||!onlineGame||onlineGame.phase!=="discussion")return;
+  if(!confirm("議論を終了して投票へ進みますか？"))return;
+  await hostEndDiscussion();
+}
+
 function hostStartVoiceDiscussionTimer(){
   clearTimeout(onlineCpuTimer); clearInterval(onlineDiscussionTimer);
   if(!onlineHost||!onlineGame||onlineGame.phase!=="discussion")return;
@@ -460,8 +479,7 @@ function hostStartVoiceDiscussionTimer(){
   const delay=Math.max(0,started+duration-Date.now());
   onlineCpuTimer=setTimeout(async()=>{
     if(!onlineHost||!onlineGame||onlineGame.phase!=="discussion")return;
-    onlineGame.phase="vote"; onlineGame.orderIndex=0;
-    await hostAssignCpuVotes(); await hostWriteGame(); renderOnlineGame();
+    await hostEndDiscussion();
   },delay+50);
 }
 function renderOnlineClue(){
@@ -533,7 +551,7 @@ async function submitOnlineAction(action){
     // Each client gets its own immutable action entry. The host acknowledges
     // acceptance/rejection separately so a client never remains stuck in a
     // fake "waiting" state when the host rejects a stale action.
-    await set(actionRef,{...action,uid:firebaseUid,actionId,clientVersion:"v44",createdAt:Date.now()});
+    await set(actionRef,{...action,uid:firebaseUid,actionId,clientVersion:"v45",createdAt:Date.now()});
     return await new Promise((resolve)=>{
       let settled=false;
       const finish=(ok)=>{if(settled)return;settled=true;off(resultRef,"value",listener);onlineActionPromises.delete(actionId);resolve(Boolean(ok));};

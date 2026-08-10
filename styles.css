@@ -2016,7 +2016,7 @@ button:not(:disabled) { cursor:pointer; }
 .rule-strip li strong,.rule-strip li small{margin-left:3px}
 
 
-/* v44: voice chat mode */
+/* v45: voice chat mode */
 .online-voice-setting{display:grid;grid-template-columns:1fr 120px;gap:14px;align-items:center;margin-top:14px;padding:14px;border:1px solid rgba(23,36,58,.14);border-radius:9px;background:#fffdf6;color:#17243a}
 .online-toggle-label{display:flex;gap:10px;align-items:flex-start;cursor:pointer}
 .online-toggle-label input{width:20px;height:20px;margin-top:2px;accent-color:#b58a2b}
