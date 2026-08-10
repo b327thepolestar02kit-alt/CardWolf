@@ -212,6 +212,7 @@ const onlineProcessedActionIds=new Set();
 const onlineActionPromises=new Map();
 let onlineScoreRecorded=false;
 let onlinePendingAction=null;
+let onlineDiscussionTimer=null;
 let onlineHostActionQueue=Promise.resolve();
 let onlineHostProcessing=false;
 
@@ -239,14 +240,32 @@ function setMode(isOnline){
 }
 function onlineRoomRef(){return ref(firebaseDb,`rooms/${onlineRoomCodeValue}`);}
 function makeRoomCode(){const chars="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";let s="";for(let i=0;i<4;i++)s+=chars[Math.floor(Math.random()*chars.length)];return s;}
-function onlineSettings(){return getSettings();}
+function onlineSettings(){return {...getSettings(),voiceMode:false,discussionSeconds:120};}
+function getOnlineLobbySettings(){
+  const voice=Boolean(document.getElementById("onlineVoiceMode")?.checked);
+  const seconds=Math.max(60,Number(document.getElementById("onlineDiscussionMinutes")?.value||120));
+  return {...onlineSettings(),voiceMode:voice,discussionSeconds:seconds};
+}
+function syncOnlineLobbySettings(data){
+  const s=data?.settings||onlineSettings();
+  const voiceEl=document.getElementById("onlineVoiceMode"), timeEl=document.getElementById("onlineDiscussionMinutes");
+  if(voiceEl) voiceEl.checked=Boolean(s.voiceMode);
+  if(timeEl) timeEl.value=String(Number(s.discussionSeconds||120));
+  if(onlineHost){
+    const row=document.getElementById("onlineVoiceSettingRow"); if(row) row.hidden=false;
+    const cpu=document.getElementById("onlineCpuSettingRow"); if(cpu) cpu.hidden=false;
+  } else {
+    const row=document.getElementById("onlineVoiceSettingRow"); if(row) row.hidden=true;
+    const cpu=document.getElementById("onlineCpuSettingRow"); if(cpu) cpu.hidden=true;
+  }
+}
 function onlinePublicPlayers(){
   return (onlineGame?.players||[]).map(p=>({id:p.id,name:p.name,isHuman:Boolean(p.isHuman),clues:(p.clues||[]).map(c=>({id:c.id,label:c.label,ambiguous:Boolean(c.ambiguous)})),vote:p.vote??null}));
 }
 function onlineSnapshot(extra={}){
   return {
     phase:onlineGame.phase, round:onlineGame.round, order:onlineGame.order,
-    orderIndex:onlineGame.orderIndex, usedClueIds:onlineGame.usedClueIds||[],
+    orderIndex:onlineGame.orderIndex, discussionStartedAt:onlineGame.discussionStartedAt||null, usedClueIds:onlineGame.usedClueIds||[],
     logs:onlineGame.logs||[], settings:onlineGame.settings,
     players:onlinePublicPlayers(), tallies:onlineGame.tallies||null,
     eliminatedId:onlineGame.eliminatedId??null, result:onlineGame.result??null,
@@ -278,6 +297,7 @@ function renderOnlineLobby(data){
   const selected=Math.max(minCpu,Math.min(Number(onlineCpuCount.value||0),4-humanCount));
   onlineCpuCount.value=String(selected);
   onlineCpuCount.disabled=!onlineHost;
+  syncOnlineLobbySettings(data);
   onlineStartButton.hidden=!onlineHost;
   onlineStartButton.disabled=!onlineHost||humanCount<1;
   onlineLobbyStatus.textContent=`${humanCount}/${max}人・${data?.status==="playing"?"ゲーム中":"待機中"}`;
@@ -289,7 +309,7 @@ async function createOnlineRoom(){
   if(!code){alert("ルームコードを作成できませんでした。もう一度お試しください。");return;}
   onlineRoomCodeValue=code;onlineHost=true;
   const name=getPlayerName();
-  const room={hostUid:firebaseUid,status:"lobby",maxPlayers:Math.min(4,Math.max(3,selectedPlayerCount)),createdAt:Date.now(),settings:onlineSettings(),players:{[firebaseUid]:{uid:firebaseUid,name,host:true}}};
+  const room={hostUid:firebaseUid,status:"lobby",maxPlayers:Math.min(4,Math.max(3,selectedPlayerCount)),createdAt:Date.now(),settings:getOnlineLobbySettings(),players:{[firebaseUid]:{uid:firebaseUid,name,host:true}}};
   await set(ref(firebaseDb,`rooms/${code}`),room);
   await set(ref(firebaseDb,`rooms/${code}/privateCards/${firebaseUid}`),{cardName:null});
   openOnlineLobby();
@@ -326,6 +346,7 @@ function openOnlineLobby(){
       onlineDialog.close();
       setupScreen.hidden=true;gameScreen.hidden=false;
       if(onlineHost && !onlineActionUnsubscribe) attachOnlineHostActionListener();
+      if(onlineHost && onlineGame.phase==="discussion") hostStartVoiceDiscussionTimer();
     }
   });
 }
@@ -417,6 +438,32 @@ async function onlineSubmitClue(id){
   const ok=await submitOnlineAction({type:"clue",clueId:st.id,round:turnRound,orderIndex:turnIndex,at:Date.now()});
   if(!ok){onlinePendingAction=null;renderOnlineClue();}
 }
+function renderOnlineDiscussion(){
+  clearInterval(onlineDiscussionTimer);
+  phaseLabel.textContent="VOICE CHAT / DISCUSSION";
+  phaseTitle.textContent="カードを見て、みんなで議論しよう";
+  const seconds=Math.max(60,Number(onlineGame.settings?.discussionSeconds||120));
+  const started=Number(onlineGame.discussionStartedAt||Date.now());
+  const update=()=>{
+    const left=Math.max(0,Math.ceil((started+seconds*1000-Date.now())/1000));
+    const m=Math.floor(left/60), sec=String(left%60).padStart(2,"0");
+    actionPanel.innerHTML=`<div class="voice-discussion-state"><div class="voice-timer">${m}:${sec}</div><p>ボイスチャットで自由に議論してください。</p><span>時間になると自動的に投票へ進みます。</span></div>`;
+    if(left<=0) clearInterval(onlineDiscussionTimer);
+  };
+  update(); onlineDiscussionTimer=setInterval(update,250);
+}
+function hostStartVoiceDiscussionTimer(){
+  clearTimeout(onlineCpuTimer); clearInterval(onlineDiscussionTimer);
+  if(!onlineHost||!onlineGame||onlineGame.phase!=="discussion")return;
+  const started=Number(onlineGame.discussionStartedAt||Date.now());
+  const duration=Math.max(60,Number(onlineGame.settings?.discussionSeconds||120))*1000;
+  const delay=Math.max(0,started+duration-Date.now());
+  onlineCpuTimer=setTimeout(async()=>{
+    if(!onlineHost||!onlineGame||onlineGame.phase!=="discussion")return;
+    onlineGame.phase="vote"; onlineGame.orderIndex=0;
+    await hostAssignCpuVotes(); await hostWriteGame(); renderOnlineGame();
+  },delay+50);
+}
 function renderOnlineClue(){
   if(onlinePendingAction?.type==="clue" && String(onlineCurrentId())!==String(firebaseUid)) onlinePendingAction=null;
   const current=onlinePlayerById(onlineCurrentId()), roundLabel=onlineGame.round===1?"第1ラウンド":"第2ラウンド（逆順）";
@@ -473,7 +520,7 @@ function renderOnlineResult(){
 function renderOnlineGame(){
   if(!onlineGame)return;
   renderOnlinePlayers();renderOnlineCard();renderOnlineLog();
-  if(onlineGame.phase==="clue")renderOnlineClue();else if(onlineGame.phase==="vote")renderOnlineVote();else if(onlineGame.phase==="reverse")renderOnlineReverse();else renderOnlineResult();
+  if(onlineGame.phase==="discussion")renderOnlineDiscussion();else if(onlineGame.phase==="clue")renderOnlineClue();else if(onlineGame.phase==="vote")renderOnlineVote();else if(onlineGame.phase==="reverse")renderOnlineReverse();else renderOnlineResult();
 }
 async function submitOnlineAction(action){
   if(!onlineRoomCodeValue||!firebaseUid){console.warn("online action ignored: room/auth not ready");return false;}
@@ -486,7 +533,7 @@ async function submitOnlineAction(action){
     // Each client gets its own immutable action entry. The host acknowledges
     // acceptance/rejection separately so a client never remains stuck in a
     // fake "waiting" state when the host rejects a stale action.
-    await set(actionRef,{...action,uid:firebaseUid,actionId,clientVersion:"v43",createdAt:Date.now()});
+    await set(actionRef,{...action,uid:firebaseUid,actionId,clientVersion:"v44",createdAt:Date.now()});
     return await new Promise((resolve)=>{
       let settled=false;
       const finish=(ok)=>{if(settled)return;settled=true;off(resultRef,"value",listener);onlineActionPromises.delete(actionId);resolve(Boolean(ok));};
@@ -751,12 +798,12 @@ async function startOnlineHostGame(){
   ids.forEach(id=>{cards[id]=String(id)===String(wolfUid)?wolfCard:citizenCard;wolves[id]=String(id)===String(wolfUid);lies[id]=0;});
   onlineHostSecrets={cards,wolves,lies,wolfUid,citizenCard,wolfCard};
   onlineMyCard=cards[firebaseUid]||null;onlineScoreRecorded=false;
-  onlineGame={phase:"clue",round:1,order,orderIndex:0,usedClueIds:[],logs:[],settings:room.settings||onlineSettings(),players:publicPlayers,tallies:null,eliminatedId:null,result:null,reveal:null,reverseGuess:null};
+  onlineGame={phase:room.settings?.voiceMode?"discussion":"clue",round:1,order,orderIndex:0,discussionStartedAt:room.settings?.voiceMode?Date.now():null,usedClueIds:[],logs:[],settings:room.settings||onlineSettings(),players:publicPlayers,tallies:null,eliminatedId:null,result:null,reveal:null,reverseGuess:null};
   for(const p of humans)await set(ref(firebaseDb,`rooms/${onlineRoomCodeValue}/privateCards/${p.uid}`),{cardName:cards[p.uid].name});
   attachOnlineHostActionListener();
   await update(onlineRoomRef(),{status:"playing",game:onlineSnapshot()});
   renderOnlineGame();
-  hostMaybeCpuTurn();
+  if(onlineGame.phase==="discussion") hostStartVoiceDiscussionTimer(); else hostMaybeCpuTurn();
 }
 async function syncOnlinePrivateAndGame(data){
   await loadOnlineOwnCard(data);
@@ -791,6 +838,8 @@ onlineDialog.addEventListener("cancel",e=>{
 });
 onlineStartButton.addEventListener("click",startOnlineHostGame);
 onlineCpuCount.addEventListener("change",()=>{if(onlineHost&&onlineRoomCodeValue){update(ref(firebaseDb,`rooms/${onlineRoomCodeValue}`),{cpuWanted:Number(onlineCpuCount.value||0)});}});
+for(const id of ["onlineVoiceMode","onlineDiscussionMinutes"]){document.getElementById(id)?.addEventListener("change",async()=>{if(onlineHost&&onlineRoomCodeValue){const settings=getOnlineLobbySettings();await update(ref(firebaseDb,`rooms/${onlineRoomCodeValue}`),{settings});}});}
+
 
 // Initialize the mode only after the online state variables and listeners exist.
 // Calling setMode() earlier hit the temporal-dead-zone of let onlineMode, which

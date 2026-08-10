@@ -28,7 +28,7 @@
 
     <main>
         <section class="setup-screen" id="setupScreen">
-            <div class="hero-copy">
+            <div class="hero-copy"><p class="hero-kicker">遊戯王カード×会話型推理</p>
                 
                 <h1><span class="hero-catch"><span class="catch-line-one">信用できるのは、</span><span class="catch-line-two"><span class="catch-self">自分</span>だけ。</span></span></h1>
                 <p class="hero-lead">
@@ -85,7 +85,7 @@
                 </div>
             </div>
 
-            <span class="build-version" aria-label="ゲームバージョン v43">v43</span>
+            <span class="build-version" aria-label="ゲームバージョン v44">v43</span>
 
             <div class="ygo-feature-strip"><span>MONSTER</span><span>ATTRIBUTE</span><span>RACE</span><span>ATK / DEF</span><span>LEVEL</span></div>
 
@@ -171,7 +171,7 @@
                 <span id="onlineLobbyStatus">接続中…</span>
             </div>
             <div class="online-player-list" id="onlinePlayerList"></div>
-            <div class="online-cpu-setting">
+            <div class="online-cpu-setting" id="onlineCpuSettingRow">
                 <label for="onlineCpuCount"><strong>CPU追加</strong><span>0人が基本。3人未満なら自動追加</span></label>
                 <select id="onlineCpuCount">
                     <option value="0" selected>0人</option>
@@ -179,6 +179,10 @@
                     <option value="2">2人</option>
                     <option value="3">3人</option>
                 </select>
+            </div>
+            <div class="online-voice-setting" id="onlineVoiceSettingRow">
+                <label class="online-toggle-label"><input id="onlineVoiceMode" type="checkbox"><span><strong>ボイスチャットモード</strong><small>Discord等で話し、発言ボタンを使わずに遊びます。</small></span></label>
+                <label class="discussion-time-label" for="onlineDiscussionMinutes"><strong>議論時間</strong><select id="onlineDiscussionMinutes"><option value="60">1分</option><option value="120" selected>2分</option><option value="180">3分</option><option value="300">5分</option></select></label>
             </div>
             <button class="primary-button compact" id="onlineStartButton" type="button"><span>ホストがゲームを開始</span><span>→</span></button>
             <button class="text-button online-leave-button" id="leaveRoomButton" type="button">部屋を退出</button>

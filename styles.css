@@ -1983,7 +1983,8 @@ button:not(:disabled) { cursor:pointer; }
 
 
 /* v43: online interaction stability and visual polish */
-.hero-copy .kicker{display:none!important}
+.hero-copy .kicker{display:block!important}
+.hero-kicker{display:block!important;color:#e5edf7!important;font-size:.78rem;letter-spacing:.16em;margin:0 0 10px;font-weight:700}
 .catch-line-one{white-space:nowrap!important}
 .catch-line-two{white-space:nowrap!important}
 .catch-line-two::first-letter{color:inherit}
@@ -2013,3 +2014,20 @@ button:not(:disabled) { cursor:pointer; }
 .rule-strip li{padding-left:18px!important;box-sizing:border-box}
 .rule-strip li>span{flex:0 0 30px;margin-left:0!important}
 .rule-strip li strong,.rule-strip li small{margin-left:3px}
+
+
+/* v44: voice chat mode */
+.online-voice-setting{display:grid;grid-template-columns:1fr 120px;gap:14px;align-items:center;margin-top:14px;padding:14px;border:1px solid rgba(23,36,58,.14);border-radius:9px;background:#fffdf6;color:#17243a}
+.online-toggle-label{display:flex;gap:10px;align-items:flex-start;cursor:pointer}
+.online-toggle-label input{width:20px;height:20px;margin-top:2px;accent-color:#b58a2b}
+.online-toggle-label strong,.online-toggle-label small{display:block;color:#17243a!important}
+.online-toggle-label strong{font-size:.82rem}
+.online-toggle-label small{margin-top:4px;font-size:.68rem;line-height:1.5}
+.discussion-time-label{display:grid;gap:5px;color:#17243a}
+.discussion-time-label strong{font-size:.72rem;color:#17243a}
+.discussion-time-label select{color:#111827;background:#fff;border:1px solid rgba(23,36,58,.25);border-radius:6px;padding:8px}
+.voice-discussion-state{min-height:280px;display:grid;place-items:center;text-align:center;align-content:center;gap:12px;color:#f4f7fb}
+.voice-discussion-state p{font-size:1rem;font-weight:700;margin:0}
+.voice-discussion-state span{color:#d8e0ea;font-size:.78rem}
+.voice-timer{font-family:ui-monospace,monospace;font-size:clamp(3rem,10vw,5.2rem);font-weight:800;letter-spacing:.04em;color:#ffe08a;text-shadow:0 3px 18px rgba(0,0,0,.35)}
+@media(max-width:700px){.online-voice-setting{grid-template-columns:1fr}.voice-discussion-state{min-height:240px}.voice-timer{font-size:3.5rem}}
