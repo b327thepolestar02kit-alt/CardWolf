@@ -37,8 +37,15 @@ v45 update notes:
 - This release ZIP intentionally omits the images folder. Keep the existing images folder in the GitHub repository when updating files.
 
 
-v48 update notes:
+v49 update notes:
 - Fixed host-side voice-chat discussion countdown rendering so Firebase snapshots do not reset the visible timer.
 - Added host-only same-room replay from the result screen.
 - Kept the host-only force-end discussion control.
-- Version labels and package directory are aligned to v48.
+- Version labels and package directory are aligned to v49.
+
+
+v49 update notes:
+- Online rooms always allow up to 4 human players; CPU fills the room only when fewer than 3 humans are present.
+- Voice-chat discussion now uses an authoritative per-match deadline, including after replaying in the same room.
+- Clicking the online dialog backdrop or pressing Escape no longer ejects a player from the room.
+- Improved visibility of the online dialog close button.

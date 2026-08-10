@@ -213,6 +213,7 @@ const onlineActionPromises=new Map();
 let onlineScoreRecorded=false;
 let onlinePendingAction=null;
 let onlineDiscussionTimer=null;
+let onlineDiscussionDeadlineAt=0;
 let onlineHostActionQueue=Promise.resolve();
 let onlineHostProcessing=false;
 
@@ -265,7 +266,7 @@ function onlinePublicPlayers(){
 function onlineSnapshot(extra={}){
   return {
     phase:onlineGame.phase, round:onlineGame.round, order:onlineGame.order,
-    orderIndex:onlineGame.orderIndex, discussionStartedAt:onlineGame.discussionStartedAt||null, usedClueIds:onlineGame.usedClueIds||[],
+    orderIndex:onlineGame.orderIndex, discussionStartedAt:onlineGame.discussionStartedAt||null, discussionDeadlineAt:onlineGame.discussionDeadlineAt||null, usedClueIds:onlineGame.usedClueIds||[],
     logs:onlineGame.logs||[], settings:onlineGame.settings,
     players:onlinePublicPlayers(), tallies:onlineGame.tallies||null,
     eliminatedId:onlineGame.eliminatedId??null, result:onlineGame.result??null,
@@ -309,7 +310,7 @@ async function createOnlineRoom(){
   if(!code){alert("ルームコードを作成できませんでした。もう一度お試しください。");return;}
   onlineRoomCodeValue=code;onlineHost=true;
   const name=getPlayerName();
-  const room={hostUid:firebaseUid,status:"lobby",maxPlayers:Math.min(4,Math.max(3,selectedPlayerCount)),createdAt:Date.now(),settings:getOnlineLobbySettings(),players:{[firebaseUid]:{uid:firebaseUid,name,host:true}}};
+  const room={hostUid:firebaseUid,status:"lobby",maxPlayers:4,createdAt:Date.now(),settings:getOnlineLobbySettings(),players:{[firebaseUid]:{uid:firebaseUid,name,host:true}}};
   await set(ref(firebaseDb,`rooms/${code}`),room);
   await set(ref(firebaseDb,`rooms/${code}/privateCards/${firebaseUid}`),{cardName:null});
   openOnlineLobby();
@@ -442,23 +443,28 @@ function renderOnlineDiscussion(){
   phaseLabel.textContent="VOICE CHAT / DISCUSSION";
   phaseTitle.textContent="カードを見て、みんなで議論しよう";
   const seconds=Math.max(60,Number(onlineGame.settings?.discussionSeconds||120));
+  // The deadline is part of the authoritative game state. This avoids the
+  // replay bug where the card changed but the host's local timer kept the
+  // previous match's state.
+  if(!Number.isFinite(Number(onlineGame.discussionDeadlineAt)) || Number(onlineGame.discussionDeadlineAt)<=0){
+    onlineGame.discussionDeadlineAt=Number(onlineGame.discussionStartedAt||Date.now())+seconds*1000;
+  }
+  onlineDiscussionDeadlineAt=Number(onlineGame.discussionDeadlineAt);
   const existing=document.getElementById("voiceDiscussionTimer");
   if(!existing){
     actionPanel.innerHTML=`<div class="voice-discussion-state"><div class="voice-timer" id="voiceDiscussionTimer">--:--</div><p>ボイスチャットで自由に議論してください。</p><span>時間になると自動的に投票へ進みます。</span>${onlineHost?'<button class="secondary-button compact discussion-force-end" id="discussionForceEndButton" type="button">議論を強制終了</button>':''}</div>`;
     const force=document.getElementById("discussionForceEndButton");
     if(force) force.addEventListener("click",()=>hostForceEndDiscussion());
   }
-  // Do not recreate the interval on every Firebase snapshot. In particular,
-  // the host also calls hostStartVoiceDiscussionTimer() after the first render;
-  // clearing this interval there used to make the host timer appear frozen.
   const updateTimer=()=>{
     if(!onlineGame||onlineGame.phase!=="discussion"){
       clearInterval(onlineDiscussionTimer);
       onlineDiscussionTimer=null;
       return;
     }
-    const started=Number(onlineGame.discussionStartedAt||Date.now());
-    const left=Math.max(0,Math.ceil((started+seconds*1000-Date.now())/1000));
+    const deadline=Number(onlineGame.discussionDeadlineAt||onlineDiscussionDeadlineAt||Date.now()+seconds*1000);
+    onlineDiscussionDeadlineAt=deadline;
+    const left=Math.max(0,Math.ceil((deadline-Date.now())/1000));
     const timerEl=document.getElementById("voiceDiscussionTimer");
     if(timerEl){const m=Math.floor(left/60),sec=String(left%60).padStart(2,"0");timerEl.textContent=`${m}:${sec}`;}
     if(left<=0 && onlineHost){
@@ -473,8 +479,9 @@ function renderOnlineDiscussion(){
 
 async function hostEndDiscussion(){
   if(!onlineHost||!onlineGame||onlineGame.phase!=="discussion")return;
-  clearInterval(onlineDiscussionTimer);onlineDiscussionTimer=null;clearTimeout(onlineCpuTimer);onlineCpuTimer=null;
-  onlineGame.phase="vote";onlineGame.orderIndex=0;onlineGame.discussionStartedAt=null;
+  clearInterval(onlineDiscussionTimer);onlineDiscussionTimer=null;
+  clearTimeout(onlineCpuTimer);onlineCpuTimer=null;
+  onlineGame.phase="vote";onlineGame.orderIndex=0;onlineGame.discussionStartedAt=null;onlineGame.discussionDeadlineAt=null;
   await hostAssignCpuVotes();
   await hostWriteGame();
   renderOnlineGame();
@@ -488,12 +495,13 @@ async function hostForceEndDiscussion(){
 function hostStartVoiceDiscussionTimer(){
   clearTimeout(onlineCpuTimer);
   if(!onlineHost||!onlineGame||onlineGame.phase!=="discussion")return;
-  const started=Number(onlineGame.discussionStartedAt||Date.now());
-  const duration=Math.max(60,Number(onlineGame.settings?.discussionSeconds||120))*1000;
-  const delay=Math.max(0,started+duration-Date.now());
-  // The visual countdown is owned by renderOnlineDiscussion(). This timeout is
-  // only the host-side safety transition into voting. Never clear the visual
-  // interval here.
+  const seconds=Math.max(60,Number(onlineGame.settings?.discussionSeconds||120));
+  const deadline=Number(onlineGame.discussionDeadlineAt)||Number(onlineGame.discussionStartedAt||Date.now())+seconds*1000;
+  onlineGame.discussionDeadlineAt=deadline;
+  onlineDiscussionDeadlineAt=deadline;
+  const delay=Math.max(0,deadline-Date.now());
+  // This timeout is only the host-side authoritative fallback. The visible
+  // countdown is maintained independently by renderOnlineDiscussion().
   onlineCpuTimer=setTimeout(async()=>{
     if(!onlineHost||!onlineGame||onlineGame.phase!=="discussion")return;
     await hostEndDiscussion();
@@ -570,7 +578,7 @@ async function submitOnlineAction(action){
     // Each client gets its own immutable action entry. The host acknowledges
     // acceptance/rejection separately so a client never remains stuck in a
     // fake "waiting" state when the host rejects a stale action.
-    await set(actionRef,{...action,uid:firebaseUid,actionId,clientVersion:"v48",createdAt:Date.now()});
+    await set(actionRef,{...action,uid:firebaseUid,actionId,clientVersion:"v49",createdAt:Date.now()});
     return await new Promise((resolve)=>{
       let settled=false;
       const finish=(ok)=>{if(settled)return;settled=true;off(resultRef,"value",listener);onlineActionPromises.delete(actionId);resolve(Boolean(ok));};
@@ -846,7 +854,9 @@ async function startOnlineHostGame(){
   onlineHostProcessing=false;
   onlineHostSecrets={cards,wolves,lies,wolfUid,citizenCard,wolfCard};
   onlineMyCard=cards[firebaseUid]||null;onlineScoreRecorded=false;
-  onlineGame={phase:room.settings?.voiceMode?"discussion":"clue",round:1,order,orderIndex:0,discussionStartedAt:room.settings?.voiceMode?Date.now():null,usedClueIds:[],logs:[],settings:room.settings||onlineSettings(),players:publicPlayers,tallies:null,eliminatedId:null,result:null,reveal:null,reverseGuess:null};
+  const matchStartedAt=Date.now();
+  const discussionSeconds=Math.max(60,Number(room.settings?.discussionSeconds||120));
+  onlineGame={phase:room.settings?.voiceMode?"discussion":"clue",round:1,order,orderIndex:0,discussionStartedAt:room.settings?.voiceMode?matchStartedAt:null,discussionDeadlineAt:room.settings?.voiceMode?matchStartedAt+discussionSeconds*1000:null,usedClueIds:[],logs:[],settings:room.settings||onlineSettings(),players:publicPlayers,tallies:null,eliminatedId:null,result:null,reveal:null,reverseGuess:null};
   for(const p of humans)await set(ref(firebaseDb,`rooms/${onlineRoomCodeValue}/privateCards/${p.uid}`),{cardName:cards[p.uid].name});
   // Remove old per-match actions/acknowledgements so a replay can never be
   // affected by a click that belonged to the previous game.
@@ -880,13 +890,14 @@ leaveRoomButton.addEventListener("click",async(e)=>{
   if(!confirm("このオンライン対戦の部屋から退出しますか？"))return;
   await leaveOnlineRoom({returnToSetup:true});
 });
+// Do not leave an online room when the user clicks the dialog backdrop or
+// presses Escape. Those are easy accidental interactions, especially on
+// mobile. Leaving the room is an explicit action via the close/leave buttons.
 onlineDialog.addEventListener("click",e=>{
-  if(e.target===onlineDialog && onlineRoomCodeValue){
-    leaveOnlineRoom({returnToSetup:true}).catch(err=>console.warn("online backdrop leave failed",err));
-  }
+  if(e.target===onlineDialog) e.preventDefault();
 });
 onlineDialog.addEventListener("cancel",e=>{
-  if(onlineRoomCodeValue){e.preventDefault();leaveOnlineRoom({returnToSetup:true}).catch(err=>console.warn("online cancel leave failed",err));}
+  if(onlineRoomCodeValue) e.preventDefault();
 });
 onlineStartButton.addEventListener("click",startOnlineHostGame);
 onlineCpuCount.addEventListener("change",()=>{if(onlineHost&&onlineRoomCodeValue){update(ref(firebaseDb,`rooms/${onlineRoomCodeValue}`),{cpuWanted:Number(onlineCpuCount.value||0)});}});

@@ -2115,3 +2115,25 @@ button:not(:disabled) { cursor:pointer; }
     gap:8px;
   }
 }
+
+
+/* v49: online room safety, close-button visibility, and replay timer polish */
+.online-dialog .dialog-close{
+  z-index:20!important;
+  width:42px!important;
+  height:42px!important;
+  top:12px!important;
+  right:12px!important;
+  border:2px solid #17243a!important;
+  border-radius:50%!important;
+  background:#fffdf6!important;
+  color:#111827!important;
+  font-size:1.35rem!important;
+  font-weight:900!important;
+  line-height:1!important;
+  box-shadow:0 3px 10px rgba(0,0,0,.22)!important;
+  opacity:1!important;
+}
+.online-dialog .dialog-close:hover{background:#f3e8c8!important;transform:scale(1.03);}
+.online-dialog .dialog-close:focus-visible{outline:3px solid #d9b45b!important;outline-offset:2px;}
+.online-dialog{overscroll-behavior:contain;}
