@@ -1,8 +1,8 @@
-/* CardWolf build v56 */
+/* CardWolf build v57 */
 const firebaseConfig = window.FIREBASE_CONFIG || {};
-if (window.CARDWOLF_BUILD_VERSION !== "v56") { window.CARDWOLF_BUILD_VERSION = "v56"; }
+if (window.CARDWOLF_BUILD_VERSION !== "v57") { window.CARDWOLF_BUILD_VERSION = "v57"; }
 const versionEl = document.querySelector(".build-version");
-if (versionEl) { versionEl.textContent = "v56"; versionEl.setAttribute("aria-label", "ゲームバージョン v56"); }
+if (versionEl) { versionEl.textContent = "v57"; versionEl.setAttribute("aria-label", "ゲームバージョン v57"); }
 
 // Firebase is loaded lazily so a CDN/auth/database problem can never disable
 // the basic game UI. The solo/setup buttons must remain usable even when the
@@ -634,7 +634,7 @@ async function submitOnlineAction(action){
     // Each client gets its own immutable action entry. The host acknowledges
     // acceptance/rejection separately so a client never remains stuck in a
     // fake "waiting" state when the host rejects a stale action.
-    await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v56",createdAt:Date.now()});
+    await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v57",createdAt:Date.now()});
     return await new Promise((resolve)=>{
       let settled=false;
       const finish=(ok)=>{if(settled)return;settled=true;off(resultRef,"value",listener);onlineActionPromises.delete(actionId);resolve(Boolean(ok));};
@@ -944,12 +944,26 @@ async function startOnlineHostGame(){
   renderOnlineGame();
   if(isVoice) hostStartVoiceDiscussionTimer(); else hostMaybeCpuTurn();
 
-  // Write private cards first, then publish the new public match atomically
-  // from the room's point of view. Old queued actions are rejected by matchId.
-  await Promise.all(humans.map(p=>set(ref(firebaseDb,`rooms/${onlineRoomCodeValue}/privateCards/${p.uid}`),{cardName:cards[p.uid].name})));
-  await remove(ref(firebaseDb,`rooms/${onlineRoomCodeValue}/actions`)).catch(()=>{});
-  await remove(ref(firebaseDb,`rooms/${onlineRoomCodeValue}/actionResults`)).catch(()=>{});
-  await update(onlineRoomRef(),{status:"playing",game:onlineSnapshot()});
+  // Publish the NEW public game state before doing any cleanup.
+  // The old implementation removed action queues first; if Firebase rejected
+  // either removal, execution stopped after private cards had already changed.
+  // That produced the exact bug where the card changed but the old result
+  // screen and missing timer remained. The new match is now written first, and
+  // cleanup is best-effort afterwards.
+  try{
+    await Promise.all(humans.map(p=>set(ref(firebaseDb,`rooms/${onlineRoomCodeValue}/privateCards/${p.uid}`),{cardName:cards[p.uid].name})));
+    await update(onlineRoomRef(),{status:"playing",game:onlineSnapshot()});
+  }catch(e){
+    console.error("online replay publish failed",e);
+    alert("新しいゲームを開始できませんでした。Firebaseとの通信を確認して、もう一度お試しください。\n\n"+(e?.message||e));
+    return;
+  }
+
+  // Old actions/results are no longer needed. Never let cleanup failure block
+  // the new game because every action also carries matchId and is rejected if
+  // it belongs to an earlier match.
+  await remove(ref(firebaseDb,`rooms/${onlineRoomCodeValue}/actions`)).catch(e=>console.warn("old action cleanup skipped",e));
+  await remove(ref(firebaseDb,`rooms/${onlineRoomCodeValue}/actionResults`)).catch(e=>console.warn("old action result cleanup skipped",e));
 
   // Echo/render once more after the room write. This also repairs any visual
   // state that a slow browser may have retained from the previous result.

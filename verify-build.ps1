@@ -1,12 +1,12 @@
 $ErrorActionPreference = 'Stop'
-$expected = 'v56'
+$expected = 'v57'
 $checks = @(
   @{File='BUILD_VERSION.txt'; Pattern=$expected},
-  @{File='version.json'; Pattern='"version": "v56"'},
-  @{File='index.html'; Pattern='v56'},
-  @{File='app.js'; Pattern='CardWolf build v56'},
-  @{File='app.js'; Pattern='clientVersion:"v56"'},
-  @{File='version-check.js'; Pattern='const expected = "v56"'}
+  @{File='version.json'; Pattern='"version": "v57"'},
+  @{File='index.html'; Pattern='v57'},
+  @{File='app.js'; Pattern='CardWolf build v57'},
+  @{File='app.js'; Pattern='clientVersion:"v57"'},
+  @{File='version-check.js'; Pattern='const expected = "v57"'}
 )
 foreach ($c in $checks) {
   $text = Get-Content $c.File -Raw
