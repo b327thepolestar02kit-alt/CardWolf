@@ -211,6 +211,8 @@ let onlineLastActionId="";
 const onlineProcessedActionIds=new Set();
 let onlineScoreRecorded=false;
 let onlinePendingAction=null;
+let onlineHostActionQueue=Promise.resolve();
+let onlineHostProcessing=false;
 
 function setMode(isOnline){
   onlineMode=Boolean(isOnline);
@@ -314,6 +316,10 @@ function openOnlineLobby(){
     if(!data){onlineLobbyStatus.textContent="ルームが終了しました";return;}
     renderOnlineLobby(data);
     if(data.status==="playing" && data.game){
+      // The host is authoritative while applying an action. Do not let the
+      // room listener replace its in-memory state halfway through a turn.
+      // Otherwise a second human clue can be rendered from a stale snapshot.
+      if(onlineHost && onlineHostProcessing)return;
       onlineGame={...data.game, usedClueIds:Array.isArray(data.game.usedClueIds)?data.game.usedClueIds:[], logs:Array.isArray(data.game.logs)?data.game.logs:[], players:Array.isArray(data.game.players)?data.game.players:[], settings:data.game.settings||onlineSettings(), order:Array.isArray(data.game.order)?data.game.order:[], orderIndex:Number.isFinite(data.game.orderIndex)?data.game.orderIndex:0};
       loadOnlineOwnCard(data).then(()=>renderOnlineGame());
       onlineDialog.close();
@@ -396,16 +402,21 @@ function renderOnlineLog(){
   logCount.textContent=`${(onlineGame.logs||[]).length} 件`;
   talkLog.innerHTML=(onlineGame.logs||[]).length?(onlineGame.logs||[]).map((e,i)=>`<article class="log-entry ${e.type||""}"><span>${String(i+1).padStart(2,"0")}</span><strong>${escapeHtml(e.name||"")}</strong><p>${escapeHtml(e.text||"")}</p></article>`).join(""):`<p class="empty-log">発言が始まると、ここに記録されます。</p>`;
 }
-function onlineSubmitClue(id){
+async function onlineSubmitClue(id){
   if(onlineGame.phase!=="clue"||String(onlineCurrentId())!==String(firebaseUid))return;
   const card=onlineMyCard;if(!card)return;
+  if(onlinePendingAction)return;
   const me=onlinePlayerById(firebaseUid), opts=onlineFeatureOptions(card,onlineGame.usedClueIds,me?.clues);
   const usedIds=Array.isArray(onlineGame.usedClueIds)?onlineGame.usedClueIds:[];
   onlineGame.usedClueIds=usedIds;
-  const st=opts.find(s=>s.id===id);if(!st||usedIds.includes(st.id))return;
-  submitOnlineAction({type:"clue",clueId:id,round:onlineGame.round,orderIndex:onlineGame.orderIndex,at:Date.now()});
+  const st=opts.find(s=>String(s.id)===String(id));if(!st||usedIds.includes(st.id))return;
+  onlinePendingAction={type:"clue",clueId:String(id)};
+  actionPanel.querySelectorAll("[data-online-clue]").forEach(b=>b.disabled=true);
+  const ok=await submitOnlineAction({type:"clue",clueId:st.id,round:onlineGame.round,orderIndex:onlineGame.orderIndex,at:Date.now()});
+  if(!ok){onlinePendingAction=null;renderOnlineClue();}
 }
 function renderOnlineClue(){
+  if(onlinePendingAction?.type==="clue" && String(onlineCurrentId())!==String(firebaseUid)) onlinePendingAction=null;
   const current=onlinePlayerById(onlineCurrentId()), roundLabel=onlineGame.round===1?"第1ラウンド":"第2ラウンド（逆順）";
   phaseLabel.textContent=`PHASE ${onlineGame.round} / ${roundLabel}・特徴を話す`;
   phaseTitle.textContent=String(onlineCurrentId())===String(firebaseUid)?"あなたの特徴を話そう":`${current?.name||"プレイヤー"}の発言を聞こう`;
@@ -470,7 +481,7 @@ async function submitOnlineAction(action){
     // Keep a per-player action queue instead of overwriting one shared action key.
     // This prevents the first clue from being lost when the host listener and
     // Firebase value events happen at nearly the same time.
-    await set(ref(firebaseDb,`rooms/${onlineRoomCodeValue}/actions/${firebaseUid}/${actionId}`),{...action,uid:firebaseUid,actionId,clientVersion:"v40"});
+    await set(ref(firebaseDb,`rooms/${onlineRoomCodeValue}/actions/${firebaseUid}/${actionId}`),{...action,uid:firebaseUid,actionId,clientVersion:"v41"});
     return true;
   }catch(e){
     console.error("online action failed",e);
@@ -651,8 +662,9 @@ async function hostProcessAction(action){
 }
 function attachOnlineHostActionListener(){
   if(onlineActionUnsubscribe||!onlineRoomCodeValue)return;
-  onlineActionUnsubscribe=onValue(ref(firebaseDb,`rooms/${onlineRoomCodeValue}/actions`),async snap=>{
+  onlineActionUnsubscribe=onValue(ref(firebaseDb,`rooms/${onlineRoomCodeValue}/actions`),snap=>{
     const data=snap.val()||{};
+    const pending=[];
     for(const [uid,queue] of Object.entries(data)){
       if(!queue||typeof queue!=='object')continue;
       for(const [actionId,action] of Object.entries(queue)){
@@ -660,12 +672,27 @@ function attachOnlineHostActionListener(){
         if(actionId===onlineLastActionId || onlineProcessedActionIds.has(actionId))continue;
         onlineLastActionId=actionId;
         onlineProcessedActionIds.add(actionId);
-        try{
-          await hostProcessAction(action);
-        }finally{
-          await remove(ref(firebaseDb,`rooms/${onlineRoomCodeValue}/actions/${uid}/${actionId}`)).catch(()=>{});
-        }
+        pending.push({uid,actionId,action});
       }
+    }
+    if(!pending.length)return;
+    // Serialize host actions. Firebase can deliver a new snapshot while the
+    // previous action is still awaiting a write; processing both concurrently
+    // can make the second human's clue look like a stale/out-of-turn action.
+    for(const item of pending){
+      onlineHostActionQueue=onlineHostActionQueue.then(async()=>{
+        onlineHostProcessing=true;
+        try{
+          await hostProcessAction(item.action);
+        }catch(e){
+          console.error("online host action failed",e);
+        }finally{
+          try{await remove(ref(firebaseDb,`rooms/${onlineRoomCodeValue}/actions/${item.uid}/${item.actionId}`));}catch(e){
+            console.warn("online action cleanup failed",e);
+          }
+          onlineHostProcessing=false;
+        }
+      });
     }
   });
 }
@@ -735,4 +762,4 @@ window.addEventListener("error", function(e){
   }
 });
 
-/* v34: reliable online action queue, exit handling, and lobby contrast. */
+/* v41: serialize host actions and stabilize second-human clue submission. */

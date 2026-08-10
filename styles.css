@@ -1954,7 +1954,7 @@ button:not(:disabled) { cursor:pointer; }
 .online-dialog .join-room-row input{color:#111827!important;background:#fffdf6!important}
 
 
-/* v40: stabilize online action panel during Firebase state updates */
+/* v41: stabilize online action panel during Firebase state updates */
 .action-panel {
   min-height: 360px;
 }
