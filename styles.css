@@ -1952,3 +1952,31 @@ button:not(:disabled) { cursor:pointer; }
 .online-dialog .online-leave-button{color:#8b1e2d!important;background:#fff4f4!important;border:1px solid rgba(139,30,45,.25)!important;border-radius:6px!important;padding:8px 14px!important;cursor:pointer!important;opacity:1!important}
 .online-dialog .online-leave-button:hover{background:#ffe5e5!important}
 .online-dialog .join-room-row input{color:#111827!important;background:#fffdf6!important}
+
+
+/* v40: stabilize online action panel during Firebase state updates */
+.action-panel {
+  min-height: 360px;
+}
+.action-panel .choice-list,
+.action-panel .vote-grid {
+  min-height: 238px;
+  align-content: start;
+}
+.action-panel .choice-button,
+.action-panel .vote-button {
+  min-height: 48px;
+  transform: translateZ(0);
+}
+.action-panel .choice-button:active,
+.action-panel .vote-button:active {
+  transform: translateZ(0);
+}
+.online-action-wait {
+  min-height: 230px;
+}
+@media (max-width: 700px) {
+  .action-panel { min-height: 330px; }
+  .action-panel .choice-list,
+  .action-panel .vote-grid { min-height: 210px; }
+}

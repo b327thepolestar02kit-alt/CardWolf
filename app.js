@@ -210,6 +210,7 @@ let onlineCpuTimer=null;
 let onlineLastActionId="";
 const onlineProcessedActionIds=new Set();
 let onlineScoreRecorded=false;
+let onlinePendingAction=null;
 
 function setMode(isOnline){
   onlineMode=Boolean(isOnline);
@@ -348,7 +349,7 @@ async function leaveOnlineRoom(options={}){
       }
     }
   }catch(e){console.warn("online leave failed",e);}
-  onlineRoomCodeValue="";onlineHost=false;onlineGame=null;onlineMyCard=null;onlineHostSecrets=null;onlineLastActionId=null;
+  onlineRoomCodeValue="";onlineHost=false;onlineGame=null;onlineMyCard=null;onlineHostSecrets=null;onlineLastActionId=null;onlinePendingAction=null;
   onlineLobby.hidden=true;createRoomButton.hidden=false;joinRoomButton.hidden=false;roomCodeInput.hidden=false;
   try{onlineDialog.close();}catch{};onlineDialog.removeAttribute("open");
   if(options.returnToSetup) returnToSetup();
@@ -418,12 +419,23 @@ function renderOnlineClue(){
 function renderOnlineVote(){
   phaseLabel.textContent="PHASE / 狼に投票する";phaseTitle.textContent="違うカードの人は誰？";
   const me=onlinePlayerById(firebaseUid);
-  if(me?.vote){
-    actionPanel.innerHTML=`<div class="thinking-state"><span class="thinking-card" aria-hidden="true">✓</span><div><p>VOTE SENT</p><h2>投票しました</h2><span>他のプレイヤーの投票を待っています…</span></div></div>`;return;
+  const hasVote=me?.vote!==null&&me?.vote!==undefined&&String(me.vote)!=="";
+  if(hasVote || onlinePendingAction?.type==="vote"){
+    actionPanel.innerHTML=`<div class="thinking-state online-action-wait"><span class="thinking-card" aria-hidden="true">✓</span><div><p>VOTE SENT</p><h2>投票しました</h2><span>${hasVote?"他のプレイヤーの投票を待っています…":"投票を送信しています…"}</span></div></div>`;
+    if(hasVote) onlinePendingAction=null;
+    return;
   }
   const candidates=onlineGame.players.filter(p=>String(p.id)!==String(firebaseUid));
   actionPanel.innerHTML=`<div class="action-heading"><p>VOTING TIME</p><h2>狼だと思う人を選ぶ</h2><span>全員の発言を振り返って、ひとりに投票してください。</span></div><div class="vote-grid">${candidates.map(p=>`<button class="vote-button" type="button" data-online-vote="${escapeHtml(String(p.id))}"><span class="mini-avatar">P</span><span><strong>${escapeHtml(p.name)}</strong><small>${(p.clues||[]).map(c=>`「${escapeHtml(c.label)}」`).join(" / ")}</small></span></button>`).join("")}</div>`;
-  actionPanel.querySelectorAll("[data-online-vote]").forEach(b=>b.addEventListener("click",()=>submitOnlineAction({type:"vote",voteId:b.dataset.onlineVote,at:Date.now()})));
+  actionPanel.querySelectorAll("[data-online-vote]").forEach(b=>b.addEventListener("click",async()=>{
+    if(onlinePendingAction)return;
+    const voteId=String(b.dataset.onlineVote);
+    actionPanel.querySelectorAll("[data-online-vote]").forEach(x=>x.disabled=true);
+    onlinePendingAction={type:"vote",voteId};
+    renderOnlineVote();
+    const ok=await submitOnlineAction({type:"vote",voteId,round:onlineGame.round,at:Date.now()});
+    if(!ok){onlinePendingAction=null;renderOnlineVote();}
+  }));
 }
 function renderOnlineReverse(){
   const wolfId=onlineGame.reveal?.wolfId||onlineGame.wolfUid||onlineGame.eliminatedId;
@@ -458,7 +470,7 @@ async function submitOnlineAction(action){
     // Keep a per-player action queue instead of overwriting one shared action key.
     // This prevents the first clue from being lost when the host listener and
     // Firebase value events happen at nearly the same time.
-    await set(ref(firebaseDb,`rooms/${onlineRoomCodeValue}/actions/${firebaseUid}/${actionId}`),{...action,uid:firebaseUid,actionId,clientVersion:"v39"});
+    await set(ref(firebaseDb,`rooms/${onlineRoomCodeValue}/actions/${firebaseUid}/${actionId}`),{...action,uid:firebaseUid,actionId,clientVersion:"v40"});
     return true;
   }catch(e){
     console.error("online action failed",e);
@@ -574,9 +586,13 @@ async function hostMaybeCpuTurn(){
   },700);
 }
 async function hostEvaluateVotes(){
+  if(!onlineHost||!onlineGame||onlineGame.phase!=="vote")return;
   const humanCount=onlineGame.players.filter(p=>p.isHuman).length;
-  const voted=onlineGame.players.filter(p=>p.isHuman&&p.vote).length;
-  if(voted<humanCount)return;
+  const voted=onlineGame.players.filter(p=>p.isHuman&&p.vote!==null&&p.vote!==undefined&&String(p.vote)!=="").length;
+  if(voted<humanCount){
+    await hostWriteGame();
+    return;
+  }
   const tallies=Object.fromEntries(onlineGame.players.map(p=>[p.id,0]));
   onlineGame.players.forEach(p=>{if(p.vote&&tallies[p.vote]!=null)tallies[p.vote]++;});
   onlineGame.tallies=tallies;
@@ -619,8 +635,16 @@ async function hostProcessAction(action){
   if(!onlineHost||!onlineGame||!action)return;
   if(action.type==="clue"){await hostApplyClue(action.uid,action.clueId,action);}
   else if(action.type==="vote"&&onlineGame.phase==="vote"){
-    const p=onlinePlayerById(action.uid);if(!p||!p.isHuman)return;
-    if(onlineGame.players.some(x=>String(x.id)===String(action.voteId))&&String(action.voteId)!==String(action.uid)){p.vote=String(action.voteId);await hostEvaluateVotes();if(onlineGame.phase==="vote")await hostWriteGame();}
+    const p=onlinePlayerById(action.uid);
+    if(!p||!p.isHuman)return;
+    if(Number.isFinite(Number(action.round)) && Number(action.round)!==Number(onlineGame.round))return;
+    const voteId=String(action.voteId??"");
+    const validTarget=onlineGame.players.some(x=>String(x.id)===voteId);
+    if(validTarget&&voteId!==String(action.uid)){
+      p.vote=voteId;
+      await hostEvaluateVotes();
+      if(onlineGame.phase==="vote") await hostWriteGame();
+    }
   }else if(action.type==="reverse"&&onlineGame.phase==="reverse"&&String(action.uid)===String(onlineHostSecrets.wolfUid)){
     const guess=CARD_POOL.find(c=>c.name===action.guess);if(guess)await hostFinishResult(guess.name);
   }
