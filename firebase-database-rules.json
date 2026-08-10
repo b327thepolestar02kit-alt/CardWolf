@@ -11,7 +11,10 @@
         },
         "actions": {
           "$uid": {
-            ".write": "auth != null && (auth.uid == $uid || auth.uid == root.child('rooms').child($roomId).child('hostUid').val())"
+            ".write": "auth != null && auth.uid == $uid && root.child('rooms').child($roomId).child('players').child(auth.uid).exists()",
+            "$actionId": {
+              ".validate": "newData.child('uid').val() == auth.uid && newData.child('actionId').val() == $actionId"
+            }
           }
         },
         "privateCards": {

@@ -458,7 +458,7 @@ async function submitOnlineAction(action){
     // Keep a per-player action queue instead of overwriting one shared action key.
     // This prevents the first clue from being lost when the host listener and
     // Firebase value events happen at nearly the same time.
-    await set(ref(firebaseDb,`rooms/${onlineRoomCodeValue}/actions/${firebaseUid}/${actionId}`),{...action,uid:firebaseUid,actionId});
+    await set(ref(firebaseDb,`rooms/${onlineRoomCodeValue}/actions/${firebaseUid}/${actionId}`),{...action,uid:firebaseUid,actionId,clientVersion:"v39"});
     return true;
   }catch(e){
     console.error("online action failed",e);

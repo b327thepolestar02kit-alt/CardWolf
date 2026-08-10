@@ -25,3 +25,6 @@ Important:
 
 v35: Online CPU turn watchdog, awaited turn advancement, and startup listener ordering fix.
 v36: Fixed online clue buttons crashing when usedClueIds was missing from a room snapshot; normalized online game state and added safer action submission.
+
+
+v39: Fixed online action permission handling by explicitly validating per-player action queues, added client-version tagging, and cache-busted app.js so GitHub Pages loads the new build.
