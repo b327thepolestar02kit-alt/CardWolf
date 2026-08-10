@@ -1913,3 +1913,24 @@ button:not(:disabled) { cursor:pointer; }
   outline:3px solid #f0d98b !important;
   outline-offset:3px;
 }
+
+
+/* v28: reliable mode switching, reset behavior, and dialog readability */
+.hero-catch{display:inline-flex!important;flex-direction:column!important;white-space:nowrap!important;line-height:.92!important}
+.catch-line-one,.catch-line-two{display:block!important;white-space:nowrap!important}
+.mode-button{color:#f7f9ff!important;background:#101a2b!important}
+.mode-button strong{color:#ffffff!important}
+.mode-button span{color:#dfe8f5!important}
+.mode-button.is-selected{background:linear-gradient(135deg,#d9b45b,#f0d98b)!important;color:#111827!important}
+.mode-button.is-selected strong{color:#111827!important}
+.mode-button.is-selected span{color:#263247!important}
+.rules-dialog,.pool-dialog,.online-dialog{color:#f2f6fb!important}
+.rules-dialog .dialog-note,.pool-dialog .dialog-note{color:#f2f6fb!important;background:#17243a!important}
+.rules-dialog li p{color:#f0f4fa!important}
+.rules-dialog li p strong{color:#ffffff!important}
+.pool-dialog .pool-card small,.pool-dialog .pool-card .card-name-jp{color:#ffffff!important}
+.pool-dialog .pool-card .card-name-en{color:#dbe5f2!important}
+.pool-dialog .pool-card .card-info-ja{color:#e3eaf3!important}
+.pool-dialog .pool-card .card-stats{color:#ffe08a!important}
+.online-dialog .dialog-note,.online-dialog .online-lobby-head span,.online-dialog .online-cpu-setting label span{color:#263247!important}
+@media(max-width:700px){.hero-catch{font-size:clamp(2.8rem,15vw,5rem)!important}}

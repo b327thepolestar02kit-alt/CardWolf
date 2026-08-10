@@ -1,6 +1,6 @@
-Yu-Gi-Oh Card Wolf v27
+Yu-Gi-Oh Card Wolf v28
 
-v27 changes:
+v28 changes:
 - Added an online multiplayer mode using Firebase Realtime Database.
 - Added a lobby with a 4-character room code.
 - Same URL + room code lets friends join the same game.
@@ -11,7 +11,7 @@ v27 changes:
 - Solo mode remains available.
 - Added Firebase Anonymous Authentication requirement.
 - Added firebase-config.js and firebase-database-rules.json.
-- Version label updated to v27.
+- Version label updated to v28.
 
 Important:
 1. In Firebase Console, enable Authentication > Sign-in method > Anonymous.

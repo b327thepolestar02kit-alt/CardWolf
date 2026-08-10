@@ -128,13 +128,16 @@ function submitCpuGuess(){
 function finishReverseGuess(guess){game.reverseGuess=guess;const correct=guess&&guess.name===game.citizenCard.name;game.result=correct?"wolf-reversal":"citizen";game.logs.push({type:"system",name:"逆転宣言",text:`狼は「${guess?jpName(guess):"不明"}」と宣言しました。`});game.phase="result";renderGame();}
 function recordFinishedGame(){if(!game||game.recorded)return;const wolfWon=game.result==="wolf"||game.result==="wolf-reversal";if(game.players[0].isWolf===wolfWon)matchRecord.wins++;else matchRecord.losses++;game.recorded=true;renderRecord();}
 function renderResultPhase(){recordFinishedGame();phaseLabel.textContent="GAME OVER / 答え合わせ";const wolfWon=game.result==="wolf"||game.result==="wolf-reversal";phaseTitle.textContent=wolfWon?"狼チームの勝利":"市民チームの勝利";const msg={wolf:"選ばれたプレイヤーは市民でした。狼は正体を隠し切りました。","wolf-reversal":`狼が市民カード「${jpName(game.citizenCard)}」を見事に当て、逆転しました。`,citizen:`狼の宣言は「${game.reverseGuess?jpName(game.reverseGuess):"不明"}」。正解は「${jpName(game.citizenCard)}」でした。`}[game.result];actionPanel.innerHTML=`<div class="result-banner ${wolfWon?"wolf-win":"citizen-win"}"><p>${wolfWon?"狼チームの勝利":"市民チームの勝利"}</p><h2>${wolfWon?"狼の勝利":"市民の勝利"}</h2><span>${msg}</span></div><div class="answer-cards"><div><small>市民カード</small><img class="ygo-thumb" src="${cardImage(game.citizenCard)}"><strong>${jpName(game.citizenCard)}</strong><em>${cardInfo(game.citizenCard)}${cardStats(game.citizenCard)?" · "+cardStats(game.citizenCard):""}</em></div><div><small>狼カード</small><img class="ygo-thumb" src="${cardImage(game.wolfCard)}"><strong>${jpName(game.wolfCard)}</strong><em>${cardInfo(game.wolfCard)}${cardStats(game.wolfCard)?" · "+cardStats(game.wolfCard):""}</em></div></div><button class="primary-button compact" id="playAgainButton" type="button"><span>もう一度遊ぶ</span><span>↻</span></button>`;document.getElementById("playAgainButton").addEventListener("click",startGame);}
-async function returnToSetup(){
+function returnToSetup(){
   clearTimeout(cpuTimer);
   clearTimeout(onlineCpuTimer);
-  try{
-    if(onlineRoomCodeValue) await leaveOnlineRoom();
-    else { try{onlineDialog.close();}catch{} }
-  }catch(e){console.warn("returnToSetup cleanup failed",e);}
+  // Do not wait for Firebase here. The setup screen must return immediately
+  // even if the network is slow or Firebase is temporarily unavailable.
+  if(onlineRoomCodeValue){
+    leaveOnlineRoom().catch(e=>console.warn("online cleanup failed",e));
+  }else{
+    try{onlineDialog.close();}catch{}
+  }
   onlineMode=false;
   window.cardWolfOnlineMode=false;
   soloModeButton.classList.add("is-selected");
@@ -184,11 +187,17 @@ function setMode(isOnline){
   onlineModeButton.setAttribute("aria-pressed",String(onlineMode));
   playerCountNote.textContent=onlineMode?"オンラインは最大4人。3人未満ならCPUを自動追加します。":"3〜8人でプレイできます";
   if(onlineMode){
-    if(!onlineDialog.open){
-      try{onlineDialog.showModal();}catch(e){console.error("online dialog open failed",e);}
+    // Open the lobby immediately. Use a non-modal fallback as a safety net
+    // so the button never appears to do nothing on a browser/runtime issue.
+    try{
+      if(!onlineDialog.open) onlineDialog.showModal();
+    }catch(e){
+      console.warn("showModal failed; using open fallback",e);
+      onlineDialog.setAttribute("open","");
     }
   } else {
     try{onlineDialog.close();}catch{}
+    onlineDialog.removeAttribute("open");
   }
 }
 function onlineRoomRef(){return ref(firebaseDb,`rooms/${onlineRoomCodeValue}`);}
@@ -547,7 +556,11 @@ async function syncOnlinePrivateAndGame(data){
 }
 soloModeButton.addEventListener("click",()=>setMode(false));
 onlineModeButton.addEventListener("click",()=>setMode(true));
-closeOnlineButton.addEventListener("click",async()=>{ await leaveOnlineRoom(); try{onlineDialog.close();}catch{}; setMode(false); });
+closeOnlineButton.addEventListener("click",()=>{
+  try{onlineDialog.close();}catch{}
+  if(onlineRoomCodeValue) leaveOnlineRoom().catch(e=>console.warn("online leave failed",e));
+  setMode(false);
+});
 createRoomButton.addEventListener("click",createOnlineRoom);
 joinRoomButton.addEventListener("click",joinOnlineRoom);
 leaveRoomButton.addEventListener("click",leaveOnlineRoom);
