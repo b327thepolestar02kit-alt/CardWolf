@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
-import { getDatabase, ref, set, update, get, onValue, remove } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-database.js";
+import { getDatabase, ref, set, update, get, onValue, onChildAdded, remove, push } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-database.js";
 import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
 import { firebaseConfig } from "./firebase-config.js";
 
@@ -439,7 +439,16 @@ function renderOnlineGame(){
 }
 async function submitOnlineAction(action){
   if(!onlineRoomCodeValue||!firebaseUid)return;
-  await set(ref(firebaseDb,`rooms/${onlineRoomCodeValue}/actions/${firebaseUid}`),{...action,uid:firebaseUid,actionId:`${firebaseUid}-${Date.now()}`});
+  const actionRef=push(ref(firebaseDb,`rooms/${onlineRoomCodeValue}/actions`));
+  try{
+    await set(actionRef,{...action,uid:firebaseUid,actionId:`${firebaseUid}-${Date.now()}-${Math.random().toString(36).slice(2,8)}`});
+    if(action.type==="clue"){
+      actionPanel.querySelectorAll("[data-online-clue]").forEach(b=>b.disabled=true);
+    }
+  }catch(e){
+    console.error("Online action failed:",e);
+    alert(`操作を送信できませんでした。\n\n${e?.message||e}`);
+  }
 }
 function hostChooseCpuVote(voter){
   const candidates=onlineGame.players.filter(p=>String(p.id)!==String(voter.id));
@@ -552,13 +561,13 @@ async function hostProcessAction(action){
 }
 function attachOnlineHostActionListener(){
   if(onlineActionUnsubscribe||!onlineRoomCodeValue)return;
-  onlineActionUnsubscribe=onValue(ref(firebaseDb,`rooms/${onlineRoomCodeValue}/actions`),async snap=>{
-    const data=snap.val()||{};
-    for(const [uid,action] of Object.entries(data)){
-      if(action.actionId===onlineLastActionId)continue;
-      onlineLastActionId=action.actionId;
-      await remove(ref(firebaseDb,`rooms/${onlineRoomCodeValue}/actions/${uid}`));
+  onlineActionUnsubscribe=onChildAdded(ref(firebaseDb,`rooms/${onlineRoomCodeValue}/actions`),async snap=>{
+    const action=snap.val();
+    if(!action)return;
+    try{
       await hostProcessAction(action);
+    }finally{
+      try{await remove(snap.ref);}catch(e){console.warn("action cleanup failed:",e);}
     }
   });
 }
@@ -622,4 +631,4 @@ window.addEventListener("error", function(e){
   }
 });
 
-/* v31: Firebase config synchronized with the project Web App configuration. */
+/* v32: Firebase action queue and online lobby contrast fixes. */

@@ -1934,3 +1934,28 @@ button:not(:disabled) { cursor:pointer; }
 .pool-dialog .pool-card .card-stats{color:#ffe08a!important}
 .online-dialog .dialog-note,.online-dialog .online-lobby-head span,.online-dialog .online-cpu-setting label span{color:#263247!important}
 @media(max-width:700px){.hero-catch{font-size:clamp(2.8rem,15vw,5rem)!important}}
+
+
+/* v32: online lobby contrast + reliable action queue */
+.online-dialog .room-code-card span,
+.online-dialog .room-code-card small,
+.online-dialog .room-code-card strong,
+.online-dialog .online-lobby-head strong,
+.online-dialog .online-lobby-head span,
+.online-dialog .online-player-row strong,
+.online-dialog .online-player-row small,
+.online-dialog .online-cpu-setting label strong,
+.online-dialog .online-cpu-setting label span{
+  color:#172033 !important;
+  opacity:1 !important;
+}
+.online-dialog .room-code-card strong{
+  text-shadow:none;
+}
+.online-dialog .online-player-row{
+  color:#172033;
+}
+.online-dialog .online-cpu-setting select{
+  color:#172033 !important;
+  background:#fffdf6 !important;
+}
