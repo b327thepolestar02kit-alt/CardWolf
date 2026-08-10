@@ -1936,26 +1936,19 @@ button:not(:disabled) { cursor:pointer; }
 @media(max-width:700px){.hero-catch{font-size:clamp(2.8rem,15vw,5rem)!important}}
 
 
-/* v32: online lobby contrast + reliable action queue */
-.online-dialog .room-code-card span,
-.online-dialog .room-code-card small,
-.online-dialog .room-code-card strong,
-.online-dialog .online-lobby-head strong,
-.online-dialog .online-lobby-head span,
-.online-dialog .online-player-row strong,
-.online-dialog .online-player-row small,
-.online-dialog .online-cpu-setting label strong,
-.online-dialog .online-cpu-setting label span{
-  color:#172033 !important;
-  opacity:1 !important;
-}
-.online-dialog .room-code-card strong{
-  text-shadow:none;
-}
-.online-dialog .online-player-row{
-  color:#172033;
-}
-.online-dialog .online-cpu-setting select{
-  color:#172033 !important;
-  background:#fffdf6 !important;
-}
+/* v33: online lobby contrast and reliable exit controls */
+.online-dialog .dialog-note{color:#17243a!important;background:#fffdf6!important;border:1px solid rgba(23,36,58,.16)!important;padding:12px 14px!important;border-radius:8px!important;opacity:1!important}
+.online-dialog .room-code-card{color:#17243a!important;background:#fff8df!important}
+.online-dialog .room-code-card span,.online-dialog .room-code-card small{color:#263247!important;opacity:1!important}
+.online-dialog .room-code-card strong{color:#111827!important;text-shadow:none!important}
+.online-dialog .online-lobby-head strong,.online-dialog .online-lobby-head span{color:#17243a!important;opacity:1!important}
+.online-dialog .online-player-row{background:#fffdf6!important;color:#17243a!important}
+.online-dialog .online-player-row strong{color:#111827!important}
+.online-dialog .online-player-row small{color:#334155!important;opacity:1!important}
+.online-dialog .online-cpu-setting{color:#17243a!important}
+.online-dialog .online-cpu-setting label strong{color:#111827!important}
+.online-dialog .online-cpu-setting label span{color:#334155!important;opacity:1!important}
+.online-dialog .online-cpu-setting select{color:#111827!important;background:#fffdf6!important}
+.online-dialog .online-leave-button{color:#8b1e2d!important;background:#fff4f4!important;border:1px solid rgba(139,30,45,.25)!important;border-radius:6px!important;padding:8px 14px!important;cursor:pointer!important;opacity:1!important}
+.online-dialog .online-leave-button:hover{background:#ffe5e5!important}
+.online-dialog .join-room-row input{color:#111827!important;background:#fffdf6!important}

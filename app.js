@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
-import { getDatabase, ref, set, update, get, onValue, onChildAdded, remove, push } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-database.js";
+import { getDatabase, ref, set, update, get, onValue, remove } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-database.js";
 import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
 import { firebaseConfig } from "./firebase-config.js";
 
@@ -326,21 +326,31 @@ async function loadOnlineOwnCard(data){
   const cardName=snap.val()?.cardName;
   onlineMyCard=CARD_POOL.find(c=>c.name===cardName)||null;
 }
-async function leaveOnlineRoom(){
+async function leaveOnlineRoom(options={}){
   if(!onlineRoomCodeValue)return;
+  const roomCode=onlineRoomCodeValue, wasHost=onlineHost;
   if(onlineRoomUnsubscribe)onlineRoomUnsubscribe();
   if(onlineActionUnsubscribe)onlineActionUnsubscribe();
   clearTimeout(onlineCpuTimer);
+  onlineRoomUnsubscribe=null;onlineActionUnsubscribe=null;
   try{
-    const snap=await get(onlineRoomRef());
+    const roomRef=ref(firebaseDb,`rooms/${roomCode}`);
+    const snap=await get(roomRef);
     const data=snap.val();
-    if(data && data.status==="lobby"){
-      if(onlineHost) await remove(onlineRoomRef());
-      else await remove(ref(firebaseDb,`rooms/${onlineRoomCodeValue}/players/${firebaseUid}`));
+    if(data){
+      if(wasHost){
+        // A host leaving must not leave an orphaned playing room behind.
+        await remove(roomRef);
+      }else if(firebaseUid){
+        await remove(ref(firebaseDb,`rooms/${roomCode}/players/${firebaseUid}`));
+        await remove(ref(firebaseDb,`rooms/${roomCode}/privateCards/${firebaseUid}`)).catch(()=>{});
+      }
     }
-  }catch(e){console.warn(e);}
-  onlineRoomCodeValue="";onlineHost=false;onlineGame=null;onlineMyCard=null;onlineHostSecrets=null;onlineActionUnsubscribe=null;onlineRoomUnsubscribe=null;
-  onlineLobby.hidden=true;createRoomButton.hidden=false;joinRoomButton.hidden=false;roomCodeInput.hidden=false;onlineDialog.close();
+  }catch(e){console.warn("online leave failed",e);}
+  onlineRoomCodeValue="";onlineHost=false;onlineGame=null;onlineMyCard=null;onlineHostSecrets=null;onlineLastActionId=null;
+  onlineLobby.hidden=true;createRoomButton.hidden=false;joinRoomButton.hidden=false;roomCodeInput.hidden=false;
+  try{onlineDialog.close();}catch{};onlineDialog.removeAttribute("open");
+  if(options.returnToSetup) returnToSetup();
 }
 function onlineFeatureOptions(card,used,playerClues){
   const usedSet=new Set(used||[]);
@@ -429,7 +439,7 @@ function renderOnlineResult(){
   const citizen=onlineGame.reveal?.citizenCard,wolfCard=onlineGame.reveal?.wolfCard;
   const msg=onlineGame.result==="wolf"? "選ばれたプレイヤーは市民でした。狼は正体を隠し切りました。":onlineGame.result==="wolf-reversal"?`狼が市民カード「${jpName(citizen)}」を見事に当て、逆転しました。`:`狼の宣言は「${jpName(rev||{})}」。正解は「${jpName(citizen||{})}」でした。`;
   actionPanel.innerHTML=`<div class="result-banner ${wolfWon?"wolf-win":"citizen-win"}"><p>${wolfWon?"狼チームの勝利":"市民チームの勝利"}</p><h2>${wolfWon?"狼の勝利":"市民の勝利"}</h2><span>${msg}</span></div><div class="answer-cards">${citizen?`<div><small>市民カード</small><img class="ygo-thumb" src="${cardImage(citizen)}"><strong>${jpName(citizen)}</strong><em>${cardInfo(citizen)}${cardStats(citizen)?" · "+cardStats(citizen):""}</em></div>`:""}${wolfCard?`<div><small>狼カード</small><img class="ygo-thumb" src="${cardImage(wolfCard)}"><strong>${jpName(wolfCard)}</strong><em>${cardInfo(wolfCard)}${cardStats(wolfCard)?" · "+cardStats(wolfCard):""}</em></div>`:""}</div><button class="primary-button compact" id="onlineBackButton" type="button"><span>ロビーへ戻る</span><span>↩</span></button>`;
-  document.getElementById("onlineBackButton").addEventListener("click",()=>{leaveOnlineRoom();returnToSetup();});
+  document.getElementById("onlineBackButton").addEventListener("click",async()=>{if(confirm("オンライン対戦を終了して部屋から退出しますか？")){await leaveOnlineRoom({returnToSetup:true});}});
   if(!onlineScoreRecorded){const myRole=onlineGame.reveal?.roles?.[firebaseUid];const won=(myRole==="wolf"&&wolfWon)||(myRole==="citizen"&&!wolfWon);if(won)matchRecord.wins++;else matchRecord.losses++;onlineScoreRecorded=true;renderRecord();}
 }
 function renderOnlineGame(){
@@ -438,16 +448,18 @@ function renderOnlineGame(){
   if(onlineGame.phase==="clue")renderOnlineClue();else if(onlineGame.phase==="vote")renderOnlineVote();else if(onlineGame.phase==="reverse")renderOnlineReverse();else renderOnlineResult();
 }
 async function submitOnlineAction(action){
-  if(!onlineRoomCodeValue||!firebaseUid)return;
-  const actionRef=push(ref(firebaseDb,`rooms/${onlineRoomCodeValue}/actions`));
+  if(!onlineRoomCodeValue||!firebaseUid)return false;
+  const actionId=`${firebaseUid}-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
   try{
-    await set(actionRef,{...action,uid:firebaseUid,actionId:`${firebaseUid}-${Date.now()}-${Math.random().toString(36).slice(2,8)}`});
-    if(action.type==="clue"){
-      actionPanel.querySelectorAll("[data-online-clue]").forEach(b=>b.disabled=true);
-    }
+    // Keep a per-player action queue instead of overwriting one shared action key.
+    // This prevents the first clue from being lost when the host listener and
+    // Firebase value events happen at nearly the same time.
+    await set(ref(firebaseDb,`rooms/${onlineRoomCodeValue}/actions/${firebaseUid}/${actionId}`),{...action,uid:firebaseUid,actionId});
+    return true;
   }catch(e){
-    console.error("Online action failed:",e);
+    console.error("online action failed",e);
     alert(`操作を送信できませんでした。\n\n${e?.message||e}`);
+    return false;
   }
 }
 function hostChooseCpuVote(voter){
@@ -561,13 +573,20 @@ async function hostProcessAction(action){
 }
 function attachOnlineHostActionListener(){
   if(onlineActionUnsubscribe||!onlineRoomCodeValue)return;
-  onlineActionUnsubscribe=onChildAdded(ref(firebaseDb,`rooms/${onlineRoomCodeValue}/actions`),async snap=>{
-    const action=snap.val();
-    if(!action)return;
-    try{
-      await hostProcessAction(action);
-    }finally{
-      try{await remove(snap.ref);}catch(e){console.warn("action cleanup failed:",e);}
+  onlineActionUnsubscribe=onValue(ref(firebaseDb,`rooms/${onlineRoomCodeValue}/actions`),async snap=>{
+    const data=snap.val()||{};
+    for(const [uid,queue] of Object.entries(data)){
+      if(!queue||typeof queue!=='object')continue;
+      for(const [actionId,action] of Object.entries(queue)){
+        if(!action||action.actionId!==actionId)continue;
+        if(actionId===onlineLastActionId)continue;
+        onlineLastActionId=actionId;
+        try{
+          await hostProcessAction(action);
+        }finally{
+          await remove(ref(firebaseDb,`rooms/${onlineRoomCodeValue}/actions/${uid}/${actionId}`)).catch(()=>{});
+        }
+      }
     }
   });
 }
@@ -612,7 +631,11 @@ createRoomButton.addEventListener("click",()=>{
 joinRoomButton.addEventListener("click",()=>{
   joinOnlineRoom().catch(e=>console.error("join room failed:",e));
 });
-leaveRoomButton.addEventListener("click",leaveOnlineRoom);
+leaveRoomButton.addEventListener("click",async()=>{
+  if(!onlineRoomCodeValue)return;
+  if(!confirm("このオンライン対戦の部屋から退出しますか？"))return;
+  await leaveOnlineRoom({returnToSetup:true});
+});
 onlineStartButton.addEventListener("click",startOnlineHostGame);
 onlineCpuCount.addEventListener("change",()=>{if(onlineHost&&onlineRoomCodeValue){update(ref(firebaseDb,`rooms/${onlineRoomCodeValue}`),{cpuWanted:Number(onlineCpuCount.value||0)});}});
 
@@ -631,4 +654,4 @@ window.addEventListener("error", function(e){
   }
 });
 
-/* v32: Firebase action queue and online lobby contrast fixes. */
+/* v33: reliable online action queue, exit handling, and lobby contrast. */
