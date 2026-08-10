@@ -37,8 +37,8 @@ v45 update notes:
 - This release ZIP intentionally omits the images folder. Keep the existing images folder in the GitHub repository when updating files.
 
 
-v46 update notes:
+v47 update notes:
 - Fixed host-side voice-chat discussion countdown rendering so Firebase snapshots do not reset the visible timer.
 - Added host-only same-room replay from the result screen.
 - Kept the host-only force-end discussion control.
-- Version labels and package directory are aligned to v46.
+- Version labels and package directory are aligned to v47.

@@ -2032,5 +2032,86 @@ button:not(:disabled) { cursor:pointer; }
 .voice-timer{font-family:ui-monospace,monospace;font-size:clamp(3rem,10vw,5.2rem);font-weight:800;letter-spacing:.04em;color:#ffe08a;text-shadow:0 3px 18px rgba(0,0,0,.35)}
 @media(max-width:700px){.online-voice-setting{grid-template-columns:1fr}.voice-discussion-state{min-height:240px}.voice-timer{font-size:3.5rem}}
 
-/* v46: stable online replay / discussion UI */
+/* v47: stable online replay / discussion UI */
 .online-replay-wait{margin:14px 0;padding:12px 16px;border-radius:12px;text-align:center;color:#f4f6f8;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18)}
+
+
+/* v47: move persistent scores out of the setup card and keep them visible during play */
+.setup-score-floating{
+  position:absolute;
+  top:14px;
+  right:20px;
+  z-index:4;
+  margin:0 !important;
+  justify-content:flex-end;
+}
+.setup-score-floating>div{
+  min-width:72px;
+  padding:7px 10px;
+  background:rgba(5,10,18,.62);
+  border-color:rgba(217,180,91,.24);
+  box-shadow:0 6px 22px rgba(0,0,0,.18);
+}
+.setup-score-floating span{font-size:.68rem;color:#dbe4ef}
+.setup-score-floating strong{font-size:1.08rem;color:#fff}
+.game-heading-actions{
+  display:flex;
+  align-items:center;
+  gap:18px;
+  flex:0 0 auto;
+}
+.game-score{
+  display:flex;
+  gap:8px;
+}
+.game-score>div{
+  min-width:70px;
+  padding:6px 9px;
+  border:1px solid rgba(217,180,91,.25);
+  border-radius:7px;
+  background:rgba(7,12,22,.58);
+  display:flex;
+  align-items:baseline;
+  justify-content:center;
+  gap:6px;
+}
+.game-score span{font-size:.66rem;color:#dbe4ef}
+.game-score strong{font-size:1rem;color:#fff}
+
+/* Keep the right-side header action comfortably inside the viewport. */
+.site-header.ygo-header #rulesButton{
+  margin-right:18px;
+}
+
+@media (min-width:901px){
+  .setup-screen{
+    padding-top:clamp(72px,10vh,124px);
+  }
+}
+@media (max-width:760px){
+  .setup-score-floating{
+    top:10px;
+    right:8px;
+    gap:6px;
+  }
+  .setup-score-floating>div{
+    min-width:64px;
+    padding:6px 8px;
+  }
+  .setup-score-floating span{font-size:.62rem}
+  .setup-score-floating strong{font-size:1rem}
+  .site-header.ygo-header #rulesButton{margin-right:8px}
+  .game-heading-actions{
+    gap:10px;
+    flex-wrap:wrap;
+    justify-content:flex-end;
+  }
+  .game-score>div{min-width:60px;padding:5px 7px}
+}
+@media (max-width:440px){
+  .game-heading-actions{
+    align-items:flex-end;
+    flex-direction:column-reverse;
+    gap:8px;
+  }
+}
