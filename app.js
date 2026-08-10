@@ -601,7 +601,7 @@ async function submitOnlineAction(action){
     // Each client gets its own immutable action entry. The host acknowledges
     // acceptance/rejection separately so a client never remains stuck in a
     // fake "waiting" state when the host rejects a stale action.
-    await set(actionRef,{...action,uid:firebaseUid,actionId,clientVersion:"v52",createdAt:Date.now()});
+    await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v53",createdAt:Date.now()});
     return await new Promise((resolve)=>{
       let settled=false;
       const finish=(ok)=>{if(settled)return;settled=true;off(resultRef,"value",listener);onlineActionPromises.delete(actionId);resolve(Boolean(ok));};
@@ -780,6 +780,8 @@ async function hostFinishResult(reverseGuess){
 }
 async function hostProcessAction(action){
   if(!onlineHost||!onlineGame||!action)return false;
+  // Actions from the previous match must never be applied to a replayed game.
+  if(!action.matchId || String(action.matchId)!==String(onlineGame.matchId))return false;
   let accepted=false;
   if(action.type==="clue"){
     accepted=await hostApplyClue(action.uid,action.clueId,action);
@@ -856,18 +858,20 @@ async function startOnlineHostGame(){
   const total=humans.length+cpuNeeded;
   const maxPlayers=Math.min(8,Math.max(3,Number(room.maxPlayers||4)));
   if(total<3||total>maxPlayers){alert(`オンラインは合計3〜${maxPlayers}人で開始します。`);return;}
+
   const [citizenCard,wolfCard]=chooseCardPair();
   const ids=humans.map(p=>p.uid);
   for(let i=0;i<cpuNeeded;i++)ids.push(`cpu-${i}`);
   const wolfUid=randomItem(ids);
   const publicPlayers=humans.map(p=>({id:p.uid,name:p.name,isHuman:true,clues:[],vote:null}));
-  for(let i=0;i<cpuNeeded;i++)publicPlayers.push({id:`cpu-${i}`,name:CPU_NAMES[i]||`CPU${i+1}`,isHuman:false,clues:[],vote:null});
+  for(let i=0;i<cpuNeeded;i++)publicPlayers.push({id:`cpu-${i}`,name:CPU_NAMES[i]||`CPU${i+1}`,isHuman:false,clues:[],vote:null}));
   const order=shuffle(ids);
   const cards={},wolves={},lies={};
   ids.forEach(id=>{cards[id]=String(id)===String(wolfUid)?wolfCard:citizenCard;wolves[id]=String(id)===String(wolfUid);lies[id]=0;});
-  // A replay is a brand-new match inside the same room. Keep player identity,
-  // room settings and the persistent win/loss record, but discard every piece
-  // of the previous match state and any stale action/acknowledgement data.
+
+  // A replay is a completely new match inside the same room. Do this reset
+  // locally BEFORE any Firebase awaits so the host cannot remain on the old
+  // result screen while the new cards are being written.
   clearTimeout(onlineCpuTimer);onlineCpuTimer=null;
   clearInterval(onlineDiscussionTimer);onlineDiscussionTimer=null;
   onlinePendingAction=null;
@@ -876,24 +880,48 @@ async function startOnlineHostGame(){
   onlineActionPromises.clear();
   onlineHostActionQueue=Promise.resolve();
   onlineHostProcessing=false;
-  onlineHostSecrets={cards,wolves,lies,wolfUid,citizenCard,wolfCard};
-  onlineMyCard=cards[firebaseUid]||null;onlineScoreRecorded=false;
+  onlineScoreRecorded=false;
+
   const matchStartedAt=Date.now();
   const matchId=`${matchStartedAt}-${Math.random().toString(36).slice(2,10)}`;
-  const discussionSeconds=Math.max(60,Number(room.settings?.discussionSeconds||120));
-  // Set the new match identity before writing the room so any stale listener
-  // callback from the previous result screen can be ignored immediately.
+  const settings=room.settings||onlineSettings();
+  const discussionSeconds=Math.max(60,Number(settings.discussionSeconds||120));
+  const isVoice=Boolean(settings.voiceMode);
+  const phase=isVoice?"discussion":"clue";
+  const discussionStartedAt=isVoice?matchStartedAt:null;
+  const discussionDeadlineAt=isVoice?matchStartedAt+discussionSeconds*1000:null;
+
   onlineMatchId=matchId;
-  onlineGame={matchId,matchStartedAt,phase:room.settings?.voiceMode?"discussion":"clue",round:1,order,orderIndex:0,discussionStartedAt:room.settings?.voiceMode?matchStartedAt:null,discussionDeadlineAt:room.settings?.voiceMode?matchStartedAt+discussionSeconds*1000:null,usedClueIds:[],logs:[],settings:room.settings||onlineSettings(),players:publicPlayers,tallies:null,eliminatedId:null,result:null,reveal:null,reverseGuess:null};
-  for(const p of humans)await set(ref(firebaseDb,`rooms/${onlineRoomCodeValue}/privateCards/${p.uid}`),{cardName:cards[p.uid].name});
-  // Remove old per-match actions/acknowledgements so a replay can never be
-  // affected by a click that belonged to the previous game.
+  onlineHostSecrets={cards,wolves,lies,wolfUid,citizenCard,wolfCard};
+  onlineMyCard=cards[firebaseUid]||null;
+  onlineGame={
+    matchId,matchStartedAt,phase,round:1,order,orderIndex:0,
+    discussionStartedAt,discussionDeadlineAt,
+    usedClueIds:[],logs:[],settings,players:publicPlayers,
+    tallies:null,eliminatedId:null,result:null,reveal:null,reverseGuess:null
+  };
+  onlineDiscussionDeadlineAt=discussionDeadlineAt||0;
+
+  // Clear the old result/action UI immediately. This is intentionally before
+  // the network writes so the host sees the new timer/phase without waiting
+  // for Firebase to echo its own update.
+  setupScreen.hidden=true;
+  gameScreen.hidden=false;
+  onlineDialog.close();
+  renderOnlineGame();
+  if(isVoice) hostStartVoiceDiscussionTimer(); else hostMaybeCpuTurn();
+
+  // Write private cards first, then publish the new public match atomically
+  // from the room's point of view. Old queued actions are rejected by matchId.
+  await Promise.all(humans.map(p=>set(ref(firebaseDb,`rooms/${onlineRoomCodeValue}/privateCards/${p.uid}`),{cardName:cards[p.uid].name})));
   await remove(ref(firebaseDb,`rooms/${onlineRoomCodeValue}/actions`)).catch(()=>{});
   await remove(ref(firebaseDb,`rooms/${onlineRoomCodeValue}/actionResults`)).catch(()=>{});
-  attachOnlineHostActionListener();
   await update(onlineRoomRef(),{status:"playing",game:onlineSnapshot()});
+
+  // Echo/render once more after the room write. This also repairs any visual
+  // state that a slow browser may have retained from the previous result.
   renderOnlineGame();
-  if(onlineGame.phase==="discussion") hostStartVoiceDiscussionTimer(); else hostMaybeCpuTurn();
+  if(isVoice) hostStartVoiceDiscussionTimer(); else hostMaybeCpuTurn();
 }
 async function syncOnlinePrivateAndGame(data){
   await loadOnlineOwnCard(data);
