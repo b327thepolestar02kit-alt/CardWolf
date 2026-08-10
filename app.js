@@ -1,8 +1,8 @@
-/* CardWolf build v57 */
+/* CardWolf build v58 */
 const firebaseConfig = window.FIREBASE_CONFIG || {};
-if (window.CARDWOLF_BUILD_VERSION !== "v57") { window.CARDWOLF_BUILD_VERSION = "v57"; }
+if (window.CARDWOLF_BUILD_VERSION !== "v58") { window.CARDWOLF_BUILD_VERSION = "v58"; }
 const versionEl = document.querySelector(".build-version");
-if (versionEl) { versionEl.textContent = "v57"; versionEl.setAttribute("aria-label", "ゲームバージョン v57"); }
+if (versionEl) { versionEl.textContent = "v58"; versionEl.setAttribute("aria-label", "ゲームバージョン v58"); }
 
 // Firebase is loaded lazily so a CDN/auth/database problem can never disable
 // the basic game UI. The solo/setup buttons must remain usable even when the
@@ -301,16 +301,25 @@ function onlinePublicPlayers(){
   return (onlineGame?.players||[]).map(p=>({id:p.id,name:p.name,isHuman:Boolean(p.isHuman),clues:(p.clues||[]).map(c=>({id:c.id,label:c.label,ambiguous:Boolean(c.ambiguous)})),vote:p.vote??null}));
 }
 function onlineSnapshot(extra={}){
+  // Firebase rejects undefined values. Replay can receive an older snapshot
+  // where reverseGuess is a card object or a string, so normalize both forms.
+  const rg=onlineGame?.reverseGuess;
+  const reverseGuessName=typeof rg==="string"?rg:(rg?.name||null);
+  const revealSource=extra.reveal!==undefined?extra.reveal:(onlineGame?.reveal||null);
+  const reveal=revealSource?{
+    ...revealSource,
+    reverseGuess:(typeof revealSource.reverseGuess==="string"?revealSource.reverseGuess:(revealSource.reverseGuess?.name||null))
+  }:null;
   return {
     matchId:onlineGame.matchId||onlineMatchId||"",
-    phase:onlineGame.phase, round:onlineGame.round, order:onlineGame.order,
-    orderIndex:onlineGame.orderIndex, discussionStartedAt:onlineGame.discussionStartedAt||null, discussionDeadlineAt:onlineGame.discussionDeadlineAt||null, usedClueIds:onlineGame.usedClueIds||[],
-    logs:onlineGame.logs||[], settings:onlineGame.settings,
+    phase:onlineGame.phase, round:onlineGame.round, order:Array.isArray(onlineGame.order)?onlineGame.order:[],
+    orderIndex:Number.isFinite(Number(onlineGame.orderIndex))?Number(onlineGame.orderIndex):0,
+    discussionStartedAt:onlineGame.discussionStartedAt||null, discussionDeadlineAt:onlineGame.discussionDeadlineAt||null,
+    usedClueIds:Array.isArray(onlineGame.usedClueIds)?onlineGame.usedClueIds:[],
+    logs:Array.isArray(onlineGame.logs)?onlineGame.logs:[], settings:onlineGame.settings||onlineSettings(),
     players:onlinePublicPlayers(), tallies:onlineGame.tallies||null,
     eliminatedId:onlineGame.eliminatedId??null, result:onlineGame.result??null,
-    reverseGuess:onlineGame.reverseGuess?onlineGame.reverseGuess.name:null,
-    reveal:extra.reveal||onlineGame.reveal||null,
-    updatedAt:Date.now()
+    reverseGuess:reverseGuessName, reveal, updatedAt:Date.now()
   };
 }
 async function hostWriteGame(){
@@ -389,6 +398,8 @@ function openOnlineLobby(){
       if(onlineHost && onlineHostProcessing)return;
       onlineMatchId=incomingMatchId||onlineMatchId;
       onlineGame={...data.game, usedClueIds:Array.isArray(data.game.usedClueIds)?data.game.usedClueIds:[], logs:Array.isArray(data.game.logs)?data.game.logs:[], players:Array.isArray(data.game.players)?data.game.players:[], settings:data.game.settings||onlineSettings(), order:Array.isArray(data.game.order)?data.game.order:[], orderIndex:Number.isFinite(data.game.orderIndex)?data.game.orderIndex:0};
+      if(onlineGame.reverseGuess && typeof onlineGame.reverseGuess!=="string") onlineGame.reverseGuess=onlineGame.reverseGuess.name||null;
+      if(onlineGame.reveal?.reverseGuess && typeof onlineGame.reveal.reverseGuess!=="string") onlineGame.reveal.reverseGuess=onlineGame.reveal.reverseGuess.name||null;
       loadOnlineOwnCard(data).then(()=>renderOnlineGame());
       onlineDialog.close();
       setupScreen.hidden=true;gameScreen.hidden=false;
@@ -609,7 +620,8 @@ function renderOnlineReverse(){
 function renderOnlineResult(){
   const wolfWon=onlineGame.result==="wolf"||onlineGame.result==="wolf-reversal";
   phaseLabel.textContent="GAME OVER / 答え合わせ";phaseTitle.textContent=wolfWon?"狼チームの勝利":"市民チームの勝利";
-  const rev=onlineGame.reveal?.reverseGuess;
+  const revName=typeof onlineGame.reveal?.reverseGuess==="string"?onlineGame.reveal.reverseGuess:(onlineGame.reveal?.reverseGuess?.name||null);
+  const rev=revName?CARD_POOL.find(c=>c.name===revName)||null:null;
   const citizen=onlineGame.reveal?.citizenCard,wolfCard=onlineGame.reveal?.wolfCard;
   const msg=onlineGame.result==="wolf"? "選ばれたプレイヤーは市民でした。狼は正体を隠し切りました。":onlineGame.result==="wolf-reversal"?`狼が市民カード「${jpName(citizen)}」を見事に当て、逆転しました。`:`狼の宣言は「${jpName(rev||{})}」。正解は「${jpName(citizen||{})}」でした。`;
   const replayButton=onlineHost?`<button class="primary-button compact" id="onlineReplayButton" type="button"><span>同じ部屋でもう一度遊ぶ</span><span>↻</span></button>`:`<div class="online-replay-wait">ホストがもう一度ゲームを開始するのを待っています。</div>`;
@@ -634,7 +646,7 @@ async function submitOnlineAction(action){
     // Each client gets its own immutable action entry. The host acknowledges
     // acceptance/rejection separately so a client never remains stuck in a
     // fake "waiting" state when the host rejects a stale action.
-    await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v57",createdAt:Date.now()});
+    await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v58",createdAt:Date.now()});
     return await new Promise((resolve)=>{
       let settled=false;
       const finish=(ok)=>{if(settled)return;settled=true;off(resultRef,"value",listener);onlineActionPromises.delete(actionId);resolve(Boolean(ok));};
@@ -805,7 +817,7 @@ async function hostEvaluateVotes(){
 async function hostFinishResult(reverseGuess){
   onlineGame.reverseGuess=reverseGuess?CARD_POOL.find(c=>c.name===reverseGuess)||null:null;
   const citizen=onlineHostSecrets.citizenCard,wolfCard=onlineHostSecrets.wolfCard;
-  const reveal={citizenCard:citizen,wolfCard,reverseGuess:onlineGame.reverseGuess,roles:{},cards:{},wolfId:onlineHostSecrets.wolfUid};
+  const reveal={citizenCard:citizen,wolfCard,reverseGuess:onlineGame.reverseGuess?.name||onlineGame.reverseGuess||null,roles:{},cards:{},wolfId:onlineHostSecrets.wolfUid};
   onlineGame.players.forEach(p=>{reveal.roles[p.id]=onlineHostSecrets.wolves[p.id]?"wolf":"citizen";reveal.cards[p.id]=onlineHostSecrets.cards[p.id];});
   onlineGame.reveal=reveal;onlineGame.phase="result";
   await hostWriteGame();
@@ -884,13 +896,16 @@ function attachOnlineHostActionListener(){
 }
 async function startOnlineHostGame(){
   if(!onlineHost||!onlineRoomCodeValue)return;
-  const snap=await get(onlineRoomRef()),room=snap.val();if(!room)return;
+  // Freeze the host listener while the new match is built. This prevents the
+  // previous result snapshot from overwriting the fresh local replay state.
+  onlineHostProcessing=true;
+  const snap=await get(onlineRoomRef()),room=snap.val();if(!room){onlineHostProcessing=false;return;}
   const humans=lobbyPlayersFromValue(room);
   const wantedCpu=Math.max(0,Math.min(Number(onlineCpuCount.value||0),8-humans.length));
   const cpuNeeded=Math.max(wantedCpu,3-humans.length);
   const total=humans.length+cpuNeeded;
   const maxPlayers=Math.min(8,Math.max(3,Number(room.maxPlayers||4)));
-  if(total<3||total>maxPlayers){alert(`オンラインは合計3〜${maxPlayers}人で開始します。`);return;}
+  if(total<3||total>maxPlayers){alert(`オンラインは合計3〜${maxPlayers}人で開始します。`);onlineHostProcessing=false;return;}
 
   const [citizenCard,wolfCard]=chooseCardPair();
   const ids=humans.map(p=>p.uid);
@@ -912,7 +927,8 @@ async function startOnlineHostGame(){
   onlineProcessedActionIds.clear();
   onlineActionPromises.clear();
   onlineHostActionQueue=Promise.resolve();
-  onlineHostProcessing=false;
+  // Keep the host listener frozen until the new Firebase game snapshot has
+  // been published. Do not clear this flag during local replay initialization.
   onlineScoreRecorded=false;
 
   const matchStartedAt=Date.now();
@@ -956,6 +972,7 @@ async function startOnlineHostGame(){
   }catch(e){
     console.error("online replay publish failed",e);
     alert("新しいゲームを開始できませんでした。Firebaseとの通信を確認して、もう一度お試しください。\n\n"+(e?.message||e));
+    onlineHostProcessing=false;
     return;
   }
 
@@ -969,6 +986,8 @@ async function startOnlineHostGame(){
   // state that a slow browser may have retained from the previous result.
   renderOnlineGame();
   if(isVoice) hostStartVoiceDiscussionTimer(); else hostMaybeCpuTurn();
+  // New match is authoritative now; resume Firebase listener processing.
+  onlineHostProcessing=false;
 }
 async function syncOnlinePrivateAndGame(data){
   await loadOnlineOwnCard(data);
