@@ -28,3 +28,4 @@ v36: Fixed online clue buttons crashing when usedClueIds was missing from a room
 
 
 v39: Fixed online action permission handling by explicitly validating per-player action queues, added client-version tagging, and cache-busted app.js so GitHub Pages loads the new build.
+v42: Added per-action host acknowledgements so clue/vote submissions cannot remain stuck after a stale or rejected request; fixed Firebase listener cleanup and stabilized multi-human voting.

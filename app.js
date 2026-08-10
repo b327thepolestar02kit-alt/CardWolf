@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
-import { getDatabase, ref, set, update, get, onValue, remove } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-database.js";
+import { getDatabase, ref, set, update, get, onValue, off, remove } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-database.js";
 import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
 import { firebaseConfig } from "./firebase-config.js";
 
@@ -209,6 +209,7 @@ let onlineHostSecrets=null;
 let onlineCpuTimer=null;
 let onlineLastActionId="";
 const onlineProcessedActionIds=new Set();
+const onlineActionPromises=new Map();
 let onlineScoreRecorded=false;
 let onlinePendingAction=null;
 let onlineHostActionQueue=Promise.resolve();
@@ -476,13 +477,30 @@ function renderOnlineGame(){
 async function submitOnlineAction(action){
   if(!onlineRoomCodeValue||!firebaseUid){console.warn("online action ignored: room/auth not ready");return false;}
   if(!onlineGame){console.warn("online action ignored: game state not ready");return false;}
+  const roomCode=onlineRoomCodeValue;
   const actionId=`${firebaseUid}-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
+  const actionRef=ref(firebaseDb,`rooms/${roomCode}/actions/${firebaseUid}/${actionId}`);
+  const resultRef=ref(firebaseDb,`rooms/${roomCode}/actionResults/${firebaseUid}/${actionId}`);
   try{
-    // Keep a per-player action queue instead of overwriting one shared action key.
-    // This prevents the first clue from being lost when the host listener and
-    // Firebase value events happen at nearly the same time.
-    await set(ref(firebaseDb,`rooms/${onlineRoomCodeValue}/actions/${firebaseUid}/${actionId}`),{...action,uid:firebaseUid,actionId,clientVersion:"v41"});
-    return true;
+    // Each client gets its own immutable action entry. The host acknowledges
+    // acceptance/rejection separately so a client never remains stuck in a
+    // fake "waiting" state when the host rejects a stale action.
+    await set(actionRef,{...action,uid:firebaseUid,actionId,clientVersion:"v42",createdAt:Date.now()});
+    return await new Promise((resolve)=>{
+      let settled=false;
+      const finish=(ok)=>{if(settled)return;settled=true;off(resultRef,"value",listener);onlineActionPromises.delete(actionId);resolve(Boolean(ok));};
+      const listener=(snap)=>{
+        const result=snap.val();
+        if(!result)return;
+        finish(result.accepted===true);
+      };
+      onlineActionPromises.set(actionId,finish);
+      onValue(resultRef,listener);
+      setTimeout(()=>finish(false),7000);
+    }).then(ok=>{
+      if(!ok)alert("操作を受け付けられませんでした。画面を更新して、もう一度お試しください。");
+      return ok;
+    });
   }catch(e){
     console.error("online action failed",e);
     alert(`操作を送信できませんでした。\n\n${e?.message||e}`);
@@ -643,23 +661,35 @@ async function hostFinishResult(reverseGuess){
   await hostWriteGame();
 }
 async function hostProcessAction(action){
-  if(!onlineHost||!onlineGame||!action)return;
-  if(action.type==="clue"){await hostApplyClue(action.uid,action.clueId,action);}
-  else if(action.type==="vote"&&onlineGame.phase==="vote"){
+  if(!onlineHost||!onlineGame||!action)return false;
+  let accepted=false;
+  if(action.type==="clue"){
+    accepted=await hostApplyClue(action.uid,action.clueId,action);
+  }else if(action.type==="vote"&&onlineGame.phase==="vote"){
     const p=onlinePlayerById(action.uid);
-    if(!p||!p.isHuman)return;
-    if(Number.isFinite(Number(action.round)) && Number(action.round)!==Number(onlineGame.round))return;
+    if(!p||!p.isHuman)return false;
+    if(Number.isFinite(Number(action.round)) && Number(action.round)!==Number(onlineGame.round))return false;
+    if(p.vote!==null&&p.vote!==undefined&&String(p.vote)!=="")return false;
     const voteId=String(action.voteId??"");
     const validTarget=onlineGame.players.some(x=>String(x.id)===voteId);
     if(validTarget&&voteId!==String(action.uid)){
       p.vote=voteId;
+      accepted=true;
       await hostEvaluateVotes();
       if(onlineGame.phase==="vote") await hostWriteGame();
     }
   }else if(action.type==="reverse"&&onlineGame.phase==="reverse"&&String(action.uid)===String(onlineHostSecrets.wolfUid)){
-    const guess=CARD_POOL.find(c=>c.name===action.guess);if(guess)await hostFinishResult(guess.name);
+    const guess=CARD_POOL.find(c=>c.name===action.guess);
+    if(guess){accepted=true;await hostFinishResult(guess.name);}
   }
+  if(action.actionId&&action.uid){
+    try{
+      await set(ref(firebaseDb,`rooms/${onlineRoomCodeValue}/actionResults/${action.uid}/${action.actionId}`),{accepted,processedAt:Date.now()});
+    }catch(e){console.warn("online action acknowledgement failed",e);}
+  }
+  return accepted;
 }
+
 function attachOnlineHostActionListener(){
   if(onlineActionUnsubscribe||!onlineRoomCodeValue)return;
   onlineActionUnsubscribe=onValue(ref(firebaseDb,`rooms/${onlineRoomCodeValue}/actions`),snap=>{
@@ -687,6 +717,8 @@ function attachOnlineHostActionListener(){
         }catch(e){
           console.error("online host action failed",e);
         }finally{
+          // The host is now allowed to clean up processed actions. Keep the
+          // acknowledgement briefly so the client can confirm the result.
           try{await remove(ref(firebaseDb,`rooms/${onlineRoomCodeValue}/actions/${item.uid}/${item.actionId}`));}catch(e){
             console.warn("online action cleanup failed",e);
           }
@@ -762,4 +794,4 @@ window.addEventListener("error", function(e){
   }
 });
 
-/* v41: serialize host actions and stabilize second-human clue submission. */
+/* v42: acknowledge every online action and prevent stale vote/clue requests from hanging clients. */
