@@ -216,6 +216,7 @@ let onlineDiscussionTimer=null;
 let onlineDiscussionDeadlineAt=0;
 let onlineHostActionQueue=Promise.resolve();
 let onlineHostProcessing=false;
+let onlineMatchId="";
 
 function setMode(isOnline){
   onlineMode=Boolean(isOnline);
@@ -268,6 +269,7 @@ function onlinePublicPlayers(){
 }
 function onlineSnapshot(extra={}){
   return {
+    matchId:onlineGame.matchId||onlineMatchId||"",
     phase:onlineGame.phase, round:onlineGame.round, order:onlineGame.order,
     orderIndex:onlineGame.orderIndex, discussionStartedAt:onlineGame.discussionStartedAt||null, discussionDeadlineAt:onlineGame.discussionDeadlineAt||null, usedClueIds:onlineGame.usedClueIds||[],
     logs:onlineGame.logs||[], settings:onlineGame.settings,
@@ -342,10 +344,17 @@ function openOnlineLobby(){
     if(!data){onlineLobbyStatus.textContent="ルームが終了しました";return;}
     renderOnlineLobby(data);
     if(data.status==="playing" && data.game){
-      // The host is authoritative while applying an action. Do not let the
-      // room listener replace its in-memory state halfway through a turn.
-      // Otherwise a second human clue can be rendered from a stale snapshot.
+      // A replay creates a new matchId. Firebase listeners can still deliver a
+      // previously queued snapshot after the host has already started the new
+      // match. Never let that stale result screen overwrite the fresh game.
+      const incomingMatchId=String(data.game.matchId||"");
+      if(onlineMatchId && incomingMatchId && incomingMatchId!==onlineMatchId){
+        const incomingStarted=Number(data.game.matchStartedAt||0);
+        const currentStarted=Number(onlineGame?.matchStartedAt||0);
+        if(currentStarted && incomingStarted && incomingStarted<currentStarted)return;
+      }
       if(onlineHost && onlineHostProcessing)return;
+      onlineMatchId=incomingMatchId||onlineMatchId;
       onlineGame={...data.game, usedClueIds:Array.isArray(data.game.usedClueIds)?data.game.usedClueIds:[], logs:Array.isArray(data.game.logs)?data.game.logs:[], players:Array.isArray(data.game.players)?data.game.players:[], settings:data.game.settings||onlineSettings(), order:Array.isArray(data.game.order)?data.game.order:[], orderIndex:Number.isFinite(data.game.orderIndex)?data.game.orderIndex:0};
       loadOnlineOwnCard(data).then(()=>renderOnlineGame());
       onlineDialog.close();
@@ -592,7 +601,7 @@ async function submitOnlineAction(action){
     // Each client gets its own immutable action entry. The host acknowledges
     // acceptance/rejection separately so a client never remains stuck in a
     // fake "waiting" state when the host rejects a stale action.
-    await set(actionRef,{...action,uid:firebaseUid,actionId,clientVersion:"v51",createdAt:Date.now()});
+    await set(actionRef,{...action,uid:firebaseUid,actionId,clientVersion:"v52",createdAt:Date.now()});
     return await new Promise((resolve)=>{
       let settled=false;
       const finish=(ok)=>{if(settled)return;settled=true;off(resultRef,"value",listener);onlineActionPromises.delete(actionId);resolve(Boolean(ok));};
@@ -870,8 +879,12 @@ async function startOnlineHostGame(){
   onlineHostSecrets={cards,wolves,lies,wolfUid,citizenCard,wolfCard};
   onlineMyCard=cards[firebaseUid]||null;onlineScoreRecorded=false;
   const matchStartedAt=Date.now();
+  const matchId=`${matchStartedAt}-${Math.random().toString(36).slice(2,10)}`;
   const discussionSeconds=Math.max(60,Number(room.settings?.discussionSeconds||120));
-  onlineGame={phase:room.settings?.voiceMode?"discussion":"clue",round:1,order,orderIndex:0,discussionStartedAt:room.settings?.voiceMode?matchStartedAt:null,discussionDeadlineAt:room.settings?.voiceMode?matchStartedAt+discussionSeconds*1000:null,usedClueIds:[],logs:[],settings:room.settings||onlineSettings(),players:publicPlayers,tallies:null,eliminatedId:null,result:null,reveal:null,reverseGuess:null};
+  // Set the new match identity before writing the room so any stale listener
+  // callback from the previous result screen can be ignored immediately.
+  onlineMatchId=matchId;
+  onlineGame={matchId,matchStartedAt,phase:room.settings?.voiceMode?"discussion":"clue",round:1,order,orderIndex:0,discussionStartedAt:room.settings?.voiceMode?matchStartedAt:null,discussionDeadlineAt:room.settings?.voiceMode?matchStartedAt+discussionSeconds*1000:null,usedClueIds:[],logs:[],settings:room.settings||onlineSettings(),players:publicPlayers,tallies:null,eliminatedId:null,result:null,reveal:null,reverseGuess:null};
   for(const p of humans)await set(ref(firebaseDb,`rooms/${onlineRoomCodeValue}/privateCards/${p.uid}`),{cardName:cards[p.uid].name});
   // Remove old per-match actions/acknowledgements so a replay can never be
   // affected by a click that belonged to the previous game.
