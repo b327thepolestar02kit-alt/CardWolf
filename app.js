@@ -240,6 +240,12 @@ function setMode(isOnline){
     onlineDialog.removeAttribute("open");
   }
 }
+
+// Keep the mode buttons wired near their definition so a later optional UI
+// failure cannot prevent the online button from receiving its click handler.
+// The data attributes also make the controls usable with keyboard/touch input.
+soloModeButton.addEventListener("click",()=>setMode(false));
+onlineModeButton.addEventListener("click",()=>setMode(true));
 function onlineRoomRef(){return ref(firebaseDb,`rooms/${onlineRoomCodeValue}`);}
 function makeRoomCode(){const chars="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";let s="";for(let i=0;i<4;i++)s+=chars[Math.floor(Math.random()*chars.length)];return s;}
 function onlineSettings(){return {...getSettings(),voiceMode:false,discussionSeconds:120};}
@@ -601,7 +607,7 @@ async function submitOnlineAction(action){
     // Each client gets its own immutable action entry. The host acknowledges
     // acceptance/rejection separately so a client never remains stuck in a
     // fake "waiting" state when the host rejects a stale action.
-    await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v53",createdAt:Date.now()});
+    await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v54",createdAt:Date.now()});
     return await new Promise((resolve)=>{
       let settled=false;
       const finish=(ok)=>{if(settled)return;settled=true;off(resultRef,"value",listener);onlineActionPromises.delete(actionId);resolve(Boolean(ok));};
@@ -927,8 +933,6 @@ async function syncOnlinePrivateAndGame(data){
   await loadOnlineOwnCard(data);
   if(data.game){onlineGame=data.game;renderOnlineGame();}
 }
-soloModeButton.addEventListener("click",()=>setMode(false));
-onlineModeButton.addEventListener("click",()=>setMode(true));
 closeOnlineButton.addEventListener("click",()=>{
   try{onlineDialog.close();}catch{}
   if(onlineRoomCodeValue) leaveOnlineRoom().catch(e=>console.warn("online leave failed",e));

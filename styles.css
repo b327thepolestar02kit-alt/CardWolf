@@ -2054,6 +2054,21 @@ button:not(:disabled) { cursor:pointer; }
 }
 .setup-score-floating span{font-size:.68rem;color:#dbe4ef}
 .setup-score-floating strong{font-size:1.08rem;color:#fff}
+.setup-score-floating .reset-score-button{
+  flex:0 0 auto;
+  min-height:32px;
+  padding:6px 9px;
+  border:1px solid rgba(217,180,91,.34);
+  border-radius:6px;
+  background:rgba(10,17,29,.9);
+  color:#f4f6fa!important;
+  font-size:.62rem;
+  font-weight:800;
+  cursor:pointer;
+  white-space:nowrap;
+}
+.setup-score-floating .reset-score-button:hover{background:#1b2b45;border-color:var(--ygo-gold)}
+.setup-score-floating .reset-score-button:focus-visible{outline:2px solid var(--ygo-gold);outline-offset:2px}
 .game-heading-actions{
   display:flex;
   align-items:center;
@@ -2098,6 +2113,7 @@ button:not(:disabled) { cursor:pointer; }
     min-width:64px;
     padding:6px 8px;
   }
+  .setup-score-floating .reset-score-button{font-size:.58rem;padding:5px 7px;}
   .setup-score-floating span{font-size:.62rem}
   .setup-score-floating strong{font-size:1rem}
   .site-header.ygo-header #rulesButton{margin-right:8px}
@@ -2139,8 +2155,9 @@ button:not(:disabled) { cursor:pointer; }
 .online-dialog{overscroll-behavior:contain;}
 
 
-/* v53: online replay reset, lobby readability, and upright header mark */
-.ygo-mark{transform:none!important;}
+/* v54: online replay reset, lobby readability, and upright header mark */
+.site-header.ygo-header .brand{padding-left:10px!important;}
+.ygo-mark{transform:rotate(-6deg)!important;transform-origin:center center!important;margin-left:4px!important;}
 .ygo-mark span{position:static!important;inset:auto!important;display:block!important;transform:none!important;text-align:center!important;white-space:nowrap!important;line-height:1!important;}
 .online-dialog .online-lobby-head{padding:10px 12px!important;border:1px solid rgba(23,36,58,.16)!important;border-radius:8px!important;background:#fffdf6!important;}
 .online-dialog .online-lobby-head strong{font-size:1rem!important;color:#111827!important;font-weight:900!important;}
