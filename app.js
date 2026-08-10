@@ -1,13 +1,36 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
-import { getDatabase, ref, set, update, get, onValue, off, remove } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-database.js";
-import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
+/* CardWolf build v55 */
 import { firebaseConfig } from "./firebase-config.js";
 
-const firebaseApp = initializeApp(firebaseConfig);
-const firebaseDb = getDatabase(firebaseApp);
-const firebaseAuth = getAuth(firebaseApp);
+// Firebase is loaded lazily so a CDN/auth/database problem can never disable
+// the basic game UI. The solo/setup buttons must remain usable even when the
+// online service is temporarily unavailable.
+let initializeApp=null, getDatabase=null, ref=null, set=null, update=null, get=null, onValue=null, off=null, remove=null, getAuth=null, signInAnonymously=null;
+let firebaseApp = null, firebaseDb = null, firebaseAuth = null;
 let firebaseUid = null;
 let firebaseAuthPromise = null;
+let firebaseServicesPromise = null;
+
+async function ensureFirebaseServices(){
+  if(firebaseDb && firebaseAuth) return;
+  if(firebaseServicesPromise) return firebaseServicesPromise;
+  firebaseServicesPromise = Promise.all([
+    import("https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js"),
+    import("https://www.gstatic.com/firebasejs/12.17.1/firebase-database.js"),
+    import("https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js")
+  ]).then(([appMod, dbMod, authMod])=>{
+    initializeApp=appMod.initializeApp;
+    ({getDatabase,ref,set,update,get,onValue,off,remove}=dbMod);
+    ({getAuth,signInAnonymously}=authMod);
+    firebaseApp=initializeApp(firebaseConfig);
+    firebaseDb=getDatabase(firebaseApp);
+    firebaseAuth=getAuth(firebaseApp);
+  }).catch(err=>{
+    firebaseServicesPromise=null;
+    console.error("Firebase SDK load failed:",err);
+    throw err;
+  });
+  return firebaseServicesPromise;
+}
 
 function firebaseAuthErrorText(err){
   const code = err?.code ? String(err.code) : "unknown";
@@ -15,8 +38,9 @@ function firebaseAuthErrorText(err){
   return `Firebase認証に失敗しました。\\n\\nエラーコード: ${code}\\n${message}\\n\\nFirebaseコンソールの「Authentication → ログイン方法 → 匿名」が有効か確認してください。`;
 }
 
-function ensureFirebaseAuth(){
-  if(firebaseUid) return Promise.resolve(firebaseUid);
+async function ensureFirebaseAuth(){
+  await ensureFirebaseServices();
+  if(firebaseUid) return firebaseUid;
   if(firebaseAuthPromise) return firebaseAuthPromise;
   firebaseAuthPromise = signInAnonymously(firebaseAuth)
     .then(cred => {
