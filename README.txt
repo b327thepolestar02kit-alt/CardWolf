@@ -1,15 +1,22 @@
-Yu-Gi-Oh Card Wolf v23 update
+Yu-Gi-Oh Card Wolf v26
 
-Changes:
-- Added a small v23 version indicator to the setup screen for deployment verification.
-- Added horizontal breathing room around the setup screen content.
-- Moved the hero copy slightly inward.
-- Reduced the setup card rotation and added right-side spacing to prevent the diagonal card from being clipped.
+v26 changes:
+- Added an online multiplayer mode using Firebase Realtime Database.
+- Added a lobby with a 4-character room code.
+- Same URL + room code lets friends join the same game.
+- Online mode supports up to 4 human players.
+- CPU addition is 0 by default; CPU is automatically added until the total reaches 3 players.
+- Host controls the shared game state.
+- Each human player's own card is stored in a private Firebase path.
+- Solo mode remains available.
+- Added Firebase Anonymous Authentication requirement.
+- Added firebase-config.js and firebase-database-rules.json.
+- Version label updated to v26.
 
+Important:
+1. In Firebase Console, enable Authentication > Sign-in method > Anonymous.
+2. In Realtime Database > Rules, paste the contents of firebase-database-rules.json and publish.
+3. The Firebase config in firebase-config.js is the config for the cardwolf project shown during setup.
+4. This first online version is a prototype. The host browser is authoritative; if the host closes the page during a game, the running game may stop.
+5. Do not treat the current database rules as a final production security design. Tighten them before public distribution.
 
-v25 update: version label is now in index.html; result speech layout and setup screen spacing improved.
-
-
-v25変更点:
-- 初期画面の右下に高コントラストのバージョン表示（v25）を固定表示。
-- 既存のv24のゲーム内容・結果画面レイアウトを維持。

@@ -57,7 +57,16 @@
                         <output id="playerCount" aria-live="polite">4</output>
                         <button class="count-control" id="increasePlayers" type="button" aria-label="人数を増やす">＋</button>
                     </div>
-                    <p class="count-note">3〜8人でプレイできます</p>
+                    <p class="count-note" id="playerCountNote">3〜8人でプレイできます</p>
+
+                    <div class="mode-select" role="group" aria-label="ゲームモード">
+                        <button class="mode-button is-selected" id="soloModeButton" type="button">
+                            <strong>ソロモード</strong><span>CPUと遊ぶ</span>
+                        </button>
+                        <button class="mode-button" id="onlineModeButton" type="button">
+                            <strong>オンライン</strong><span>友達と遊ぶ</span>
+                        </button>
+                    </div>
 
                     <div class="setup-score">
                         <div><span>勝利</span><strong id="winCount">0</strong></div>
@@ -76,7 +85,7 @@
                 </div>
             </div>
 
-            <span class="build-version" aria-label="ゲームバージョン v25">v25</span>
+            <span class="build-version" aria-label="ゲームバージョン v26">v26</span>
 
             <div class="ygo-feature-strip"><span>MONSTER</span><span>ATTRIBUTE</span><span>RACE</span><span>ATK / DEF</span><span>LEVEL</span></div>
 
@@ -136,6 +145,46 @@
         </section>
     </main>
 
+
+    <dialog class="rules-dialog online-dialog" id="onlineDialog">
+        <button class="dialog-close" id="closeOnlineButton" type="button" aria-label="閉じる">×</button>
+        <p class="step-label">ONLINE DUEL</p>
+        <h2>オンライン対戦</h2>
+        <p class="dialog-note">同じURLから参加し、ルームコードで同じゲームに入ります。最大4人。人間が3人未満ならCPUを自動追加します。</p>
+
+        <div class="online-actions">
+            <button class="primary-button compact" id="createRoomButton" type="button"><span>新しい部屋を作る</span><span>＋</span></button>
+            <div class="join-room-row">
+                <input id="roomCodeInput" maxlength="6" inputmode="text" autocomplete="off" placeholder="ルームコード">
+                <button class="secondary-button" id="joinRoomButton" type="button">参加</button>
+            </div>
+        </div>
+
+        <div class="online-lobby" id="onlineLobby" hidden>
+            <div class="room-code-card">
+                <span>ROOM CODE</span>
+                <strong id="onlineRoomCode">----</strong>
+                <small>このコードを友達に伝えてください</small>
+            </div>
+            <div class="online-lobby-head">
+                <strong>参加メンバー</strong>
+                <span id="onlineLobbyStatus">接続中…</span>
+            </div>
+            <div class="online-player-list" id="onlinePlayerList"></div>
+            <div class="online-cpu-setting">
+                <label for="onlineCpuCount"><strong>CPU追加</strong><span>0人が基本。3人未満なら自動追加</span></label>
+                <select id="onlineCpuCount">
+                    <option value="0" selected>0人</option>
+                    <option value="1">1人</option>
+                    <option value="2">2人</option>
+                    <option value="3">3人</option>
+                </select>
+            </div>
+            <button class="primary-button compact" id="onlineStartButton" type="button"><span>ホストがゲームを開始</span><span>→</span></button>
+            <button class="text-button online-leave-button" id="leaveRoomButton" type="button">部屋を退出</button>
+        </div>
+    </dialog>
+
     <dialog class="rules-dialog settings-dialog" id="settingsDialog">
         <button class="dialog-close" id="closeSettingsButton" type="button" aria-label="閉じる">×</button>
         <p class="step-label">ADVANCED SETTINGS</p>
@@ -182,6 +231,6 @@
         <div class="pool-grid" id="poolGrid"></div>
     </dialog>
     <script src="data/cards.js"></script>
-    <script src="app.js"></script>
+    <script type="module" src="app.js"></script>
 </body>
 </html>

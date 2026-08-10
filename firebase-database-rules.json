@@ -1,0 +1,26 @@
+{
+  "rules": {
+    "rooms": {
+      "$roomId": {
+        ".read": "auth != null",
+        ".write": "auth != null && (!data.exists() ? newData.child('hostUid').val() == auth.uid : data.child('hostUid').val() == auth.uid)",
+        "players": {
+          "$uid": {
+            ".write": "auth != null && (auth.uid == $uid || auth.uid == root.child('rooms').child($roomId).child('hostUid').val())"
+          }
+        },
+        "actions": {
+          "$uid": {
+            ".write": "auth != null && (auth.uid == $uid || auth.uid == root.child('rooms').child($roomId).child('hostUid').val())"
+          }
+        },
+        "privateCards": {
+          "$uid": {
+            ".read": "auth != null && auth.uid == $uid",
+            ".write": "auth != null && (auth.uid == $uid || auth.uid == root.child('rooms').child($roomId).child('hostUid').val())"
+          }
+        }
+      }
+    }
+  }
+}
