@@ -454,14 +454,14 @@ async function submitOnlineAction(action){
   if(!onlineGame){console.warn("online action ignored: game state not ready");return false;}
   const actionId=`${firebaseUid}-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
   try{
-    // Keep a per-player action queue instead of overwriting one shared action key.
-    // This prevents the first clue from being lost when the host listener and
-    // Firebase value events happen at nearly the same time.
-    await set(ref(firebaseDb,`rooms/${onlineRoomCodeValue}/actions/${firebaseUid}/${actionId}`),{...action,uid:firebaseUid,actionId});
+    // Players are explicitly allowed to write to their own player node by the
+    // Firebase rules. Queue the action there instead of using the separate
+    // /actions branch, which was intermittently rejected on non-host clients.
+    await set(ref(firebaseDb,`rooms/${onlineRoomCodeValue}/players/${firebaseUid}/pendingActions/${actionId}`),{...action,uid:firebaseUid,actionId});
     return true;
   }catch(e){
     console.error("online action failed",e);
-    alert(`操作を送信できませんでした。\n\n${e?.message||e}`);
+    alert(`操作を送信できませんでした。\n\n${e?.code?`エラーコード: ${e.code}\n`:""}${e?.message||e}`);
     return false;
   }
 }
@@ -604,18 +604,24 @@ async function hostProcessAction(action){
 }
 function attachOnlineHostActionListener(){
   if(onlineActionUnsubscribe||!onlineRoomCodeValue)return;
-  onlineActionUnsubscribe=onValue(ref(firebaseDb,`rooms/${onlineRoomCodeValue}/actions`),async snap=>{
+  // Listen to each player's own pending-action queue. The player rules already
+  // permit a user to write only under their own UID, so this avoids the
+  // non-host write failure that affected the first human clue.
+  onlineActionUnsubscribe=onValue(ref(firebaseDb,`rooms/${onlineRoomCodeValue}/players`),async snap=>{
     const data=snap.val()||{};
-    for(const [uid,queue] of Object.entries(data)){
+    for(const [uid,playerNode] of Object.entries(data)){
+      const queue=playerNode?.pendingActions;
       if(!queue||typeof queue!=='object')continue;
       for(const [actionId,action] of Object.entries(queue)){
         if(!action||action.actionId!==actionId)continue;
         if(actionId===onlineLastActionId)continue;
         onlineLastActionId=actionId;
         try{
-          await hostProcessAction(action);
+          // The path is authoritative for the sender; do not trust a forged uid
+          // field from the client.
+          await hostProcessAction({...action,uid});
         }finally{
-          await remove(ref(firebaseDb,`rooms/${onlineRoomCodeValue}/actions/${uid}/${actionId}`)).catch(()=>{});
+          await remove(ref(firebaseDb,`rooms/${onlineRoomCodeValue}/players/${uid}/pendingActions/${actionId}`)).catch(()=>{});
         }
       }
     }
@@ -687,4 +693,4 @@ window.addEventListener("error", function(e){
   }
 });
 
-/* v34: reliable online action queue, exit handling, and lobby contrast. */
+/* v37: route human online actions through each player's own Firebase node. */
