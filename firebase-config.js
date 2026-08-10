@@ -1,4 +1,4 @@
-export const firebaseConfig = {
+window.FIREBASE_CONFIG = {
   apiKey: "AIzaSyAImJNF2FosIT4NhVq74K9lLQ171QYaZow",
   authDomain: "cardwolf-40dd2.firebaseapp.com",
   databaseURL: "https://cardwolf-40dd2-default-rtdb.firebaseio.com",

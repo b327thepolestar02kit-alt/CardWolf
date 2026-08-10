@@ -2155,7 +2155,7 @@ button:not(:disabled) { cursor:pointer; }
 .online-dialog{overscroll-behavior:contain;}
 
 
-/* v54: online replay reset, lobby readability, and upright header mark */
+/* v56: consolidated build and online UI fixes */
 .site-header.ygo-header .brand{padding-left:10px!important;}
 .ygo-mark{transform:rotate(-6deg)!important;transform-origin:center center!important;margin-left:4px!important;}
 .ygo-mark span{position:static!important;inset:auto!important;display:block!important;transform:none!important;text-align:center!important;white-space:nowrap!important;line-height:1!important;}

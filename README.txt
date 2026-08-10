@@ -1,52 +1,26 @@
-Yu-Gi-Oh Card Wolf v55
+Yu-Gi-Oh Card Wolf v56
 
-v55: Fixed online rematch state races by assigning a new matchId/matchStartedAt before the room update; stale result snapshots can no longer overwrite the new game. The replay now reliably resets result/timer/action state and starts the new card/discussion phase for all players while keeping cumulative win/loss counts.
-v55 changes:
-- Firebase Web App configuration synchronized with the Firebase Console (including databaseURL).
-- Added an online multiplayer mode using Firebase Realtime Database.
-- Added a lobby with a 4-character room code.
-- Same URL + room code lets friends join the same game.
-- Online mode supports up to 4 human players.
-- CPU addition is 0 by default; CPU is automatically added until the total reaches 3 players.
-- Host controls the shared game state.
-- Each human player's own card is stored in a private Firebase path.
-- Solo mode remains available.
-- Added Firebase Anonymous Authentication requirement.
-- Added firebase-config.js and firebase-database-rules.json.
-- Version label updated to v55.
+Release v56
+- Fixed a fatal JavaScript syntax error in the online code that could prevent app.js from loading at all. This was the reason all first-screen buttons could become unresponsive.
+- Converted the Firebase configuration/app bootstrap to classic scripts so an ES-module import failure cannot disable the whole UI.
+- Firebase is still loaded lazily only when online play is used.
+- Added a release version guard: version.json, version-check.js and BUILD_VERSION.txt all carry the same build number.
+- The visible version in the first screen is explicitly v56 and is also refreshed by version-check.js before app.js runs.
+- Added verify-build.ps1 / verify-build.cmd to catch version-number mismatches before packaging a release.
+- Online mode supports up to 8 players; the host can select the maximum room size.
+- CPU defaults to 0 and is automatically added when fewer than 3 human players are present.
+- Voice Chat Mode is available for online games, with a default 2-minute discussion timer.
+- Host-only force-end discussion and same-room replay are retained.
+- This ZIP intentionally does not contain the images folder. Keep the existing images folder in the GitHub repository when replacing the application files.
 
-Important:
-1. In Firebase Console, enable Authentication > Sign-in method > Anonymous.
-2. In Realtime Database > Rules, paste the contents of firebase-database-rules.json and publish.
-3. The Firebase config in firebase-config.js is the config for the cardwolf project shown during setup.
-4. This first online version is a prototype. The host browser is authoritative; if the host closes the page during a game, the running game may stop.
-5. Do not treat the current database rules as a final production security design. Tighten them before public distribution.
+Firebase setup
+1. Firebase Console > Authentication > Sign-in method > Anonymous: Enabled.
+2. Realtime Database > Rules: publish firebase-database-rules.json.
+3. Keep firebase-config.js synchronized with the Firebase project.
 
-
-
-v55: Online CPU turn watchdog, awaited turn advancement, and startup listener ordering fix.
-v55: Fixed online clue buttons crashing when usedClueIds was missing from a room snapshot; normalized online game state and added safer action submission.
-
-
-v55: Fixed online action permission handling by explicitly validating per-player action queues, added client-version tagging, and cache-busted app.js so GitHub Pages loads the new build.
-v55: Added per-action host acknowledgements so clue/vote submissions cannot remain stuck after a stale or rejected request; fixed Firebase listener cleanup and stabilized multi-human voting.
-
-v55 update notes:
-- Added online Voice Chat Mode with a discussion timer (default 2 minutes).
-- Voice Chat Mode skips clue-selection buttons; players discuss via external voice chat, then vote.
-- CPU setting is shown to the host only in the online lobby.
-- This release ZIP intentionally omits the images folder. Keep the existing images folder in the GitHub repository when updating files.
-
-
-v55 update notes:
-- Fixed host-side voice-chat discussion countdown rendering so Firebase snapshots do not reset the visible timer.
-- Added host-only same-room replay from the result screen.
-- Kept the host-only force-end discussion control.
-- Version labels and package directory are aligned to v55.
-
-
-v55 update notes:
-- Online rooms always allow up to 4 human players; CPU fills the room only when fewer than 3 humans are present.
-- Voice-chat discussion now uses an authoritative per-match deadline, including after replaying in the same room.
-- Clicking the online dialog backdrop or pressing Escape no longer ejects a player from the room.
-- Improved visibility of the online dialog close button.
+Deployment
+- Replace the files in the GitHub Pages repository with the contents of the v56 folder.
+- Keep the existing images folder if it already exists in the repository.
+- Confirm the first screen shows v56 before testing other functions.
+- If an older version is shown, do not begin gameplay; check that index.html, version-check.js, version.json and app.js were all uploaded.
+- Run verify-build.cmd on Windows before future releases.

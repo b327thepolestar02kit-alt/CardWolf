@@ -1,5 +1,8 @@
-/* CardWolf build v55 */
-import { firebaseConfig } from "./firebase-config.js";
+/* CardWolf build v56 */
+const firebaseConfig = window.FIREBASE_CONFIG || {};
+if (window.CARDWOLF_BUILD_VERSION !== "v56") { window.CARDWOLF_BUILD_VERSION = "v56"; }
+const versionEl = document.querySelector(".build-version");
+if (versionEl) { versionEl.textContent = "v56"; versionEl.setAttribute("aria-label", "ゲームバージョン v56"); }
 
 // Firebase is loaded lazily so a CDN/auth/database problem can never disable
 // the basic game UI. The solo/setup buttons must remain usable even when the
@@ -631,7 +634,7 @@ async function submitOnlineAction(action){
     // Each client gets its own immutable action entry. The host acknowledges
     // acceptance/rejection separately so a client never remains stuck in a
     // fake "waiting" state when the host rejects a stale action.
-    await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v54",createdAt:Date.now()});
+    await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v56",createdAt:Date.now()});
     return await new Promise((resolve)=>{
       let settled=false;
       const finish=(ok)=>{if(settled)return;settled=true;off(resultRef,"value",listener);onlineActionPromises.delete(actionId);resolve(Boolean(ok));};
@@ -894,7 +897,7 @@ async function startOnlineHostGame(){
   for(let i=0;i<cpuNeeded;i++)ids.push(`cpu-${i}`);
   const wolfUid=randomItem(ids);
   const publicPlayers=humans.map(p=>({id:p.uid,name:p.name,isHuman:true,clues:[],vote:null}));
-  for(let i=0;i<cpuNeeded;i++)publicPlayers.push({id:`cpu-${i}`,name:CPU_NAMES[i]||`CPU${i+1}`,isHuman:false,clues:[],vote:null}));
+  for(let i=0;i<cpuNeeded;i++)publicPlayers.push({id:`cpu-${i}`,name:CPU_NAMES[i]||`CPU${i+1}`,isHuman:false,clues:[],vote:null});
   const order=shuffle(ids);
   const cards={},wolves={},lies={};
   ids.forEach(id=>{cards[id]=String(id)===String(wolfUid)?wolfCard:citizenCard;wolves[id]=String(id)===String(wolfUid);lies[id]=0;});
