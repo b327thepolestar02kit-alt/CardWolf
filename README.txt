@@ -21,3 +21,6 @@ Important:
 4. This first online version is a prototype. The host browser is authoritative; if the host closes the page during a game, the running game may stop.
 5. Do not treat the current database rules as a final production security design. Tighten them before public distribution.
 
+
+
+v35: Online CPU turn watchdog, awaited turn advancement, and startup listener ordering fix.

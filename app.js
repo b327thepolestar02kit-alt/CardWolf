@@ -484,16 +484,18 @@ function hostCpuClue(player){
   return st;
 }
 async function hostApplyClue(uid,clueId){
-  if(String(uid)!==String(onlineCurrentId())||onlineGame.phase!=="clue")return;
+  if(!onlineHost||!onlineGame||onlineGame.phase!=="clue")return false;
+  if(String(uid)!==String(onlineCurrentId()))return false;
   const player=onlinePlayerById(uid),card=onlineHostSecrets.cards[uid];if(!player||!card)return;
   let st=[...featureList(card),...AMBIGUOUS_CLUES].find(s=>s.id===clueId);
-  if(!st||onlineGame.usedClueIds.includes(st.id))return;
-  if(st.ambiguous && (player.clues||[]).some(c=>c.ambiguous))return;
+  if(!st||onlineGame.usedClueIds.includes(st.id))return false;
+  if(st.ambiguous && (player.clues||[]).some(c=>c.ambiguous))return false;
   const truthful=st.ambiguous?true:Boolean(st.test(card));
   player.clues=[...(player.clues||[]),{id:st.id,label:st.label,ambiguous:Boolean(st.ambiguous)}];
   onlineGame.usedClueIds.push(st.id);onlineGame.logs.push({name:player.name,text:`「${st.label}」と発言しました。`});
   if(!truthful)onlineHostSecrets.lies[uid]=(onlineHostSecrets.lies[uid]||0)+1;
-  advanceOnlineClueHost();
+  await advanceOnlineClueHost();
+  return true;
 }
 async function advanceOnlineClueHost(){
   onlineGame.orderIndex++;
@@ -513,11 +515,35 @@ async function hostAssignCpuVotes(){
 async function hostMaybeCpuTurn(){
   clearTimeout(onlineCpuTimer);
   if(!onlineHost||!onlineGame||onlineGame.phase!=="clue")return;
-  const p=onlinePlayerById(onlineCurrentId());if(!p||p.isHuman)return;
+  const expectedId=String(onlineCurrentId());
+  const p=onlinePlayerById(expectedId);
+  if(!p||p.isHuman)return;
   onlineCpuTimer=setTimeout(async()=>{
-    const st=hostCpuClue(p);
-    if(st)await hostApplyClue(p.id,st.id); else await advanceOnlineClueHost();
-  },800);
+    try{
+      // Re-check the state immediately before acting. Firebase listeners can
+      // redraw onlineGame while this timer is waiting.
+      if(!onlineHost||!onlineGame||onlineGame.phase!=="clue"||String(onlineCurrentId())!==expectedId)return;
+      const current=onlinePlayerById(expectedId);
+      const st=hostCpuClue(current);
+      if(st){
+        await hostApplyClue(expectedId,st.id);
+      }else{
+        await advanceOnlineClueHost();
+      }
+    }catch(e){
+      console.error("online CPU turn failed",e);
+      // Never leave the online game on a permanent "CPU thinking" state.
+      if(onlineHost&&onlineGame&&onlineGame.phase==="clue"&&String(onlineCurrentId())===expectedId){
+        const current=onlinePlayerById(expectedId);
+        if(current){
+          current.clues=current.clues||[];
+          current.clues.push({id:`cpu-fallback-${Date.now()}`,label:"慎重に考えています",ambiguous:true});
+          onlineGame.logs.push({type:"system",name:current.name,text:"CPUの発言処理を再試行します。"});
+        }
+        await advanceOnlineClueHost();
+      }
+    }
+  },700);
 }
 async function hostEvaluateVotes(){
   const humanCount=onlineGame.players.filter(p=>p.isHuman).length;
@@ -611,8 +637,10 @@ async function startOnlineHostGame(){
   onlineMyCard=cards[firebaseUid]||null;onlineScoreRecorded=false;
   onlineGame={phase:"clue",round:1,order,orderIndex:0,usedClueIds:[],logs:[],settings:room.settings||onlineSettings(),players:publicPlayers,tallies:null,eliminatedId:null,result:null,reveal:null,reverseGuess:null};
   for(const p of humans)await set(ref(firebaseDb,`rooms/${onlineRoomCodeValue}/privateCards/${p.uid}`),{cardName:cards[p.uid].name});
+  attachOnlineHostActionListener();
   await update(onlineRoomRef(),{status:"playing",game:onlineSnapshot()});
-  attachOnlineHostActionListener();renderOnlineGame();hostMaybeCpuTurn();
+  renderOnlineGame();
+  hostMaybeCpuTurn();
 }
 async function syncOnlinePrivateAndGame(data){
   await loadOnlineOwnCard(data);
