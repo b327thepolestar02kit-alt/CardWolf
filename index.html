@@ -85,7 +85,7 @@
                 <div><span>敗北</span><strong id="lossCount">0</strong></div>
             </div>
 
-            <span class="build-version" aria-label="ゲームバージョン v49">v49</span>
+            <span class="build-version" aria-label="ゲームバージョン v50">v50</span>
 
             <div class="ygo-feature-strip"><span>MONSTER</span><span>ATTRIBUTE</span><span>RACE</span><span>ATK / DEF</span><span>LEVEL</span></div>
 
@@ -177,6 +177,17 @@
                 <span id="onlineLobbyStatus">接続中…</span>
             </div>
             <div class="online-player-list" id="onlinePlayerList"></div>
+            <div class="online-player-limit-setting" id="onlinePlayerLimitSettingRow">
+                <label for="onlineMaxPlayers"><strong>最大人数</strong><span>3〜8人から選択</span></label>
+                <select id="onlineMaxPlayers">
+                    <option value="3">3人</option>
+                    <option value="4" selected>4人</option>
+                    <option value="5">5人</option>
+                    <option value="6">6人</option>
+                    <option value="7">7人</option>
+                    <option value="8">8人</option>
+                </select>
+            </div>
             <div class="online-cpu-setting" id="onlineCpuSettingRow">
                 <label for="onlineCpuCount"><strong>CPU追加</strong><span>0人が基本。3人未満なら自動追加</span></label>
                 <select id="onlineCpuCount">

@@ -1,6 +1,6 @@
-Yu-Gi-Oh Card Wolf v31
+Yu-Gi-Oh Card Wolf v50
 
-v31 changes:
+v50 changes:
 - Firebase Web App configuration synchronized with the Firebase Console (including databaseURL).
 - Added an online multiplayer mode using Firebase Realtime Database.
 - Added a lobby with a 4-character room code.
@@ -12,7 +12,7 @@ v31 changes:
 - Solo mode remains available.
 - Added Firebase Anonymous Authentication requirement.
 - Added firebase-config.js and firebase-database-rules.json.
-- Version label updated to v31.
+- Version label updated to v50.
 
 Important:
 1. In Firebase Console, enable Authentication > Sign-in method > Anonymous.
@@ -23,28 +23,28 @@ Important:
 
 
 
-v35: Online CPU turn watchdog, awaited turn advancement, and startup listener ordering fix.
-v36: Fixed online clue buttons crashing when usedClueIds was missing from a room snapshot; normalized online game state and added safer action submission.
+v50: Online CPU turn watchdog, awaited turn advancement, and startup listener ordering fix.
+v50: Fixed online clue buttons crashing when usedClueIds was missing from a room snapshot; normalized online game state and added safer action submission.
 
 
-v39: Fixed online action permission handling by explicitly validating per-player action queues, added client-version tagging, and cache-busted app.js so GitHub Pages loads the new build.
-v43: Added per-action host acknowledgements so clue/vote submissions cannot remain stuck after a stale or rejected request; fixed Firebase listener cleanup and stabilized multi-human voting.
+v50: Fixed online action permission handling by explicitly validating per-player action queues, added client-version tagging, and cache-busted app.js so GitHub Pages loads the new build.
+v50: Added per-action host acknowledgements so clue/vote submissions cannot remain stuck after a stale or rejected request; fixed Firebase listener cleanup and stabilized multi-human voting.
 
-v45 update notes:
+v50 update notes:
 - Added online Voice Chat Mode with a discussion timer (default 2 minutes).
 - Voice Chat Mode skips clue-selection buttons; players discuss via external voice chat, then vote.
 - CPU setting is shown to the host only in the online lobby.
 - This release ZIP intentionally omits the images folder. Keep the existing images folder in the GitHub repository when updating files.
 
 
-v49 update notes:
+v50 update notes:
 - Fixed host-side voice-chat discussion countdown rendering so Firebase snapshots do not reset the visible timer.
 - Added host-only same-room replay from the result screen.
 - Kept the host-only force-end discussion control.
-- Version labels and package directory are aligned to v49.
+- Version labels and package directory are aligned to v50.
 
 
-v49 update notes:
+v50 update notes:
 - Online rooms always allow up to 4 human players; CPU fills the room only when fewer than 3 humans are present.
 - Voice-chat discussion now uses an authoritative per-match deadline, including after replaying in the same room.
 - Clicking the online dialog backdrop or pressing Escape no longer ejects a player from the room.
