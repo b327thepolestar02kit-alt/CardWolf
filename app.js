@@ -208,6 +208,7 @@ let onlineHost=false;
 let onlineHostSecrets=null;
 let onlineCpuTimer=null;
 let onlineLastActionId="";
+const onlineProcessedActionIds=new Set();
 let onlineScoreRecorded=false;
 
 function setMode(isOnline){
@@ -401,7 +402,7 @@ function onlineSubmitClue(id){
   const usedIds=Array.isArray(onlineGame.usedClueIds)?onlineGame.usedClueIds:[];
   onlineGame.usedClueIds=usedIds;
   const st=opts.find(s=>s.id===id);if(!st||usedIds.includes(st.id))return;
-  submitOnlineAction({type:"clue",clueId:id,at:Date.now()});
+  submitOnlineAction({type:"clue",clueId:id,round:onlineGame.round,orderIndex:onlineGame.orderIndex,at:Date.now()});
 }
 function renderOnlineClue(){
   const current=onlinePlayerById(onlineCurrentId()), roundLabel=onlineGame.round===1?"第1ラウンド":"第2ラウンド（逆順）";
@@ -454,14 +455,14 @@ async function submitOnlineAction(action){
   if(!onlineGame){console.warn("online action ignored: game state not ready");return false;}
   const actionId=`${firebaseUid}-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
   try{
-    // Players are explicitly allowed to write to their own player node by the
-    // Firebase rules. Queue the action there instead of using the separate
-    // /actions branch, which was intermittently rejected on non-host clients.
-    await set(ref(firebaseDb,`rooms/${onlineRoomCodeValue}/players/${firebaseUid}/pendingActions/${actionId}`),{...action,uid:firebaseUid,actionId});
+    // Keep a per-player action queue instead of overwriting one shared action key.
+    // This prevents the first clue from being lost when the host listener and
+    // Firebase value events happen at nearly the same time.
+    await set(ref(firebaseDb,`rooms/${onlineRoomCodeValue}/actions/${firebaseUid}/${actionId}`),{...action,uid:firebaseUid,actionId});
     return true;
   }catch(e){
     console.error("online action failed",e);
-    alert(`操作を送信できませんでした。\n\n${e?.code?`エラーコード: ${e.code}\n`:""}${e?.message||e}`);
+    alert(`操作を送信できませんでした。\n\n${e?.message||e}`);
     return false;
   }
 }
@@ -486,9 +487,13 @@ function hostCpuClue(player){
   }
   return st;
 }
-async function hostApplyClue(uid,clueId){
+async function hostApplyClue(uid,clueId,action={}){
   if(!onlineHost||!onlineGame||onlineGame.phase!=="clue")return false;
   if(String(uid)!==String(onlineCurrentId()))return false;
+  // Reject stale clicks from a previous render/turn. This is especially important
+  // around the final clue of round 2, where Firebase can deliver an older snapshot.
+  if(Number.isFinite(Number(action.round)) && Number(action.round)!==Number(onlineGame.round))return false;
+  if(Number.isFinite(Number(action.orderIndex)) && Number(action.orderIndex)!==Number(onlineGame.orderIndex))return false;
   const player=onlinePlayerById(uid),card=onlineHostSecrets.cards[uid];if(!player||!card)return;
   onlineGame.usedClueIds=Array.isArray(onlineGame.usedClueIds)?onlineGame.usedClueIds:[];
   onlineGame.logs=Array.isArray(onlineGame.logs)?onlineGame.logs:[];
@@ -503,13 +508,31 @@ async function hostApplyClue(uid,clueId){
   return true;
 }
 async function advanceOnlineClueHost(){
-  onlineGame.orderIndex++;
-  if(onlineGame.orderIndex>=onlineGame.order.length){
-    if(onlineGame.round<onlineGame.settings.speechRounds){onlineGame.round++;onlineGame.order=onlineGame.round===1?onlineGame.order.slice():[...onlineGame.order].reverse();onlineGame.orderIndex=0;onlineGame.logs.push({type:"system",name:"ラウンド切替",text:`第${onlineGame.round}ラウンド。発言順を逆にします。`});}
-    else {onlineGame.phase="vote";onlineGame.orderIndex=0;await hostAssignCpuVotes();await hostWriteGame();return;}
+  const lastTurn = onlineGame.orderIndex >= onlineGame.order.length - 1;
+  if(!lastTurn){
+    onlineGame.orderIndex += 1;
+    await hostWriteGame();
+    hostMaybeCpuTurn();
+    return;
   }
+
+  // The final speaker of a round needs an explicit, atomic-looking transition.
+  // Do not briefly leave the old clue turn in Firebase, otherwise another client
+  // can render the same speaker's buttons again.
+  if(onlineGame.round < onlineGame.settings.speechRounds){
+    onlineGame.round += 1;
+    onlineGame.order = [...onlineGame.order].reverse();
+    onlineGame.orderIndex = 0;
+    onlineGame.logs.push({type:"system",name:"ラウンド切替",text:`第${onlineGame.round}ラウンド。発言順を逆にします。`});
+    await hostWriteGame();
+    hostMaybeCpuTurn();
+    return;
+  }
+
+  onlineGame.phase="vote";
+  onlineGame.orderIndex=0;
+  await hostAssignCpuVotes();
   await hostWriteGame();
-  hostMaybeCpuTurn();
 }
 async function hostAssignCpuVotes(){
   if(onlineGame.phase!=="vote")return;
@@ -594,7 +617,7 @@ async function hostFinishResult(reverseGuess){
 }
 async function hostProcessAction(action){
   if(!onlineHost||!onlineGame||!action)return;
-  if(action.type==="clue"){await hostApplyClue(action.uid,action.clueId);}
+  if(action.type==="clue"){await hostApplyClue(action.uid,action.clueId,action);}
   else if(action.type==="vote"&&onlineGame.phase==="vote"){
     const p=onlinePlayerById(action.uid);if(!p||!p.isHuman)return;
     if(onlineGame.players.some(x=>String(x.id)===String(action.voteId))&&String(action.voteId)!==String(action.uid)){p.vote=String(action.voteId);await hostEvaluateVotes();if(onlineGame.phase==="vote")await hostWriteGame();}
@@ -604,24 +627,19 @@ async function hostProcessAction(action){
 }
 function attachOnlineHostActionListener(){
   if(onlineActionUnsubscribe||!onlineRoomCodeValue)return;
-  // Listen to each player's own pending-action queue. The player rules already
-  // permit a user to write only under their own UID, so this avoids the
-  // non-host write failure that affected the first human clue.
-  onlineActionUnsubscribe=onValue(ref(firebaseDb,`rooms/${onlineRoomCodeValue}/players`),async snap=>{
+  onlineActionUnsubscribe=onValue(ref(firebaseDb,`rooms/${onlineRoomCodeValue}/actions`),async snap=>{
     const data=snap.val()||{};
-    for(const [uid,playerNode] of Object.entries(data)){
-      const queue=playerNode?.pendingActions;
+    for(const [uid,queue] of Object.entries(data)){
       if(!queue||typeof queue!=='object')continue;
       for(const [actionId,action] of Object.entries(queue)){
         if(!action||action.actionId!==actionId)continue;
-        if(actionId===onlineLastActionId)continue;
+        if(actionId===onlineLastActionId || onlineProcessedActionIds.has(actionId))continue;
         onlineLastActionId=actionId;
+        onlineProcessedActionIds.add(actionId);
         try{
-          // The path is authoritative for the sender; do not trust a forged uid
-          // field from the client.
-          await hostProcessAction({...action,uid});
+          await hostProcessAction(action);
         }finally{
-          await remove(ref(firebaseDb,`rooms/${onlineRoomCodeValue}/players/${uid}/pendingActions/${actionId}`)).catch(()=>{});
+          await remove(ref(firebaseDb,`rooms/${onlineRoomCodeValue}/actions/${uid}/${actionId}`)).catch(()=>{});
         }
       }
     }
@@ -693,4 +711,4 @@ window.addEventListener("error", function(e){
   }
 });
 
-/* v37: route human online actions through each player's own Firebase node. */
+/* v34: reliable online action queue, exit handling, and lobby contrast. */
