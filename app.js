@@ -622,4 +622,4 @@ window.addEventListener("error", function(e){
   }
 });
 
-/* v30: lazy Firebase anonymous auth + detailed authentication diagnostics. */
+/* v31: Firebase config synchronized with the project Web App configuration. */
