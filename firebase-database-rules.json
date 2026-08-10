@@ -22,6 +22,14 @@
             ".read": "auth != null && auth.uid == $uid",
             ".write": "auth != null && (auth.uid == $uid || auth.uid == root.child('rooms').child($roomId).child('hostUid').val())"
           }
+        },
+        "actionResults": {
+          "$uid": {
+            "$actionId": {
+              ".write": "auth != null && auth.uid == root.child('rooms').child($roomId).child('hostUid').val()",
+              ".read": "auth != null && (auth.uid == $uid || auth.uid == root.child('rooms').child($roomId).child('hostUid').val())"
+            }
+          }
         }
       }
     }
