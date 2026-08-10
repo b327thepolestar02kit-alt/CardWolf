@@ -128,10 +128,28 @@ function submitCpuGuess(){
 function finishReverseGuess(guess){game.reverseGuess=guess;const correct=guess&&guess.name===game.citizenCard.name;game.result=correct?"wolf-reversal":"citizen";game.logs.push({type:"system",name:"逆転宣言",text:`狼は「${guess?jpName(guess):"不明"}」と宣言しました。`});game.phase="result";renderGame();}
 function recordFinishedGame(){if(!game||game.recorded)return;const wolfWon=game.result==="wolf"||game.result==="wolf-reversal";if(game.players[0].isWolf===wolfWon)matchRecord.wins++;else matchRecord.losses++;game.recorded=true;renderRecord();}
 function renderResultPhase(){recordFinishedGame();phaseLabel.textContent="GAME OVER / 答え合わせ";const wolfWon=game.result==="wolf"||game.result==="wolf-reversal";phaseTitle.textContent=wolfWon?"狼チームの勝利":"市民チームの勝利";const msg={wolf:"選ばれたプレイヤーは市民でした。狼は正体を隠し切りました。","wolf-reversal":`狼が市民カード「${jpName(game.citizenCard)}」を見事に当て、逆転しました。`,citizen:`狼の宣言は「${game.reverseGuess?jpName(game.reverseGuess):"不明"}」。正解は「${jpName(game.citizenCard)}」でした。`}[game.result];actionPanel.innerHTML=`<div class="result-banner ${wolfWon?"wolf-win":"citizen-win"}"><p>${wolfWon?"狼チームの勝利":"市民チームの勝利"}</p><h2>${wolfWon?"狼の勝利":"市民の勝利"}</h2><span>${msg}</span></div><div class="answer-cards"><div><small>市民カード</small><img class="ygo-thumb" src="${cardImage(game.citizenCard)}"><strong>${jpName(game.citizenCard)}</strong><em>${cardInfo(game.citizenCard)}${cardStats(game.citizenCard)?" · "+cardStats(game.citizenCard):""}</em></div><div><small>狼カード</small><img class="ygo-thumb" src="${cardImage(game.wolfCard)}"><strong>${jpName(game.wolfCard)}</strong><em>${cardInfo(game.wolfCard)}${cardStats(game.wolfCard)?" · "+cardStats(game.wolfCard):""}</em></div></div><button class="primary-button compact" id="playAgainButton" type="button"><span>もう一度遊ぶ</span><span>↻</span></button>`;document.getElementById("playAgainButton").addEventListener("click",startGame);}
-function returnToSetup(){clearTimeout(cpuTimer);clearTimeout(onlineCpuTimer);if(onlineMode&&onlineRoomCodeValue){leaveOnlineRoom();}game=null;gameScreen.hidden=true;setupScreen.hidden=false;window.scrollTo({top:0,behavior:"smooth"});}
+async function returnToSetup(){
+  clearTimeout(cpuTimer);
+  clearTimeout(onlineCpuTimer);
+  try{
+    if(onlineRoomCodeValue) await leaveOnlineRoom();
+    else { try{onlineDialog.close();}catch{} }
+  }catch(e){console.warn("returnToSetup cleanup failed",e);}
+  onlineMode=false;
+  window.cardWolfOnlineMode=false;
+  soloModeButton.classList.add("is-selected");
+  onlineModeButton.classList.remove("is-selected");
+  soloModeButton.setAttribute("aria-pressed","true");
+  onlineModeButton.setAttribute("aria-pressed","false");
+  playerCountNote.textContent="3〜8人でプレイできます";
+  game=null;
+  gameScreen.hidden=true;
+  setupScreen.hidden=false;
+  window.scrollTo({top:0,behavior:"smooth"});
+}
 function openPool(){poolGrid.innerHTML=CARD_POOL.map(c=>`<div class="pool-card"><img src="${cardImage(c)}" alt="${escapeHtml(jpName(c))}">${cardDisplay(c)}</div>`).join("");poolDialog.showModal();}
 decreasePlayersButton.addEventListener("click",()=>updatePlayerCount(-1));increasePlayersButton.addEventListener("click",()=>updatePlayerCount(1));
-startButton.addEventListener("click",()=>{ if(window.cardWolfOnlineMode){ return; } startGame(); });
+startButton.addEventListener("click",()=>{ if(window.cardWolfOnlineMode){ if(!onlineDialog.open) setMode(true); return; } startGame(); });
 restartButton.addEventListener("click",returnToSetup);document.getElementById("rulesButton").addEventListener("click",()=>rulesDialog.showModal());document.getElementById("closeRulesButton").addEventListener("click",()=>rulesDialog.close());document.getElementById("poolButton").addEventListener("click",openPool);document.getElementById("closePoolButton").addEventListener("click",()=>poolDialog.close());advancedSettingsButton.addEventListener("click",()=>settingsDialog.showModal());closeSettingsButton.addEventListener("click",()=>settingsDialog.close());closeSettingsButtonBottom.addEventListener("click",()=>settingsDialog.close());resetScoreButton.addEventListener("click",()=>{matchRecord={wins:0,losses:0};renderRecord();});rulesDialog.addEventListener("click",e=>{if(e.target===rulesDialog)rulesDialog.close();});poolDialog.addEventListener("click",e=>{if(e.target===poolDialog)poolDialog.close();});settingsDialog.addEventListener("click",e=>{if(e.target===settingsDialog)settingsDialog.close();});updatePlayerCount(0);renderRecord();setMode(false);if(CARD_POOL.length===0)startButton.disabled=true;
 
 
@@ -158,12 +176,20 @@ let onlineLastActionId="";
 let onlineScoreRecorded=false;
 
 function setMode(isOnline){
-  onlineMode=isOnline;
-  window.cardWolfOnlineMode=isOnline;
-  soloModeButton.classList.toggle("is-selected",!isOnline);
-  onlineModeButton.classList.toggle("is-selected",isOnline);
-  playerCountNote.textContent=isOnline?"オンラインは最大4人。3人未満ならCPUを自動追加します。":"3〜8人でプレイできます";
-  if(isOnline){ onlineDialog.showModal(); } else { try{onlineDialog.close();}catch{} }
+  onlineMode=Boolean(isOnline);
+  window.cardWolfOnlineMode=onlineMode;
+  soloModeButton.classList.toggle("is-selected",!onlineMode);
+  onlineModeButton.classList.toggle("is-selected",onlineMode);
+  soloModeButton.setAttribute("aria-pressed",String(!onlineMode));
+  onlineModeButton.setAttribute("aria-pressed",String(onlineMode));
+  playerCountNote.textContent=onlineMode?"オンラインは最大4人。3人未満ならCPUを自動追加します。":"3〜8人でプレイできます";
+  if(onlineMode){
+    if(!onlineDialog.open){
+      try{onlineDialog.showModal();}catch(e){console.error("online dialog open failed",e);}
+    }
+  } else {
+    try{onlineDialog.close();}catch{}
+  }
 }
 function onlineRoomRef(){return ref(firebaseDb,`rooms/${onlineRoomCodeValue}`);}
 function makeRoomCode(){const chars="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";let s="";for(let i=0;i<4;i++)s+=chars[Math.floor(Math.random()*chars.length)];return s;}
@@ -521,7 +547,7 @@ async function syncOnlinePrivateAndGame(data){
 }
 soloModeButton.addEventListener("click",()=>setMode(false));
 onlineModeButton.addEventListener("click",()=>setMode(true));
-closeOnlineButton.addEventListener("click",leaveOnlineRoom);
+closeOnlineButton.addEventListener("click",async()=>{ await leaveOnlineRoom(); try{onlineDialog.close();}catch{}; setMode(false); });
 createRoomButton.addEventListener("click",createOnlineRoom);
 joinRoomButton.addEventListener("click",joinOnlineRoom);
 leaveRoomButton.addEventListener("click",leaveOnlineRoom);

@@ -1869,3 +1869,47 @@ button:not(:disabled) { cursor:pointer; }
     .online-cpu-setting{grid-template-columns:1fr 100px}
     .room-code-card strong{font-size:2.1rem}
 }
+
+/* v27: online mode feedback + readability fixes */
+.mode-button{
+  color:#f7f9ff !important;
+  background:rgba(12,20,34,.92) !important;
+  border-color:rgba(255,255,255,.18) !important;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.025);
+}
+.mode-button strong{color:#ffffff !important}
+.mode-button span{color:#d7e0ec !important;opacity:1 !important}
+.mode-button.is-selected{
+  color:#111827 !important;
+  background:linear-gradient(135deg,#d9b45b,#f0d98b) !important;
+  border-color:#f4d88b !important;
+  box-shadow:inset 0 -3px 0 #fff2bd,0 5px 18px rgba(217,180,91,.16) !important;
+}
+.mode-button.is-selected strong{color:#111827 !important}
+.mode-button.is-selected span{color:#263247 !important}
+
+/* The dialogs use a light legacy text color in a few places; force clear contrast. */
+.rules-dialog .dialog-note,
+.pool-dialog .dialog-note{
+  color:#f0f4fa !important;
+  opacity:1 !important;
+}
+.rules-dialog li p{color:#edf2f8 !important}
+.rules-dialog li p strong{color:#ffffff !important}
+.pool-dialog .pool-card .card-name-jp{color:#ffffff !important}
+.pool-dialog .pool-card .card-name-en{color:#c9d3e2 !important}
+.pool-dialog .pool-card .card-info-ja{color:#dbe4ef !important}
+.pool-dialog .pool-card .card-stats{color:#ffe08a !important}
+
+/* Keep the catchphrase's first half together on desktop. */
+.hero-catch{white-space:nowrap}
+@media(max-width:700px){
+  .hero-catch{white-space:normal}
+  .hero-catch br{display:none}
+}
+
+/* Make the mode switch feel interactive even before opening the online lobby. */
+.mode-button:focus-visible{
+  outline:3px solid #f0d98b !important;
+  outline-offset:3px;
+}
