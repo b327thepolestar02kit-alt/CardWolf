@@ -442,33 +442,39 @@ function renderOnlineDiscussion(){
   phaseLabel.textContent="VOICE CHAT / DISCUSSION";
   phaseTitle.textContent="カードを見て、みんなで議論しよう";
   const seconds=Math.max(60,Number(onlineGame.settings?.discussionSeconds||120));
-  const started=Number(onlineGame.discussionStartedAt||Date.now());
-  // Keep the discussion DOM stable. Re-rendering from Firebase snapshots must not
-  // restart the countdown on the host (or briefly reset the displayed time).
   const existing=document.getElementById("voiceDiscussionTimer");
   if(!existing){
     actionPanel.innerHTML=`<div class="voice-discussion-state"><div class="voice-timer" id="voiceDiscussionTimer">--:--</div><p>ボイスチャットで自由に議論してください。</p><span>時間になると自動的に投票へ進みます。</span>${onlineHost?'<button class="secondary-button compact discussion-force-end" id="discussionForceEndButton" type="button">議論を強制終了</button>':''}</div>`;
     const force=document.getElementById("discussionForceEndButton");
     if(force) force.addEventListener("click",()=>hostForceEndDiscussion());
   }
-  clearInterval(onlineDiscussionTimer);
-  const timerEl=document.getElementById("voiceDiscussionTimer");
-  const update=()=>{
-    if(!onlineGame||onlineGame.phase!=="discussion") return;
-    const left=Math.max(0,Math.ceil((started+seconds*1000-Date.now())/1000));
-    if(timerEl){const m=Math.floor(left/60),sec=String(left%60).padStart(2,"0");timerEl.textContent=`${m}:${sec}`;}
-    if(left<=0){
+  // Do not recreate the interval on every Firebase snapshot. In particular,
+  // the host also calls hostStartVoiceDiscussionTimer() after the first render;
+  // clearing this interval there used to make the host timer appear frozen.
+  const updateTimer=()=>{
+    if(!onlineGame||onlineGame.phase!=="discussion"){
       clearInterval(onlineDiscussionTimer);
-      if(onlineHost) hostEndDiscussion();
+      onlineDiscussionTimer=null;
+      return;
+    }
+    const started=Number(onlineGame.discussionStartedAt||Date.now());
+    const left=Math.max(0,Math.ceil((started+seconds*1000-Date.now())/1000));
+    const timerEl=document.getElementById("voiceDiscussionTimer");
+    if(timerEl){const m=Math.floor(left/60),sec=String(left%60).padStart(2,"0");timerEl.textContent=`${m}:${sec}`;}
+    if(left<=0 && onlineHost){
+      clearInterval(onlineDiscussionTimer);
+      onlineDiscussionTimer=null;
+      hostEndDiscussion();
     }
   };
-  update();
-  onlineDiscussionTimer=setInterval(update,250);
+  updateTimer();
+  if(!onlineDiscussionTimer) onlineDiscussionTimer=setInterval(updateTimer,250);
 }
+
 async function hostEndDiscussion(){
   if(!onlineHost||!onlineGame||onlineGame.phase!=="discussion")return;
-  clearInterval(onlineDiscussionTimer);clearTimeout(onlineCpuTimer);
-  onlineGame.phase="vote";onlineGame.orderIndex=0;
+  clearInterval(onlineDiscussionTimer);onlineDiscussionTimer=null;clearTimeout(onlineCpuTimer);onlineCpuTimer=null;
+  onlineGame.phase="vote";onlineGame.orderIndex=0;onlineGame.discussionStartedAt=null;
   await hostAssignCpuVotes();
   await hostWriteGame();
   renderOnlineGame();
@@ -480,11 +486,14 @@ async function hostForceEndDiscussion(){
 }
 
 function hostStartVoiceDiscussionTimer(){
-  clearTimeout(onlineCpuTimer); clearInterval(onlineDiscussionTimer);
+  clearTimeout(onlineCpuTimer);
   if(!onlineHost||!onlineGame||onlineGame.phase!=="discussion")return;
   const started=Number(onlineGame.discussionStartedAt||Date.now());
   const duration=Math.max(60,Number(onlineGame.settings?.discussionSeconds||120))*1000;
   const delay=Math.max(0,started+duration-Date.now());
+  // The visual countdown is owned by renderOnlineDiscussion(). This timeout is
+  // only the host-side safety transition into voting. Never clear the visual
+  // interval here.
   onlineCpuTimer=setTimeout(async()=>{
     if(!onlineHost||!onlineGame||onlineGame.phase!=="discussion")return;
     await hostEndDiscussion();
@@ -561,7 +570,7 @@ async function submitOnlineAction(action){
     // Each client gets its own immutable action entry. The host acknowledges
     // acceptance/rejection separately so a client never remains stuck in a
     // fake "waiting" state when the host rejects a stale action.
-    await set(actionRef,{...action,uid:firebaseUid,actionId,clientVersion:"v47",createdAt:Date.now()});
+    await set(actionRef,{...action,uid:firebaseUid,actionId,clientVersion:"v48",createdAt:Date.now()});
     return await new Promise((resolve)=>{
       let settled=false;
       const finish=(ok)=>{if(settled)return;settled=true;off(resultRef,"value",listener);onlineActionPromises.delete(actionId);resolve(Boolean(ok));};
@@ -824,10 +833,25 @@ async function startOnlineHostGame(){
   const order=shuffle(ids);
   const cards={},wolves={},lies={};
   ids.forEach(id=>{cards[id]=String(id)===String(wolfUid)?wolfCard:citizenCard;wolves[id]=String(id)===String(wolfUid);lies[id]=0;});
+  // A replay is a brand-new match inside the same room. Keep player identity,
+  // room settings and the persistent win/loss record, but discard every piece
+  // of the previous match state and any stale action/acknowledgement data.
+  clearTimeout(onlineCpuTimer);onlineCpuTimer=null;
+  clearInterval(onlineDiscussionTimer);onlineDiscussionTimer=null;
+  onlinePendingAction=null;
+  onlineLastActionId="";
+  onlineProcessedActionIds.clear();
+  onlineActionPromises.clear();
+  onlineHostActionQueue=Promise.resolve();
+  onlineHostProcessing=false;
   onlineHostSecrets={cards,wolves,lies,wolfUid,citizenCard,wolfCard};
   onlineMyCard=cards[firebaseUid]||null;onlineScoreRecorded=false;
   onlineGame={phase:room.settings?.voiceMode?"discussion":"clue",round:1,order,orderIndex:0,discussionStartedAt:room.settings?.voiceMode?Date.now():null,usedClueIds:[],logs:[],settings:room.settings||onlineSettings(),players:publicPlayers,tallies:null,eliminatedId:null,result:null,reveal:null,reverseGuess:null};
   for(const p of humans)await set(ref(firebaseDb,`rooms/${onlineRoomCodeValue}/privateCards/${p.uid}`),{cardName:cards[p.uid].name});
+  // Remove old per-match actions/acknowledgements so a replay can never be
+  // affected by a click that belonged to the previous game.
+  await remove(ref(firebaseDb,`rooms/${onlineRoomCodeValue}/actions`)).catch(()=>{});
+  await remove(ref(firebaseDb,`rooms/${onlineRoomCodeValue}/actionResults`)).catch(()=>{});
   attachOnlineHostActionListener();
   await update(onlineRoomRef(),{status:"playing",game:onlineSnapshot()});
   renderOnlineGame();
