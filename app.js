@@ -1,8 +1,8 @@
-/* CardWolf build v59 */
+/* CardWolf build v60 */
 const firebaseConfig = window.FIREBASE_CONFIG || {};
-if (window.CARDWOLF_BUILD_VERSION !== "v59") { window.CARDWOLF_BUILD_VERSION = "v59"; }
+if (window.CARDWOLF_BUILD_VERSION !== "v60") { window.CARDWOLF_BUILD_VERSION = "v60"; }
 const versionEl = document.querySelector(".build-version");
-if (versionEl) { versionEl.textContent = "v59"; versionEl.setAttribute("aria-label", "ゲームバージョン v59"); }
+if (versionEl) { versionEl.textContent = "v60"; versionEl.setAttribute("aria-label", "ゲームバージョン v60"); }
 
 // Firebase is loaded lazily so a CDN/auth/database problem can never disable
 // the basic game UI. The solo/setup buttons must remain usable even when the
@@ -71,7 +71,7 @@ function cardInfo(card){const parts=[typeJa(card)],a=attributeJa(card.attribute)
 function cardStats(card){const atk=Number.isFinite(Number(card.atk))?`ATK ${card.atk}`:"",def=Number.isFinite(Number(card.def))?`DEF ${card.def}`:"";return [atk,def].filter(Boolean).join(" / ");}
 function cardDisplay(card){return `<div class="card-name-jp">${escapeHtml(jpName(card))}</div><div class="card-name-en">${escapeHtml(card.name)}</div><div class="card-info-ja">${escapeHtml(cardInfo(card))}</div>${cardStats(card)?`<div class="card-stats">${escapeHtml(cardStats(card))}</div>`:""}`;}
 const CPU_NAMES=["ミナト","スズ","トキ","アオイ","レン","コハク","ナギ"];
-const setupScreen=document.getElementById("setupScreen"),gameScreen=document.getElementById("gameScreen"),playerCountOutput=document.getElementById("playerCount"),decreasePlayersButton=document.getElementById("decreasePlayers"),increasePlayersButton=document.getElementById("increasePlayers"),startButton=document.getElementById("startButton"),restartButton=document.getElementById("restartButton"),playersElement=document.getElementById("players"),yourCardElement=document.getElementById("yourCard"),actionPanel=document.getElementById("actionPanel"),phaseLabel=document.getElementById("phaseLabel"),phaseTitle=document.getElementById("phaseTitle"),talkLog=document.getElementById("talkLog"),logCount=document.getElementById("logCount"),rulesDialog=document.getElementById("rulesDialog"),poolDialog=document.getElementById("poolDialog"),poolGrid=document.getElementById("poolGrid");
+const setupScreen=document.getElementById("setupScreen"),gameScreen=document.getElementById("gameScreen"),playerCountOutput=document.getElementById("playerCount"),decreasePlayersButton=document.getElementById("decreasePlayers"),increasePlayersButton=document.getElementById("increasePlayers"),restartButton=document.getElementById("restartButton"),playersElement=document.getElementById("players"),yourCardElement=document.getElementById("yourCard"),actionPanel=document.getElementById("actionPanel"),phaseLabel=document.getElementById("phaseLabel"),phaseTitle=document.getElementById("phaseTitle"),talkLog=document.getElementById("talkLog"),logCount=document.getElementById("logCount"),rulesDialog=document.getElementById("rulesDialog"),poolDialog=document.getElementById("poolDialog"),poolGrid=document.getElementById("poolGrid");
 const speechCountSelect=document.getElementById("speechCount"),liePenaltyToggle=document.getElementById("liePenalty"),showLieCountToggle=document.getElementById("showLieCount");
 if(showLieCountToggle) showLieCountToggle.checked=true;
 const playerNameInput=document.getElementById("playerName"),winCountElement=document.getElementById("winCount"),lossCountElement=document.getElementById("lossCount"),gameWinCountElement=document.getElementById("gameWinCount"),gameLossCountElement=document.getElementById("gameLossCount");
@@ -197,9 +197,9 @@ function returnToSetup(){
   }
   onlineMode=false;
   window.cardWolfOnlineMode=false;
-  soloModeButton.classList.add("is-selected");
+  soloModeButton.classList.remove("is-selected");
   onlineModeButton.classList.remove("is-selected");
-  soloModeButton.setAttribute("aria-pressed","true");
+  soloModeButton.setAttribute("aria-pressed","false");
   onlineModeButton.setAttribute("aria-pressed","false");
   playerCountNote.textContent="3〜8人でプレイできます";
   game=null;
@@ -212,8 +212,7 @@ function returnToSetup(){
 }
 function openPool(){poolGrid.innerHTML=CARD_POOL.map(c=>`<div class="pool-card"><img src="${cardImage(c)}" alt="${escapeHtml(jpName(c))}">${cardDisplay(c)}</div>`).join("");poolDialog.showModal();}
 decreasePlayersButton.addEventListener("click",()=>updatePlayerCount(-1));increasePlayersButton.addEventListener("click",()=>updatePlayerCount(1));
-startButton.addEventListener("click",()=>{ if(window.cardWolfOnlineMode){ if(!onlineDialog.open) setMode(true); return; } startGame(); });
-restartButton.addEventListener("click",returnToSetup);document.getElementById("rulesButton").addEventListener("click",()=>rulesDialog.showModal());document.getElementById("closeRulesButton").addEventListener("click",()=>rulesDialog.close());document.getElementById("poolButton").addEventListener("click",openPool);document.getElementById("closePoolButton").addEventListener("click",()=>poolDialog.close());advancedSettingsButton.addEventListener("click",()=>settingsDialog.showModal());closeSettingsButton.addEventListener("click",()=>settingsDialog.close());closeSettingsButtonBottom.addEventListener("click",()=>settingsDialog.close());resetScoreButton.addEventListener("click",()=>{matchRecord={wins:0,losses:0};renderRecord();});rulesDialog.addEventListener("click",e=>{if(e.target===rulesDialog)rulesDialog.close();});poolDialog.addEventListener("click",e=>{if(e.target===poolDialog)poolDialog.close();});settingsDialog.addEventListener("click",e=>{if(e.target===settingsDialog)settingsDialog.close();});updatePlayerCount(0);renderRecord();if(CARD_POOL.length===0)startButton.disabled=true;
+restartButton.addEventListener("click",returnToSetup);document.getElementById("rulesButton").addEventListener("click",()=>rulesDialog.showModal());document.getElementById("closeRulesButton").addEventListener("click",()=>rulesDialog.close());document.getElementById("poolButton").addEventListener("click",openPool);document.getElementById("closePoolButton").addEventListener("click",()=>poolDialog.close());advancedSettingsButton.addEventListener("click",()=>settingsDialog.showModal());closeSettingsButton.addEventListener("click",()=>settingsDialog.close());closeSettingsButtonBottom.addEventListener("click",()=>settingsDialog.close());resetScoreButton.addEventListener("click",()=>{matchRecord={wins:0,losses:0};renderRecord();});rulesDialog.addEventListener("click",e=>{if(e.target===rulesDialog)rulesDialog.close();});poolDialog.addEventListener("click",e=>{if(e.target===poolDialog)poolDialog.close();});settingsDialog.addEventListener("click",e=>{if(e.target===settingsDialog)settingsDialog.close();});updatePlayerCount(0);renderRecord();if(CARD_POOL.length===0)soloModeButton.disabled=true;
 
 
 
@@ -249,10 +248,10 @@ let onlineMatchId="";
 function setMode(isOnline){
   onlineMode=Boolean(isOnline);
   window.cardWolfOnlineMode=onlineMode;
-  soloModeButton.classList.toggle("is-selected",!onlineMode);
-  onlineModeButton.classList.toggle("is-selected",onlineMode);
-  soloModeButton.setAttribute("aria-pressed",String(!onlineMode));
-  onlineModeButton.setAttribute("aria-pressed",String(onlineMode));
+  soloModeButton.classList.remove("is-selected");
+  onlineModeButton.classList.remove("is-selected");
+  soloModeButton.setAttribute("aria-pressed","false");
+  onlineModeButton.setAttribute("aria-pressed","false");
   playerCountNote.textContent=onlineMode?"オンラインは最大8人。3人未満ならCPUを自動追加します。":"3〜8人でプレイできます";
   if(onlineMode){
     // Open the lobby immediately. Use a non-modal fallback as a safety net
@@ -272,7 +271,7 @@ function setMode(isOnline){
 // Keep the mode buttons wired near their definition so a later optional UI
 // failure cannot prevent the online button from receiving its click handler.
 // The data attributes also make the controls usable with keyboard/touch input.
-soloModeButton.addEventListener("click",()=>setMode(false));
+soloModeButton.addEventListener("click",()=>{ setMode(false); startGame(); });
 onlineModeButton.addEventListener("click",()=>setMode(true));
 function onlineRoomRef(){return ref(firebaseDb,`rooms/${onlineRoomCodeValue}`);}
 function makeRoomCode(){const chars="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";let s="";for(let i=0;i<4;i++)s+=chars[Math.floor(Math.random()*chars.length)];return s;}
@@ -648,7 +647,7 @@ async function submitOnlineAction(action){
     // Each client gets its own immutable action entry. The host acknowledges
     // acceptance/rejection separately so a client never remains stuck in a
     // fake "waiting" state when the host rejects a stale action.
-    await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v59",createdAt:Date.now()});
+    await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v60",createdAt:Date.now()});
     return await new Promise((resolve)=>{
       let settled=false;
       const finish=(ok)=>{if(settled)return;settled=true;off(resultRef,"value",listener);onlineActionPromises.delete(actionId);resolve(Boolean(ok));};
