@@ -2650,3 +2650,51 @@ section.setup-screen[hidden], section.game-screen[hidden]{display:none!important
     padding-bottom:180px!important;
   }
 }
+
+/* v65: mobile scrolling uses ONE dedicated document-area scroller.
+   This avoids mobile browsers fighting between html/body/child scroll containers. */
+@media (max-width:760px){
+  html{
+    width:100%!important;
+    height:100%!important;
+    min-height:100%!important;
+    overflow:hidden!important;
+  }
+  body{
+    width:100%!important;
+    height:100%!important;
+    min-height:100%!important;
+    overflow:hidden!important;
+    overscroll-behavior:none!important;
+    touch-action:auto!important;
+  }
+  main{
+    width:100%!important;
+    height:calc(100dvh - 76px)!important;
+    max-height:calc(100dvh - 76px)!important;
+    min-height:0!important;
+    overflow-x:hidden!important;
+    overflow-y:auto!important;
+    -webkit-overflow-scrolling:touch!important;
+    overscroll-behavior-y:auto!important;
+    touch-action:pan-y!important;
+    scroll-behavior:auto!important;
+  }
+  .setup-screen,
+  .game-screen{
+    width:calc(100% - 12px)!important;
+    height:auto!important;
+    min-height:0!important;
+    max-height:none!important;
+    overflow:visible!important;
+    touch-action:auto!important;
+  }
+  .setup-screen{padding-bottom:180px!important;}
+  .game-screen{padding-bottom:60px!important;}
+  .setup-card,
+  .setup-inner,
+  .hero-copy,
+  .rule-strip{
+    overflow:visible!important;
+  }
+}

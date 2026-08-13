@@ -1,8 +1,8 @@
-/* CardWolf build v64 */
+/* CardWolf build v65 */
 const firebaseConfig = window.FIREBASE_CONFIG || {};
-if (window.CARDWOLF_BUILD_VERSION !== "v64") { window.CARDWOLF_BUILD_VERSION = "v64"; }
+if (window.CARDWOLF_BUILD_VERSION !== "v65") { window.CARDWOLF_BUILD_VERSION = "v65"; }
 const versionEl = document.querySelector(".build-version");
-if (versionEl) { versionEl.textContent = "v64"; versionEl.setAttribute("aria-label", "ゲームバージョン v64"); }
+if (versionEl) { versionEl.textContent = "v65"; versionEl.setAttribute("aria-label", "ゲームバージョン v65"); }
 
 // Firebase is loaded lazily so a CDN/auth/database problem can never disable
 // the basic game UI. The solo/setup buttons must remain usable even when the
@@ -116,7 +116,7 @@ function startGame(){
   setupScreen.hidden=true;
   gameScreen.hidden=false;
   renderGame();
-  window.scrollTo({top:0,behavior:"auto"});
+  const mainScroller=document.querySelector("main"); if(mainScroller) mainScroller.scrollTop=0; else window.scrollTo({top:0,behavior:"auto"});
 }
 function renderGame(){renderPlayers();renderYourCard();renderLog();renderActionPanel();}
 function previousPlayer(){if(!game||game.orderIndex<=0)return null;return game.players[game.order[game.orderIndex-1]];}
@@ -221,7 +221,7 @@ function returnToSetup(){
   actionPanel.innerHTML="";
   talkLog.innerHTML="";
   logCount.textContent="0 messages";
-  window.scrollTo({top:0,behavior:"auto"});
+  const mainScroller=document.querySelector("main"); if(mainScroller) mainScroller.scrollTop=0; else window.scrollTo({top:0,behavior:"auto"});
 }
 function openPool(){poolGrid.innerHTML=CARD_POOL.map(c=>`<div class="pool-card"><img src="${cardImage(c)}" alt="${escapeHtml(jpName(c))}">${cardDisplay(c)}</div>`).join("");poolDialog.showModal();}
 practicePlayerCountSelect?.addEventListener("change",syncPracticePlayerCount);
@@ -659,7 +659,7 @@ async function submitOnlineAction(action){
     // Each client gets its own immutable action entry. The host acknowledges
     // acceptance/rejection separately so a client never remains stuck in a
     // fake "waiting" state when the host rejects a stale action.
-    await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v64",createdAt:Date.now()});
+    await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v65",createdAt:Date.now()});
     return await new Promise((resolve)=>{
       let settled=false;
       const finish=(ok)=>{if(settled)return;settled=true;off(resultRef,"value",listener);onlineActionPromises.delete(actionId);resolve(Boolean(ok));};
