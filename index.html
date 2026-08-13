@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Kaisei+Decol:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css?v=60">
+    <link rel="stylesheet" href="styles.css?v=61">
 </head>
 <body>
     <div class="grain" aria-hidden="true"></div>
@@ -63,15 +63,15 @@
                         <button class="mode-button practice-mode-button" id="soloModeButton" type="button" aria-label="プラクティスモード（CPU戦）">
                             <strong>プラクティスモード（CPU戦）</strong><span>名前・人数を決めて、そのままゲーム開始</span>
                         </button>
-                        <button class="mode-button online-mode-button" id="onlineModeButton" type="button" aria-label="オンライン対戦（対人戦）">
-                            <strong>オンライン対戦（対人戦）</strong><span>ルームを作成・参加して友達と遊ぶ</span>
+                        <button class="mode-button online-mode-button" id="onlineModeButton" type="button" aria-label="オンラインモード（対人戦）">
+                            <strong>オンラインモード（対人戦）</strong><span>ルームを作成・参加して友達と遊ぶ</span>
                         </button>
                     </div>
 
                     <div class="setup-actions">
-                        <button class="settings-gear-button" id="advancedSettingsButton" type="button" aria-label="詳細設定を開く" title="詳細設定">
+                        <button class="settings-gear-button" id="advancedSettingsButton" type="button" aria-label="ルール設定を開く" title="ルール設定">
                             <span aria-hidden="true">⚙</span>
-                            <span>詳細設定</span>
+                            <span>ルール設定</span>
                         </button>
                     </div>
                 </div>
@@ -83,7 +83,7 @@
                 <button class="reset-score-button" id="resetScoreButton" type="button">戦績をリセット</button>
             </div>
 
-            <span class="build-version" aria-label="ゲームバージョン v60">v60</span>
+            <span class="build-version" aria-label="ゲームバージョン v61">v61</span>
 
             <div class="ygo-feature-strip"><span>MONSTER</span><span>ATTRIBUTE</span><span>RACE</span><span>ATK / DEF</span><span>LEVEL</span></div>
 
@@ -153,7 +153,7 @@
     <dialog class="rules-dialog online-dialog" id="onlineDialog">
         <button class="dialog-close" id="closeOnlineButton" type="button" aria-label="閉じる">×</button>
         <p class="step-label">ONLINE DUEL</p>
-        <h2>オンライン対戦</h2>
+        <h2>オンラインモード</h2>
         <p class="dialog-note">同じURLから参加し、ルームコードで同じゲームに入ります。最大8人。人間が3人未満ならCPUを自動追加します。</p>
 
         <div class="online-actions">
@@ -207,7 +207,7 @@
     <dialog class="rules-dialog settings-dialog" id="settingsDialog">
         <button class="dialog-close" id="closeSettingsButton" type="button" aria-label="閉じる">×</button>
         <p class="step-label">ADVANCED SETTINGS</p>
-        <h2>詳細設定</h2>
+        <h2>ルール設定</h2>
         <p class="dialog-note">ゲームの追加設定はここで変更できます。</p>
         <div class="game-settings advanced-settings" aria-label="詳細ゲーム設定">
             <div class="setting-row">

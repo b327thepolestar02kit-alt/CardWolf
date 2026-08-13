@@ -2463,3 +2463,118 @@ html,body{overflow-x:hidden;}
   .hero-copy .hero-lead{font-size:.84rem!important;}
   .setup-inner{padding-left:13px!important;padding-right:13px!important;}
 }
+
+
+/* v61: mobile scroll safety, stacked mode buttons, and top-right rule settings */
+.mode-select{
+  grid-template-columns:1fr!important;
+  gap:10px!important;
+}
+.mode-button{
+  width:100%!important;
+  min-height:68px!important;
+  box-sizing:border-box!important;
+}
+.setup-actions{
+  position:absolute!important;
+  top:28px!important;
+  right:28px!important;
+  margin:0!important;
+  z-index:8!important;
+}
+.settings-gear-button{
+  width:46px!important;
+  height:46px!important;
+  min-height:46px!important;
+  padding:0!important;
+  border-radius:50%!important;
+  gap:0!important;
+  font-size:0!important;
+  background:rgba(7,13,24,.9)!important;
+  box-shadow:0 5px 18px rgba(0,0,0,.28)!important;
+}
+.settings-gear-button span:first-child{
+  font-size:1.35rem!important;
+}
+.settings-gear-button span:last-child{display:none!important;}
+
+@media(max-width:760px){
+  html{
+    height:auto!important;
+    min-height:100%!important;
+    overflow-x:hidden!important;
+    overflow-y:auto!important;
+  }
+  body{
+    height:auto!important;
+    min-height:100vh!important;
+    min-height:100dvh!important;
+    overflow-x:hidden!important;
+    overflow-y:auto!important;
+    touch-action:pan-y!important;
+  }
+  main{
+    overflow:visible!important;
+    height:auto!important;
+    min-height:0!important;
+  }
+  .setup-screen{
+    display:block!important;
+    height:auto!important;
+    min-height:calc(100dvh - 80px)!important;
+    max-height:none!important;
+    overflow:visible!important;
+    padding-top:96px!important;
+    padding-bottom:120px!important;
+  }
+  .hero-copy{
+    overflow:visible!important;
+  }
+  .setup-card{
+    height:auto!important;
+    max-height:none!important;
+    overflow:visible!important;
+  }
+  .setup-inner{
+    height:auto!important;
+    max-height:none!important;
+    overflow:visible!important;
+    padding-top:78px!important;
+    padding-bottom:34px!important;
+  }
+  .setup-actions{
+    top:22px!important;
+    right:22px!important;
+  }
+  .settings-gear-button{
+    width:44px!important;
+    height:44px!important;
+    min-height:44px!important;
+  }
+  .mode-select{
+    display:grid!important;
+    grid-template-columns:1fr!important;
+    width:100%!important;
+    gap:10px!important;
+    margin-top:18px!important;
+  }
+  .mode-button{
+    width:100%!important;
+    min-height:72px!important;
+    max-width:none!important;
+    box-sizing:border-box!important;
+  }
+}
+
+@media(max-width:440px){
+  .setup-screen{
+    padding-top:88px!important;
+    padding-bottom:120px!important;
+  }
+  .setup-inner{
+    padding-top:72px!important;
+  }
+  .setup-actions{top:18px!important;right:18px!important;}
+  .settings-gear-button{width:42px!important;height:42px!important;min-height:42px!important;}
+  .mode-button{min-height:70px!important;padding:11px 14px!important;}
+}
