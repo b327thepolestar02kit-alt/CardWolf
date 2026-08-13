@@ -1,8 +1,8 @@
-/* CardWolf build v61 */
+/* CardWolf build v62 */
 const firebaseConfig = window.FIREBASE_CONFIG || {};
-if (window.CARDWOLF_BUILD_VERSION !== "v61") { window.CARDWOLF_BUILD_VERSION = "v61"; }
+if (window.CARDWOLF_BUILD_VERSION !== "v62") { window.CARDWOLF_BUILD_VERSION = "v62"; }
 const versionEl = document.querySelector(".build-version");
-if (versionEl) { versionEl.textContent = "v61"; versionEl.setAttribute("aria-label", "ゲームバージョン v61"); }
+if (versionEl) { versionEl.textContent = "v62"; versionEl.setAttribute("aria-label", "ゲームバージョン v62"); }
 
 // Firebase is loaded lazily so a CDN/auth/database problem can never disable
 // the basic game UI. The solo/setup buttons must remain usable even when the
@@ -71,12 +71,12 @@ function cardInfo(card){const parts=[typeJa(card)],a=attributeJa(card.attribute)
 function cardStats(card){const atk=Number.isFinite(Number(card.atk))?`ATK ${card.atk}`:"",def=Number.isFinite(Number(card.def))?`DEF ${card.def}`:"";return [atk,def].filter(Boolean).join(" / ");}
 function cardDisplay(card){return `<div class="card-name-jp">${escapeHtml(jpName(card))}</div><div class="card-name-en">${escapeHtml(card.name)}</div><div class="card-info-ja">${escapeHtml(cardInfo(card))}</div>${cardStats(card)?`<div class="card-stats">${escapeHtml(cardStats(card))}</div>`:""}`;}
 const CPU_NAMES=["ミナト","スズ","トキ","アオイ","レン","コハク","ナギ"];
-const setupScreen=document.getElementById("setupScreen"),gameScreen=document.getElementById("gameScreen"),playerCountOutput=document.getElementById("playerCount"),decreasePlayersButton=document.getElementById("decreasePlayers"),increasePlayersButton=document.getElementById("increasePlayers"),restartButton=document.getElementById("restartButton"),playersElement=document.getElementById("players"),yourCardElement=document.getElementById("yourCard"),actionPanel=document.getElementById("actionPanel"),phaseLabel=document.getElementById("phaseLabel"),phaseTitle=document.getElementById("phaseTitle"),talkLog=document.getElementById("talkLog"),logCount=document.getElementById("logCount"),rulesDialog=document.getElementById("rulesDialog"),poolDialog=document.getElementById("poolDialog"),poolGrid=document.getElementById("poolGrid");
+const setupScreen=document.getElementById("setupScreen"),gameScreen=document.getElementById("gameScreen"),restartButton=document.getElementById("restartButton"),playersElement=document.getElementById("players"),yourCardElement=document.getElementById("yourCard"),actionPanel=document.getElementById("actionPanel"),phaseLabel=document.getElementById("phaseLabel"),phaseTitle=document.getElementById("phaseTitle"),talkLog=document.getElementById("talkLog"),logCount=document.getElementById("logCount"),rulesDialog=document.getElementById("rulesDialog"),poolDialog=document.getElementById("poolDialog"),poolGrid=document.getElementById("poolGrid");
 const speechCountSelect=document.getElementById("speechCount"),liePenaltyToggle=document.getElementById("liePenalty"),showLieCountToggle=document.getElementById("showLieCount");
 if(showLieCountToggle) showLieCountToggle.checked=true;
 const playerNameInput=document.getElementById("playerName"),winCountElement=document.getElementById("winCount"),lossCountElement=document.getElementById("lossCount"),gameWinCountElement=document.getElementById("gameWinCount"),gameLossCountElement=document.getElementById("gameLossCount");
-const settingsDialog=document.getElementById("settingsDialog"),advancedSettingsButton=document.getElementById("advancedSettingsButton"),closeSettingsButton=document.getElementById("closeSettingsButton"),closeSettingsButtonBottom=document.getElementById("closeSettingsButtonBottom"),resetScoreButton=document.getElementById("resetScoreButton");
-const soloModeButton=document.getElementById("soloModeButton"),onlineModeButton=document.getElementById("onlineModeButton"),playerCountNote=document.getElementById("playerCountNote");
+const settingsDialog=document.getElementById("settingsDialog"),advancedSettingsButton=document.getElementById("advancedSettingsButton"),closeSettingsButton=document.getElementById("closeSettingsButton"),closeSettingsButtonBottom=document.getElementById("closeSettingsButtonBottom"),resetScoreButton=document.getElementById("resetScoreButton"),practicePlayerCountSelect=document.getElementById("practicePlayerCount");
+const soloModeButton=document.getElementById("soloModeButton"),onlineModeButton=document.getElementById("onlineModeButton");
 const onlineDialog=document.getElementById("onlineDialog"),closeOnlineButton=document.getElementById("closeOnlineButton"),createRoomButton=document.getElementById("createRoomButton"),joinRoomButton=document.getElementById("joinRoomButton"),roomCodeInput=document.getElementById("roomCodeInput"),onlineLobby=document.getElementById("onlineLobby"),onlineRoomCode=document.getElementById("onlineRoomCode"),onlinePlayerList=document.getElementById("onlinePlayerList"),onlineLobbyStatus=document.getElementById("onlineLobbyStatus"),onlineCpuCount=document.getElementById("onlineCpuCount"),onlineStartButton=document.getElementById("onlineStartButton"),leaveRoomButton=document.getElementById("leaveRoomButton");
 
 let selectedPlayerCount=4,game=null,cpuTimer=null;
@@ -97,13 +97,27 @@ function featureList(card){return [
 function statementsFor(card){return featureList(card).filter(f=>{try{return f.test(card);}catch{return false;}});}
 function falseStatementsFor(card){return featureList(card).filter(f=>{try{return !f.test(card);}catch{return false;}});}
 function chooseCardPair(){const cards=shuffle(CARD_POOL);for(let i=0;i<500;i++){const citizen=randomItem(cards),cf=statementsFor(citizen).map(x=>x.id),candidates=cards.filter(c=>c.name!==citizen.name&&statementsFor(c).some(f=>cf.includes(f.id)));if(candidates.length)return[citizen,randomItem(candidates)];}return cards.slice(0,2);}
-function updatePlayerCount(change){selectedPlayerCount=Math.min(8,Math.max(3,selectedPlayerCount+change));playerCountOutput.value=selectedPlayerCount;playerCountOutput.textContent=selectedPlayerCount;decreasePlayersButton.disabled=selectedPlayerCount===3;increasePlayersButton.disabled=selectedPlayerCount===8;}
+function syncPracticePlayerCount(){
+  const value=Number(practicePlayerCountSelect?.value||4);
+  selectedPlayerCount=Math.min(8,Math.max(3,value));
+  if(practicePlayerCountSelect) practicePlayerCountSelect.value=String(selectedPlayerCount);
+}
 function getSettings(){return{speechRounds:Number(speechCountSelect.value||2),liePenalty:Boolean(liePenaltyToggle.checked),showLieCount:Boolean(showLieCountToggle&& !showLieCountToggle.checked)};}
 function randomPlayerName(){return randomItem(["ユウ","カイ","レン","アキラ","ナギ","ハヤト","ソラ","ミナ","リク","シン"]);}
 function getPlayerName(){const n=(playerNameInput?.value||"").trim();return n||randomPlayerName();}
 function renderRecord(){if(winCountElement)winCountElement.textContent=matchRecord.wins;if(lossCountElement)lossCountElement.textContent=matchRecord.losses;if(gameWinCountElement)gameWinCountElement.textContent=matchRecord.wins;if(gameLossCountElement)gameLossCountElement.textContent=matchRecord.losses;}
 function buildOrder(round){return round===1?Array.from({length:selectedPlayerCount},(_,i)=>i):Array.from({length:selectedPlayerCount},(_,i)=>selectedPlayerCount-1-i);}
-function startGame(){clearTimeout(cpuTimer);if(CARD_POOL.length<2){alert("カードデータがありません。先にカード準備を完了してください。");return;}const [citizenCard,wolfCard]=chooseCardPair(),wolfIndex=Math.floor(Math.random()*selectedPlayerCount),humanName=getPlayerName(),players=Array.from({length:selectedPlayerCount},(_,index)=>({id:index,name:index===0?humanName:CPU_NAMES[index-1],isHuman:index===0,isWolf:index===wolfIndex,card:index===wolfIndex?wolfCard:citizenCard,clues:[],lies:0,vote:null})),settings=getSettings();game={citizenCard,wolfCard,wolfIndex,players,settings,round:1,order:buildOrder(1),orderIndex:0,phase:"clue",logs:[],usedClueIds:[],currentOptions:[],busy:false,tallies:null,eliminatedId:null,result:null,reverseGuess:null,recorded:false};setupScreen.hidden=true;gameScreen.hidden=false;renderGame();window.scrollTo({top:0,behavior:"smooth"});}
+function startGame(){
+  clearTimeout(cpuTimer);
+  syncPracticePlayerCount();
+  if(CARD_POOL.length<2){alert("カードデータがありません。先にカード準備を完了してください。");return;}
+  const [citizenCard,wolfCard]=chooseCardPair(),wolfIndex=Math.floor(Math.random()*selectedPlayerCount),humanName=getPlayerName(),players=Array.from({length:selectedPlayerCount},(_,index)=>({id:index,name:index===0?humanName:CPU_NAMES[index-1],isHuman:index===0,isWolf:index===wolfIndex,card:index===wolfIndex?wolfCard:citizenCard,clues:[],lies:0,vote:null})),settings=getSettings();
+  game={citizenCard,wolfCard,wolfIndex,players,settings,round:1,order:buildOrder(1),orderIndex:0,phase:"clue",logs:[],usedClueIds:[],currentOptions:[],busy:false,tallies:null,eliminatedId:null,result:null,reverseGuess:null,recorded:false};
+  setupScreen.hidden=true;
+  gameScreen.hidden=false;
+  renderGame();
+  window.scrollTo({top:0,behavior:"auto"});
+}
 function renderGame(){renderPlayers();renderYourCard();renderLog();renderActionPanel();}
 function previousPlayer(){if(!game||game.orderIndex<=0)return null;return game.players[game.order[game.orderIndex-1]];}
 function currentPlayer(){return game.players[game.order[game.orderIndex]];}
@@ -201,7 +215,6 @@ function returnToSetup(){
   onlineModeButton.classList.remove("is-selected");
   soloModeButton.setAttribute("aria-pressed","false");
   onlineModeButton.setAttribute("aria-pressed","false");
-  playerCountNote.textContent="3〜8人でプレイできます";
   game=null;
   setupScreen.hidden=false;
   gameScreen.hidden=true;
@@ -211,8 +224,8 @@ function returnToSetup(){
   window.scrollTo({top:0,behavior:"auto"});
 }
 function openPool(){poolGrid.innerHTML=CARD_POOL.map(c=>`<div class="pool-card"><img src="${cardImage(c)}" alt="${escapeHtml(jpName(c))}">${cardDisplay(c)}</div>`).join("");poolDialog.showModal();}
-decreasePlayersButton.addEventListener("click",()=>updatePlayerCount(-1));increasePlayersButton.addEventListener("click",()=>updatePlayerCount(1));
-restartButton.addEventListener("click",returnToSetup);document.getElementById("rulesButton").addEventListener("click",()=>rulesDialog.showModal());document.getElementById("closeRulesButton").addEventListener("click",()=>rulesDialog.close());document.getElementById("poolButton").addEventListener("click",openPool);document.getElementById("closePoolButton").addEventListener("click",()=>poolDialog.close());advancedSettingsButton.addEventListener("click",()=>settingsDialog.showModal());closeSettingsButton.addEventListener("click",()=>settingsDialog.close());closeSettingsButtonBottom.addEventListener("click",()=>settingsDialog.close());resetScoreButton.addEventListener("click",()=>{matchRecord={wins:0,losses:0};renderRecord();});rulesDialog.addEventListener("click",e=>{if(e.target===rulesDialog)rulesDialog.close();});poolDialog.addEventListener("click",e=>{if(e.target===poolDialog)poolDialog.close();});settingsDialog.addEventListener("click",e=>{if(e.target===settingsDialog)settingsDialog.close();});updatePlayerCount(0);renderRecord();if(CARD_POOL.length===0)soloModeButton.disabled=true;
+practicePlayerCountSelect?.addEventListener("change",syncPracticePlayerCount);
+restartButton.addEventListener("click",returnToSetup);document.getElementById("rulesButton").addEventListener("click",()=>rulesDialog.showModal());document.getElementById("closeRulesButton").addEventListener("click",()=>rulesDialog.close());document.getElementById("poolButton").addEventListener("click",openPool);document.getElementById("closePoolButton").addEventListener("click",()=>poolDialog.close());advancedSettingsButton.addEventListener("click",()=>settingsDialog.showModal());closeSettingsButton.addEventListener("click",()=>settingsDialog.close());closeSettingsButtonBottom.addEventListener("click",()=>settingsDialog.close());resetScoreButton.addEventListener("click",()=>{matchRecord={wins:0,losses:0};renderRecord();});rulesDialog.addEventListener("click",e=>{if(e.target===rulesDialog)rulesDialog.close();});poolDialog.addEventListener("click",e=>{if(e.target===poolDialog)poolDialog.close();});settingsDialog.addEventListener("click",e=>{if(e.target===settingsDialog)settingsDialog.close();});syncPracticePlayerCount();renderRecord();if(CARD_POOL.length===0)soloModeButton.disabled=true;
 
 
 
@@ -252,7 +265,6 @@ function setMode(isOnline){
   onlineModeButton.classList.remove("is-selected");
   soloModeButton.setAttribute("aria-pressed","false");
   onlineModeButton.setAttribute("aria-pressed","false");
-  playerCountNote.textContent=onlineMode?"オンラインは最大8人。3人未満ならCPUを自動追加します。":"3〜8人でプレイできます";
   if(onlineMode){
     // Open the lobby immediately. Use a non-modal fallback as a safety net
     // so the button never appears to do nothing on a browser/runtime issue.
@@ -647,7 +659,7 @@ async function submitOnlineAction(action){
     // Each client gets its own immutable action entry. The host acknowledges
     // acceptance/rejection separately so a client never remains stuck in a
     // fake "waiting" state when the host rejects a stale action.
-    await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v61",createdAt:Date.now()});
+    await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v62",createdAt:Date.now()});
     return await new Promise((resolve)=>{
       let settled=false;
       const finish=(ok)=>{if(settled)return;settled=true;off(resultRef,"value",listener);onlineActionPromises.delete(actionId);resolve(Boolean(ok));};

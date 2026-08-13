@@ -2465,7 +2465,7 @@ html,body{overflow-x:hidden;}
 }
 
 
-/* v61: mobile scroll safety, stacked mode buttons, and top-right rule settings */
+/* v62: mobile scroll safety, stacked mode buttons, and top-right rule settings */
 .mode-select{
   grid-template-columns:1fr!important;
   gap:10px!important;
@@ -2577,4 +2577,29 @@ html,body{overflow-x:hidden;}
   .setup-actions{top:18px!important;right:18px!important;}
   .settings-gear-button{width:42px!important;height:42px!important;min-height:42px!important;}
   .mode-button{min-height:70px!important;padding:11px 14px!important;}
+}
+
+
+/* v62: definitive screen visibility and mobile scrolling */
+section.setup-screen[hidden], section.game-screen[hidden]{display:none!important;}
+@media(max-width:760px){
+  html,body{
+    overflow-x:hidden!important;
+    overflow-y:auto!important;
+    -webkit-overflow-scrolling:touch!important;
+    overscroll-behavior-y:auto!important;
+  }
+  body{touch-action:pan-y!important;}
+  main{touch-action:pan-y!important;}
+  .setup-screen{
+    display:block!important;
+    height:auto!important;
+    min-height:0!important;
+    overflow:visible!important;
+    padding-bottom:160px!important;
+  }
+  .setup-screen[hidden]{display:none!important;}
+  .game-screen[hidden]{display:none!important;}
+  .setup-card{margin-bottom:28px!important;}
+  .mode-select{grid-template-columns:1fr!important;}
 }

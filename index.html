@@ -45,19 +45,12 @@
                 <div class="setup-inner">
                     <p class="step-label">DUEL SETUP</p>
                     <h2>ゲームを始める</h2>
-                    <p>名前と参加人数を決めて、カードウルフへ。</p>
+                    <p>名前を決めて、カードウルフへ。</p>
 
                     <div class="name-field">
                         <label for="playerName"><strong>あなたの名前</strong><span>ゲーム中のプレイヤー名になります</span></label>
                         <input id="playerName" type="text" maxlength="12" placeholder="名前を入力（未入力でもOK）" autocomplete="off">
                     </div>
-
-                    <div class="player-count" role="group" aria-label="参加人数">
-                        <button class="count-control" id="decreasePlayers" type="button" aria-label="人数を減らす">−</button>
-                        <output id="playerCount" aria-live="polite">4</output>
-                        <button class="count-control" id="increasePlayers" type="button" aria-label="人数を増やす">＋</button>
-                    </div>
-                    <p class="count-note" id="playerCountNote">3〜8人でプレイできます</p>
 
                     <div class="mode-select" role="group" aria-label="ゲームモード">
                         <button class="mode-button practice-mode-button" id="soloModeButton" type="button" aria-label="プラクティスモード（CPU戦）">
@@ -83,7 +76,7 @@
                 <button class="reset-score-button" id="resetScoreButton" type="button">戦績をリセット</button>
             </div>
 
-            <span class="build-version" aria-label="ゲームバージョン v61">v61</span>
+            <span class="build-version" aria-label="ゲームバージョン v62">v62</span>
 
             <div class="ygo-feature-strip"><span>MONSTER</span><span>ATTRIBUTE</span><span>RACE</span><span>ATK / DEF</span><span>LEVEL</span></div>
 
@@ -209,7 +202,18 @@
         <p class="step-label">ADVANCED SETTINGS</p>
         <h2>ルール設定</h2>
         <p class="dialog-note">ゲームの追加設定はここで変更できます。</p>
-        <div class="game-settings advanced-settings" aria-label="詳細ゲーム設定">
+        <div class="game-settings advanced-settings" aria-label="ルール設定">
+            <div class="setting-row">
+                <label for="practicePlayerCount"><strong>プラクティスモードの人数設定</strong><span>CPU戦で遊ぶ人数を3〜8人から選択します</span></label>
+                <select id="practicePlayerCount">
+                    <option value="3">3人</option>
+                    <option value="4" selected>4人（おすすめ）</option>
+                    <option value="5">5人</option>
+                    <option value="6">6人</option>
+                    <option value="7">7人</option>
+                    <option value="8">8人</option>
+                </select>
+            </div>
             <div class="setting-row">
                 <label for="speechCount"><strong>発言回数</strong><span>2回目は順番を逆にします</span></label>
                 <select id="speechCount">
