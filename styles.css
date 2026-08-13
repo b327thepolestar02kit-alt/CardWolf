@@ -2167,3 +2167,82 @@ button:not(:disabled) { cursor:pointer; }
 .online-dialog .online-cpu-setting label span{font-size:.82rem!important;line-height:1.5!important;color:#17243a!important;font-weight:600!important;opacity:1!important;}
 .online-dialog .online-player-limit-setting label strong,.online-dialog .online-player-limit-setting label span{color:#111827!important;}
 .online-dialog .online-player-limit-setting label span{font-size:.78rem!important;line-height:1.4!important;color:#334155!important;}
+
+
+/* v59: mobile layout, dialog close consistency, and voice-chat UI cleanup */
+html,body{overflow-x:hidden;}
+.setup-screen,.game-screen,.setup-card,.setup-inner{min-width:0;}
+
+/* Use the same high-contrast close button treatment across every dialog. */
+.rules-dialog .dialog-close,.pool-dialog .dialog-close,.settings-dialog .dialog-close,.online-dialog .dialog-close{
+  z-index:20!important;
+  width:42px!important;
+  height:42px!important;
+  top:12px!important;
+  right:12px!important;
+  border:2px solid #17243a!important;
+  border-radius:50%!important;
+  background:#fffdf6!important;
+  color:#111827!important;
+  font-size:1.35rem!important;
+  font-weight:900!important;
+  line-height:1!important;
+  box-shadow:0 3px 10px rgba(0,0,0,.22)!important;
+  opacity:1!important;
+  cursor:pointer!important;
+}
+.rules-dialog .dialog-close:hover,.pool-dialog .dialog-close:hover,.settings-dialog .dialog-close:hover,.online-dialog .dialog-close:hover{background:#f3e8c8!important;transform:scale(1.03);}
+.rules-dialog .dialog-close:focus-visible,.pool-dialog .dialog-close:focus-visible,.settings-dialog .dialog-close:focus-visible,.online-dialog .dialog-close:focus-visible{outline:3px solid #d9b45b!important;outline-offset:2px;}
+
+/* Online player-limit setting: keep the selector inside the card on narrow screens. */
+.online-dialog .online-player-limit-setting{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) 110px;
+  align-items:center;
+  gap:12px;
+  margin-top:16px;
+  padding:14px!important;
+  border:1px solid rgba(23,36,58,.14)!important;
+  border-radius:8px!important;
+  background:#fffdf6!important;
+  color:#17243a!important;
+}
+.online-dialog .online-player-limit-setting label{min-width:0;}
+.online-dialog .online-player-limit-setting label strong,.online-dialog .online-player-limit-setting label span{display:block!important;}
+.online-dialog .online-player-limit-setting label strong{font-size:.9rem!important;color:#111827!important;font-weight:900!important;}
+.online-dialog .online-player-limit-setting label span{margin-top:4px!important;font-size:.86rem!important;line-height:1.4!important;color:#334155!important;font-weight:700!important;}
+.online-dialog .online-player-limit-setting select{width:100%;min-width:0;color:#111827!important;background:#fffdf6!important;border:1px solid rgba(23,36,58,.25)!important;border-radius:6px!important;padding:10px 9px!important;}
+
+/* Mobile: prevent the rotated setup card and fixed-size controls from being clipped. */
+@media(max-width:760px){
+  .site-header{width:calc(100% - 20px)!important;padding:16px 0!important;gap:10px;}
+  .setup-screen{width:calc(100% - 20px)!important;padding:28px 0 54px!important;gap:28px!important;min-height:0!important;}
+  .setup-card{width:100%!important;max-width:100%!important;margin:0!important;transform:none!important;min-height:0!important;}
+  .setup-inner{min-height:0!important;padding:24px 20px 28px!important;}
+  .player-count{grid-template-columns:56px minmax(0,1fr) 56px!important;margin:24px 0 8px!important;}
+  .count-control{width:52px!important;height:52px!important;min-width:52px!important;min-height:52px!important;}
+  .player-count output{min-width:0;font-size:clamp(4.4rem,20vw,5.7rem);text-align:center;}
+  .mode-button{min-height:62px!important;}
+  .online-dialog,.rules-dialog,.pool-dialog,.settings-dialog{
+    width:calc(100vw - 20px)!important;
+    max-width:calc(100vw - 20px)!important;
+    max-height:calc(100dvh - 20px)!important;
+    margin:auto!important;
+    box-sizing:border-box!important;
+    overflow:auto!important;
+    padding:28px 18px 24px!important;
+  }
+  .online-dialog .dialog-close,.rules-dialog .dialog-close,.pool-dialog .dialog-close,.settings-dialog .dialog-close{top:10px!important;right:10px!important;}
+  .online-dialog .online-player-limit-setting{grid-template-columns:minmax(0,1fr) 96px!important;}
+  .online-dialog .online-player-limit-setting label span{font-size:.8rem!important;}
+  .online-dialog .online-cpu-setting{grid-template-columns:minmax(0,1fr) 96px!important;}
+  .online-dialog .online-voice-setting{grid-template-columns:1fr!important;}
+}
+@media(max-width:440px){
+  .site-header{width:calc(100% - 16px)!important;}
+  .setup-screen{width:calc(100% - 16px)!important;}
+  .setup-inner{padding-left:16px!important;padding-right:16px!important;}
+  .player-count{grid-template-columns:54px minmax(0,1fr) 54px!important;}
+  .count-control{width:50px!important;height:50px!important;min-width:50px!important;min-height:50px!important;}
+  .online-dialog .online-player-limit-setting,.online-dialog .online-cpu-setting{grid-template-columns:1fr!important;}
+}

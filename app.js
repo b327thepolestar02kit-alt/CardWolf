@@ -1,8 +1,8 @@
-/* CardWolf build v58 */
+/* CardWolf build v59 */
 const firebaseConfig = window.FIREBASE_CONFIG || {};
-if (window.CARDWOLF_BUILD_VERSION !== "v58") { window.CARDWOLF_BUILD_VERSION = "v58"; }
+if (window.CARDWOLF_BUILD_VERSION !== "v59") { window.CARDWOLF_BUILD_VERSION = "v59"; }
 const versionEl = document.querySelector(".build-version");
-if (versionEl) { versionEl.textContent = "v58"; versionEl.setAttribute("aria-label", "ゲームバージョン v58"); }
+if (versionEl) { versionEl.textContent = "v59"; versionEl.setAttribute("aria-label", "ゲームバージョン v59"); }
 
 // Firebase is loaded lazily so a CDN/auth/database problem can never disable
 // the basic game UI. The solo/setup buttons must remain usable even when the
@@ -73,6 +73,7 @@ function cardDisplay(card){return `<div class="card-name-jp">${escapeHtml(jpName
 const CPU_NAMES=["ミナト","スズ","トキ","アオイ","レン","コハク","ナギ"];
 const setupScreen=document.getElementById("setupScreen"),gameScreen=document.getElementById("gameScreen"),playerCountOutput=document.getElementById("playerCount"),decreasePlayersButton=document.getElementById("decreasePlayers"),increasePlayersButton=document.getElementById("increasePlayers"),startButton=document.getElementById("startButton"),restartButton=document.getElementById("restartButton"),playersElement=document.getElementById("players"),yourCardElement=document.getElementById("yourCard"),actionPanel=document.getElementById("actionPanel"),phaseLabel=document.getElementById("phaseLabel"),phaseTitle=document.getElementById("phaseTitle"),talkLog=document.getElementById("talkLog"),logCount=document.getElementById("logCount"),rulesDialog=document.getElementById("rulesDialog"),poolDialog=document.getElementById("poolDialog"),poolGrid=document.getElementById("poolGrid");
 const speechCountSelect=document.getElementById("speechCount"),liePenaltyToggle=document.getElementById("liePenalty"),showLieCountToggle=document.getElementById("showLieCount");
+if(showLieCountToggle) showLieCountToggle.checked=true;
 const playerNameInput=document.getElementById("playerName"),winCountElement=document.getElementById("winCount"),lossCountElement=document.getElementById("lossCount"),gameWinCountElement=document.getElementById("gameWinCount"),gameLossCountElement=document.getElementById("gameLossCount");
 const settingsDialog=document.getElementById("settingsDialog"),advancedSettingsButton=document.getElementById("advancedSettingsButton"),closeSettingsButton=document.getElementById("closeSettingsButton"),closeSettingsButtonBottom=document.getElementById("closeSettingsButtonBottom"),resetScoreButton=document.getElementById("resetScoreButton");
 const soloModeButton=document.getElementById("soloModeButton"),onlineModeButton=document.getElementById("onlineModeButton"),playerCountNote=document.getElementById("playerCountNote");
@@ -464,7 +465,8 @@ function renderOnlinePlayers(){
   playersElement.innerHTML=(onlineGame.players||[]).map(p=>{
     const current=onlineGame.phase==="clue"&&String(onlineCurrentId())===String(p.id);
     const clues=p.clues||[];
-    const clueHtml=clues.length?clues.map((c,i)=>`<p><b>${i+1}.</b> 「${escapeHtml(c.label)}」</p>`).join(""):(current?'<p class="muted thinking-text">発言を考えています…</p>':'<p class="muted">まだ発言していません</p>');
+    const voiceMode=Boolean(onlineGame.settings?.voiceMode);
+    const clueHtml=clues.length?clues.map((c,i)=>`<p><b>${i+1}.</b> 「${escapeHtml(c.label)}」</p>`).join(""):(voiceMode?"":(current?'<p class="muted thinking-text">発言を考えています…</p>':'<p class="muted">まだ発言していません</p>'));
     const votes=reveal&&onlineGame.tallies?onlineGame.tallies[p.id]||0:0;
     const revealMeta=reveal?`<span class="role-reveal ${roles[p.id]==="wolf"?"wolf":"citizen"}">${roles[p.id]==="wolf"?"狼":"市民"} · ${escapeHtml(cards[p.id]?jpName(cards[p.id]):"")}</span>`:"";
     return `<article class="player-seat ${String(p.id)===String(firebaseUid)?"is-you":""} ${current?"is-current":""}">
@@ -646,7 +648,7 @@ async function submitOnlineAction(action){
     // Each client gets its own immutable action entry. The host acknowledges
     // acceptance/rejection separately so a client never remains stuck in a
     // fake "waiting" state when the host rejects a stale action.
-    await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v58",createdAt:Date.now()});
+    await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v59",createdAt:Date.now()});
     return await new Promise((resolve)=>{
       let settled=false;
       const finish=(ok)=>{if(settled)return;settled=true;off(resultRef,"value",listener);onlineActionPromises.delete(actionId);resolve(Boolean(ok));};
