@@ -2603,3 +2603,50 @@ section.setup-screen[hidden], section.game-screen[hidden]{display:none!important
   .setup-card{margin-bottom:28px!important;}
   .mode-select{grid-template-columns:1fr!important;}
 }
+
+
+/* v64: definitive mobile page scrolling fix
+   Keep the document itself as the only vertical scroll container.
+   Avoid smooth scrolling/touch-action rules that can make short touch swipes
+   feel ignored on mobile browsers. */
+@media (max-width: 760px){
+  html{
+    width:100%!important;
+    min-width:320px!important;
+    height:auto!important;
+    min-height:100%!important;
+    overflow-x:hidden!important;
+    overflow-y:auto!important;
+    scroll-behavior:auto!important;
+  }
+  body{
+    width:100%!important;
+    min-width:320px!important;
+    height:auto!important;
+    min-height:100%!important;
+    overflow:visible!important;
+    overflow-x:hidden!important;
+    overflow-y:visible!important;
+    touch-action:auto!important;
+    overscroll-behavior:auto!important;
+    -webkit-overflow-scrolling:auto!important;
+  }
+  main{
+    width:100%!important;
+    height:auto!important;
+    min-height:0!important;
+    overflow:visible!important;
+    touch-action:auto!important;
+  }
+  .setup-screen,
+  .game-screen{
+    height:auto!important;
+    min-height:0!important;
+    max-height:none!important;
+    overflow:visible!important;
+    touch-action:auto!important;
+  }
+  .setup-screen{
+    padding-bottom:180px!important;
+  }
+}

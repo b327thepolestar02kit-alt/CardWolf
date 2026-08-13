@@ -1,8 +1,8 @@
-/* CardWolf build v63 */
+/* CardWolf build v64 */
 const firebaseConfig = window.FIREBASE_CONFIG || {};
-if (window.CARDWOLF_BUILD_VERSION !== "v63") { window.CARDWOLF_BUILD_VERSION = "v63"; }
+if (window.CARDWOLF_BUILD_VERSION !== "v64") { window.CARDWOLF_BUILD_VERSION = "v64"; }
 const versionEl = document.querySelector(".build-version");
-if (versionEl) { versionEl.textContent = "v63"; versionEl.setAttribute("aria-label", "ゲームバージョン v63"); }
+if (versionEl) { versionEl.textContent = "v64"; versionEl.setAttribute("aria-label", "ゲームバージョン v64"); }
 
 // Firebase is loaded lazily so a CDN/auth/database problem can never disable
 // the basic game UI. The solo/setup buttons must remain usable even when the
@@ -659,7 +659,7 @@ async function submitOnlineAction(action){
     // Each client gets its own immutable action entry. The host acknowledges
     // acceptance/rejection separately so a client never remains stuck in a
     // fake "waiting" state when the host rejects a stale action.
-    await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v63",createdAt:Date.now()});
+    await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v64",createdAt:Date.now()});
     return await new Promise((resolve)=>{
       let settled=false;
       const finish=(ok)=>{if(settled)return;settled=true;off(resultRef,"value",listener);onlineActionPromises.delete(actionId);resolve(Boolean(ok));};
