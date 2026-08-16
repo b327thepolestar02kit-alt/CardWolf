@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Kaisei+Decol:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css?v=65">
+    <link rel="stylesheet" href="styles.css?v=67">
 </head>
 <body>
     <div class="grain" aria-hidden="true"></div>
@@ -76,7 +76,7 @@
                 <button class="reset-score-button" id="resetScoreButton" type="button">戦績をリセット</button>
             </div>
 
-            <span class="build-version" aria-label="ゲームバージョン v66">v66</span>
+            <span class="build-version" aria-label="ゲームバージョン v67">v67</span>
 
             <div class="ygo-feature-strip"><span>MONSTER</span><span>ATTRIBUTE</span><span>RACE</span><span>ATK / DEF</span><span>LEVEL</span></div>
 
@@ -104,32 +104,30 @@
             </div>
 
             <div class="game-layout">
-                <section class="table-panel" aria-label="プレイヤーテーブル">
-                    <div class="table-felt">
-                        <div class="deck-mark ygo-deck-mark" aria-hidden="true">
-                            <span>✦</span>
-                            <strong>Yu-Gi-Oh!<br>CARD WOLF</strong>
-                            <span>✦</span>
-                        </div>
-                        <div class="players" id="players"></div>
-                    </div>
-                </section>
-
-                <aside class="play-panel">
+                <div class="game-top-row">
                     <section class="your-card-panel" aria-labelledby="yourCardTitle">
                         <div class="panel-heading">
                             <div>
                                 <p>YOUR DUEL CARD</p>
                                 <h2 id="yourCardTitle">あなたのカード</h2>
                             </div>
-                            
                         </div>
                         <div class="playing-card" id="yourCard"></div>
-                        
                     </section>
 
-                    <section class="action-panel" id="actionPanel" aria-live="polite"></section>
-                </aside>
+                    <section class="table-panel player-talk-panel" aria-label="プレイヤーと発言内容">
+                        <div class="table-felt">
+                            <div class="deck-mark ygo-deck-mark" aria-hidden="true">
+                                <span>✦</span>
+                                <strong>Yu-Gi-Oh!<br>CARD WOLF</strong>
+                                <span>✦</span>
+                            </div>
+                            <div class="players" id="players"></div>
+                        </div>
+                    </section>
+                </div>
+
+                <section class="action-panel" id="actionPanel" aria-live="polite"></section>
             </div>
 
             <section class="talk-log" aria-labelledby="talkLogTitle">
@@ -255,8 +253,8 @@
         <div class="pool-grid" id="poolGrid"></div>
     </dialog>
     <script src="data/cards.js"></script>
-    <script src="firebase-config.js?v=65"></script>
-    <script src="version-check.js?v=65"></script>
-    <script src="app.js?v=65"></script>
+    <script src="firebase-config.js?v=67"></script>
+    <script src="version-check.js?v=67"></script>
+    <script src="app.js?v=67"></script>
 </body>
 </html>

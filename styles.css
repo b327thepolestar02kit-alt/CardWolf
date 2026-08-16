@@ -2651,7 +2651,7 @@ section.setup-screen[hidden], section.game-screen[hidden]{display:none!important
   }
 }
 
-/* v66: mobile scrolling uses ONE dedicated document-area scroller.
+/* v67: mobile scrolling uses ONE dedicated document-area scroller.
    This avoids mobile browsers fighting between html/body/child scroll containers. */
 @media (max-width:760px){
   html{
@@ -2700,10 +2700,30 @@ section.setup-screen[hidden], section.game-screen[hidden]{display:none!important
 }
 
 
-/* v66: expanded CPU speech selection */
+/* v67: expanded CPU speech selection */
 .clue-category-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0;}
 .clue-category-button{min-height:48px;text-align:left;}
 .clue-list-label{margin:8px 0;font-size:.82rem;color:rgba(255,255,255,.72);}
 .submenu-choice-list{max-height:420px;overflow:auto;padding-right:3px;}
 .clue-back-button{width:100%;margin-top:10px;}
 @media (max-width:640px){.clue-category-grid{grid-template-columns:1fr;}.submenu-choice-list{max-height:none;overflow:visible;}.clue-category-button{min-height:50px;}}
+
+/* v67: game screen layout refresh */
+.game-layout{display:flex;flex-direction:column;gap:18px;width:100%;}
+.game-top-row{display:grid;grid-template-columns:minmax(210px,260px) minmax(0,1fr);gap:18px;align-items:stretch;width:100%;}
+.game-top-row .your-card-panel,.game-top-row .player-talk-panel{height:100%;min-width:0;}
+.game-top-row .your-card-panel{display:flex;flex-direction:column;align-items:stretch;}
+.game-top-row .your-card-panel .playing-card{align-self:center;margin-top:auto;margin-bottom:auto;}
+.game-top-row .player-talk-panel .table-felt{height:100%;min-height:0;}
+.game-top-row .player-talk-panel .players{height:100%;align-content:start;}
+.game-layout > .action-panel{width:100%;min-width:0;}
+.choice-button.choice-used{opacity:.52;cursor:not-allowed;filter:saturate(.55);}
+.choice-button.choice-used span:last-child{font-size:.72rem;font-weight:800;letter-spacing:.03em;}
+
+@media (max-width:760px){
+  .game-top-row{grid-template-columns:1fr;gap:14px;}
+  .game-top-row .your-card-panel{min-height:0;}
+  .game-top-row .your-card-panel .playing-card{margin:8px auto 12px;}
+  .game-top-row .player-talk-panel{min-height:0;}
+  .game-layout > .action-panel{margin-top:0;}
+}

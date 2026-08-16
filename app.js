@@ -1,8 +1,8 @@
-/* CardWolf build v66 */
+/* CardWolf build v67 */
 const firebaseConfig = window.FIREBASE_CONFIG || {};
-if (window.CARDWOLF_BUILD_VERSION !== "v66") { window.CARDWOLF_BUILD_VERSION = "v66"; }
+if (window.CARDWOLF_BUILD_VERSION !== "v67") { window.CARDWOLF_BUILD_VERSION = "v67"; }
 const versionEl = document.querySelector(".build-version");
-if (versionEl) { versionEl.textContent = "v66"; versionEl.setAttribute("aria-label", "ゲームバージョン v66"); }
+if (versionEl) { versionEl.textContent = "v67"; versionEl.setAttribute("aria-label", "ゲームバージョン v67"); }
 
 // Firebase is loaded lazily so a CDN/auth/database problem can never disable
 // the basic game UI. The solo/setup buttons must remain usable even when the
@@ -137,7 +137,6 @@ function featureList(card){
       {id:`atk-${bucket.id}`,label:`攻撃力が${bucket.label}です`,test:c=>bucket.test(c.atk)},
       {id:`def-${bucket.id}`,label:`守備力が${bucket.label}です`,test:c=>bucket.test(c.def)}
     ]),
-    ...initialCharOptions().map(ch=>({id:`name-initial-${encodeURIComponent(ch)}`,label:`カード名の開始文字が「${ch}」です`,test:c=>jpName(c).trim().startsWith(ch)})),
     {id:"high-atk",label:"攻撃力が2500以上です",test:c=>Number.isFinite(Number(c.atk))&&Number(c.atk)>=2500},
     {id:"low-atk",label:"攻撃力が1500以下です",test:c=>Number.isFinite(Number(c.atk))&&Number(c.atk)<=1500},
     {id:"high-def",label:"守備力が2500以上です",test:c=>Number.isFinite(Number(c.def))&&Number(c.def)>=2500},
@@ -186,8 +185,7 @@ const CLUE_MENU_CATEGORIES=[
   {id:"attribute",label:"属性"},
   {id:"race",label:"種族"},
   {id:"atk",label:"攻撃力"},
-  {id:"def",label:"守備力"},
-  {id:"name-initial",label:"カード名の開始文字"}
+  {id:"def",label:"守備力"}
 ];
 function availableClues(player){
  const used=new Set(game.usedClueIds||[]);
@@ -202,12 +200,16 @@ function availableClues(player){
  return shuffle(options).slice(0,6);
 }
 function clueCategoryOptions(category){
+ if(category==="basic") return [
+   {id:"monster",label:"モンスターカードです"},
+   {id:"spell",label:"魔法カードです"},
+   {id:"trap",label:"罠カードです"}
+ ];
  if(category==="level") return LEVEL_OPTIONS.map(v=>({id:`level-${v}`,label:`レベル／ランクが${v}です`}));
  if(category==="attribute") return ATTRIBUTE_OPTIONS.map(([v,l])=>({id:`attribute-${v.toLowerCase()}`,label:`${l}属性です`}));
  if(category==="race") { const raceIds={Spellcaster:"spellcaster",Dragon:"dragon",Warrior:"warrior",Fiend:"fiend",Fairy:"fairy",Beast:"beast","Winged-Beast":"winged-beast",Machine:"machine"}; return [...RACE_OPTIONS.map(([v,l])=>({id:raceIds[v],label:`${l}です`})),{id:"minor-race",label:"マイナーな種族です"}]; }
  if(category==="atk") return STAT_BUCKETS.map(b=>({id:`atk-${b.id}`,label:`攻撃力が${b.label}です`}));
  if(category==="def") return STAT_BUCKETS.map(b=>({id:`def-${b.id}`,label:`守備力が${b.label}です`}));
- if(category==="name-initial") return initialCharOptions().map(ch=>({id:`name-initial-${encodeURIComponent(ch)}`,label:`カード名の開始文字が「${ch}」です`}));
  return [];
 }
 function findClueById(id){return [...featureList(game.players[game.order[game.orderIndex]].card),...AMBIGUOUS_CLUES].find(s=>s.id===id);}
@@ -227,7 +229,8 @@ function renderCluePhase(){
  }else{
    const options=clueCategoryOptions(root);
    game.currentOptions=options.map(o=>findClueById(o.id)).filter(Boolean);
-   actionPanel.innerHTML=`<div class="action-heading"><p>${roundLabel}</p><h2>${CLUE_MENU_CATEGORIES.find(c=>c.id===root)?.label||"特徴を選択"}</h2><span>一覧から選択してください。</span></div><div class="choice-list submenu-choice-list">${options.map(o=>`<button class="choice-button" type="button" data-clue-id="${o.id}"><span>${o.label}</span><span>→</span></button>`).join("")}</div><button class="secondary-button compact clue-back-button" id="clueBackButton" type="button">← 戻る</button>`;
+   const usedIds=new Set(game.usedClueIds||[]);
+   actionPanel.innerHTML=`<div class="action-heading"><p>${roundLabel}</p><h2>${CLUE_MENU_CATEGORIES.find(c=>c.id===root)?.label||"特徴を選択"}</h2><span>一覧から選択してください。ほかのプレイヤーが発言済みの内容は選択できません。</span></div><div class="choice-list submenu-choice-list">${options.map(o=>{const used=usedIds.has(o.id);return `<button class="choice-button ${used?"choice-used":""}" type="button" data-clue-id="${o.id}" ${used?"disabled aria-disabled=\"true\"":""}><span>${o.label}</span><span>${used?"発言済み":"→"}</span></button>`;}).join("")}</div><button class="secondary-button compact clue-back-button" id="clueBackButton" type="button">← 戻る</button>`;
    actionPanel.querySelector("#clueBackButton").addEventListener("click",()=>{game.clueMenu="root";renderCluePhase();});
  }
  actionPanel.querySelectorAll("[data-clue-id]").forEach(b=>b.addEventListener("click",()=>submitHumanClue(b.dataset.clueId)));
@@ -804,7 +807,7 @@ async function submitOnlineAction(action){
     // Each client gets its own immutable action entry. The host acknowledges
     // acceptance/rejection separately so a client never remains stuck in a
     // fake "waiting" state when the host rejects a stale action.
-    await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v66",createdAt:Date.now()});
+    await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v67",createdAt:Date.now()});
     return await new Promise((resolve)=>{
       let settled=false;
       const finish=(ok)=>{if(settled)return;settled=true;off(resultRef,"value",listener);onlineActionPromises.delete(actionId);resolve(Boolean(ok));};
