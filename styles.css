@@ -2727,3 +2727,9 @@ section.setup-screen[hidden], section.game-screen[hidden]{display:none!important
   .game-top-row .player-talk-panel{min-height:0;}
   .game-layout > .action-panel{margin-top:0;}
 }
+
+/* v71: reverse declaration details and clearer mobile option lists */
+.guess-card-button .guess-card-meta,
+.guess-card-button small.guess-card-meta { display:block; line-height:1.45; }
+.guess-card-button small { color:#dbe5f5 !important; opacity:1 !important; }
+.clue-category-button, .submenu-choice-list .choice-button { min-height:48px; }

@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Kaisei+Decol:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css?v=v70">
+    <link rel="stylesheet" href="styles.css?v=v72">
 </head>
 <body>
     <div class="grain" aria-hidden="true"></div>
@@ -76,9 +76,9 @@
                 <button class="reset-score-button" id="resetScoreButton" type="button">戦績をリセット</button>
             </div>
 
-            <span class="build-version" aria-label="ゲームバージョン v70">v70</span>
+            <span class="build-version" aria-label="ゲームバージョン v71">v71</span>
 
-            <div class="ygo-feature-strip"><span>MONSTER</span><span>ATTRIBUTE</span><span>RACE</span><span>ATK / DEF</span><span>LEVEL</span></div>
+            <div class="ygo-feature-strip"><span>MONSTER</span><span>ATTRIBUTE</span><span>RACE</span><span>ATK / DEF</span><span>LEVEL / RANK / LINK</span></div>
 
             <ol class="rule-strip" aria-label="ゲームの流れ">
                 <li><span>01</span><strong>カード確認</strong><small>自分の1枚だけを見る</small></li>
@@ -248,13 +248,13 @@
     <dialog class="rules-dialog pool-dialog" id="poolDialog">
         <button class="dialog-close" id="closePoolButton" type="button" aria-label="閉じる">×</button>
         <p class="step-label">CARD POOL</p>
-        <h2>使用カード 40種</h2>
+        <h2>使用カード <span id="poolCount">40</span>種</h2>
         <p class="dialog-note">現在のゲームで使用するカードです。</p>
         <div class="pool-grid" id="poolGrid"></div>
     </dialog>
     <script src="data/cards.js"></script>
-    <script src="firebase-config.js?v=v70"></script>
-    <script src="version-check.js?v=v70"></script>
-    <script src="app.js?v=v70"></script>
+    <script src="firebase-config.js?v=v72"></script>
+    <script src="version-check.js?v=v72"></script>
+    <script src="app.js?v=v72"></script>
 </body>
 </html>

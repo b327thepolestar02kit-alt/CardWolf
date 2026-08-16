@@ -57,6 +57,8 @@ foreach ($name in $wanted) {
         atk = $hit.atk
         def = $hit.def
         level = $hit.level
+        rank = $hit.rank
+        linkval = $hit.linkval
         race = $hit.race
         attribute = $hit.attribute
         image = $local
