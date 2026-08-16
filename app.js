@@ -1,8 +1,8 @@
-/* CardWolf build v73 */
+/* CardWolf build v74 */
 const firebaseConfig = window.FIREBASE_CONFIG || {};
-if (window.CARDWOLF_BUILD_VERSION !== "v73") { window.CARDWOLF_BUILD_VERSION = "v73"; }
+if (window.CARDWOLF_BUILD_VERSION !== "v74") { window.CARDWOLF_BUILD_VERSION = "v74"; }
 const versionEl = document.querySelector(".build-version");
-if (versionEl) { versionEl.textContent = "v73"; versionEl.setAttribute("aria-label", "ゲームバージョン v73"); }
+if (versionEl) { versionEl.textContent = "v74"; versionEl.setAttribute("aria-label", "ゲームバージョン v74"); }
 
 // Firebase is loaded lazily so a CDN/auth/database problem can never disable
 // the basic game UI. The solo/setup buttons must remain usable even when the
@@ -101,7 +101,13 @@ const AMBIGUOUS_CLUES=[
 {id:"vague-cute",label:"かわいいカードです",ambiguous:true},
 {id:"vague-smart",label:"賢そうなカードです",ambiguous:true},
 {id:"vague-powerful",label:"強そうなカードです",ambiguous:true},
-{id:"vague-mysterious",label:"不思議な雰囲気のカードです",ambiguous:true}
+{id:"vague-mysterious",label:"不思議な雰囲気のカードです",ambiguous:true},
+{id:"vague-used-to-use",label:"昔よく使っていたカードです",ambiguous:true},
+{id:"vague-anime",label:"アニメで活躍したカードです",ambiguous:true},
+{id:"vague-weapon",label:"武器を持っているモンスターです",ambiguous:true},
+{id:"vague-biped",label:"二足歩行のモンスターです",ambiguous:true},
+{id:"vague-fire-breath",label:"炎を吐きそうなモンスターです",ambiguous:true},
+{id:"vague-flying",label:"飛行しそうなモンスターです",ambiguous:true}
 ];
 const MAJOR_RACES=["Spellcaster","Dragon","Warrior","Fiend","Fairy","Beast","Winged-Beast","Machine"];
 const ATTRIBUTE_OPTIONS=[
@@ -140,6 +146,7 @@ function featureList(card){
     {id:"synchro",label:"シンクロモンスターです",test:c=>String(c.type||"").includes("Synchro")},
     {id:"xyz",label:"エクシーズモンスターです",test:c=>/Xyz|XYZ/.test(String(c.type||""))},
     {id:"link",label:"リンクモンスターです",test:c=>String(c.type||"").includes("Link")},
+    {id:"extra-deck",label:"デュエル開始時にEXデッキに入るモンスターです",test:c=>{const t=String(c.type||"");return /Fusion|Synchro|Xyz|XYZ|Link/.test(t);}},
     {id:"dragon",label:"ドラゴン族です",test:c=>String(c.race||"")==="Dragon"},
     {id:"spellcaster",label:"魔法使い族です",test:c=>String(c.race||"")==="Spellcaster"},
     {id:"warrior",label:"戦士族です",test:c=>String(c.race||"")==="Warrior"},
@@ -161,7 +168,8 @@ function featureList(card){
     {id:"name-dark",label:"「ブラック」または「ダーク」に関係する名前です",test:c=>c.name.includes("Dark")||c.name.includes("Black")},
     {id:"name-red",label:"「真紅眼」に関係するカードです",test:c=>c.name.includes("Red-Eyes")},
     {id:"toon",label:"「トゥーン」の名前を持ちます",test:c=>c.name.includes("Toon")},
-    {id:"forbidden",label:"「封印されし」の名前を持ちます",test:c=>c.name.includes("Forbidden")}
+    {id:"forbidden",label:"「封印されし」の名前を持ちます",test:c=>c.name.includes("Forbidden")},
+    ...initialCharOptions().map(ch=>({id:`name-initial-${ch.codePointAt(0).toString(16)}`,label:`カード名の開始文字は「${ch}」です`,test:c=>jpName(c).trim().startsWith(ch)}))
   ];
   return list;
 }
@@ -212,7 +220,7 @@ function availableClues(player){
  let options=[...truthful.slice(0,4),...falsehoods.slice(0,2)];
  if(game.settings.speechRounds>=2 && !(player.clues||[]).some(c=>c.ambiguous)){
    const vague=shuffle(AMBIGUOUS_CLUES).filter(v=>!used.has(v.id));
-   if(vague.length) options.push(vague[0]);
+   options.push(...vague.slice(0,2));
  }
  if(options.length<4){const extra=shuffle(featureList(player.card)).filter(s=>!used.has(s.id)&&!options.some(o=>o.id===s.id));options.push(...extra.slice(0,4-options.length));}
  return shuffle(options).slice(0,6);
@@ -226,7 +234,8 @@ function clueCategoryOptions(category){
    {id:"fusion",label:"融合モンスターです"},
    {id:"synchro",label:"シンクロモンスターです"},
    {id:"xyz",label:"エクシーズモンスターです"},
-   {id:"link",label:"リンクモンスターです"}
+   {id:"link",label:"リンクモンスターです"},
+   {id:"extra-deck",label:"デュエル開始時にEXデッキに入るモンスターです"}
  ];
  if(category==="level") return [...LEVEL_OPTIONS.map(v=>({id:`level-${v}`,label:`レベル／ランクが${v}です`})), ...LINK_OPTIONS.map(v=>({id:`link-${v}`,label:`リンク${v}です`}))];
  if(category==="attribute") return ATTRIBUTE_OPTIONS.map(([v,l])=>({id:`attribute-${v.toLowerCase()}`,label:`${l}属性です`}));
@@ -247,7 +256,7 @@ function renderCluePhase(){
  if(root==="root"){
    const base=availableClues(current);
    game.currentOptions=base;
-   actionPanel.innerHTML=`<div class="action-heading"><p>${roundLabel}</p><h2>何と発言しますか？</h2><span>カテゴリから詳しい条件を選べます。${game.settings.liePenalty?"狼が2回以上嘘をつくと逆転チャンスを失います。":"嘘の回数によるペナルティはありません。"}</span></div><div class="clue-category-grid">${CLUE_MENU_CATEGORIES.map(c=>`<button class="choice-button clue-category-button" type="button" data-clue-category="${c.id}"><span>${c.label}</span><span>→</span></button>`).join("")}</div><div class="choice-list basic-clue-list"><p class="clue-list-label">すぐに選べる特徴</p>${base.map(s=>`<button class="choice-button ${s.ambiguous?"ambiguous-choice":""}" type="button" data-clue-id="${s.id}"><span>${s.label}</span><span>${s.ambiguous?"曖昧":"→"}</span></button>`).join("")}</div>`;
+   actionPanel.innerHTML=`<div class="action-heading"><p>${roundLabel}</p><h2>何と発言しますか？</h2><span>左の一覧から詳しい条件を選ぶか、右の「すぐに選べる特徴」から選択できます。${game.settings.liePenalty?"狼が2回以上嘘をつくと逆転チャンスを失います。":"嘘の回数によるペナルティはありません。"}</span></div><div class="clue-choice-layout"><section class="clue-menu-column"><p class="clue-list-label">特徴一覧</p><div class="clue-category-grid">${CLUE_MENU_CATEGORIES.map(c=>`<button class="choice-button clue-category-button" type="button" data-clue-category="${c.id}"><span>${c.label}</span><span>→</span></button>`).join("")}</div></section><section class="quick-clue-column"><p class="clue-list-label">すぐに選べる特徴</p><div class="choice-list basic-clue-list">${base.map(s=>`<button class="choice-button ${s.ambiguous?"ambiguous-choice":""}" type="button" data-clue-id="${s.id}"><span>${s.label}</span><span>${s.ambiguous?"曖昧":"→"}</span></button>`).join("")}</div></section></div>`;
    actionPanel.querySelectorAll("[data-clue-category]").forEach(b=>b.addEventListener("click",()=>{game.clueMenu=b.dataset.clueCategory;renderCluePhase();}));
  }else{
    const options=clueCategoryOptions(root);
@@ -630,7 +639,7 @@ function onlineFeatureOptions(card,used,playerClues){
   let options=[...truthful.slice(0,4),...falsehoods.slice(0,2)];
   if((onlineGame?.settings?.speechRounds||2)>=2 && !(playerClues||[]).some(c=>c.ambiguous)){
     const vague=shuffle(AMBIGUOUS_CLUES).filter(v=>!usedSet.has(v.id));
-    if(vague.length)options.push(vague[0]);
+    options.push(...vague.slice(0,2));
   }
   if(options.length<4){
     const extra=shuffle(featureList(card)).filter(s=>!usedSet.has(s.id)&&!options.some(o=>o.id===s.id));
@@ -830,7 +839,7 @@ async function submitOnlineAction(action){
     // Each client gets its own immutable action entry. The host acknowledges
     // acceptance/rejection separately so a client never remains stuck in a
     // fake "waiting" state when the host rejects a stale action.
-    await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v73",createdAt:Date.now()});
+    await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v74",createdAt:Date.now()});
     return await new Promise((resolve)=>{
       let settled=false;
       const finish=(ok)=>{if(settled)return;settled=true;off(resultRef,"value",listener);onlineActionPromises.delete(actionId);resolve(Boolean(ok));};

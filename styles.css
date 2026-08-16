@@ -2733,3 +2733,33 @@ section.setup-screen[hidden], section.game-screen[hidden]{display:none!important
 .guess-card-button small.guess-card-meta { display:block; line-height:1.45; }
 .guess-card-button small { color:#dbe5f5 !important; opacity:1 !important; }
 .clue-category-button, .submenu-choice-list .choice-button { min-height:48px; }
+
+
+/* v74: clue layout, expanded statements, readable reverse declaration, compact mobile card */
+.clue-choice-layout{display:grid;grid-template-columns:minmax(220px,.9fr) minmax(0,1.1fr);gap:18px;align-items:start;margin-top:12px;}
+.clue-menu-column,.quick-clue-column{min-width:0;padding:12px;border:1px solid rgba(255,255,255,.10);border-radius:12px;background:rgba(5,10,18,.28);}
+.clue-menu-column .clue-list-label,.quick-clue-column .clue-list-label{margin:0 0 9px;font-size:.78rem;font-weight:800;color:#dce5f2;}
+.clue-menu-column .clue-category-grid{margin:0;grid-template-columns:1fr;gap:8px;}
+.quick-clue-column .basic-clue-list{margin:0;display:grid;gap:8px;}
+.quick-clue-column .choice-button{min-height:46px;}
+.ambiguous-choice{border-color:rgba(255,218,102,.72)!important;box-shadow:inset 0 0 0 1px rgba(255,218,102,.10);}
+.ambiguous-choice span:first-child{color:#ffe27d!important;}
+.guess-card-button{background:#0d1726!important;color:#f2f6fb!important;border-color:rgba(217,180,91,.28)!important;}
+.guess-card-button span,.guess-card-button small,.guess-card-button .guess-card-meta{color:#151a17!important;background:#f4f0e6!important;}
+.guess-card-button span{font-weight:800;}
+.guess-card-button small,.guess-card-button .guess-card-meta{font-weight:600;}
+@media(max-width:760px){
+  .clue-choice-layout{grid-template-columns:1fr;gap:12px;}
+  .clue-menu-column,.quick-clue-column{padding:10px;}
+  .game-top-row .your-card-panel .playing-card.ygo{width:100%;max-width:360px;min-height:132px;height:auto;display:grid;grid-template-columns:92px minmax(0,1fr);align-items:center;gap:10px;padding:8px;}
+  .game-top-row .your-card-panel .playing-card.ygo .ygo-card-face{width:92px;height:116px;min-height:0;border-radius:7px;}
+  .game-top-row .your-card-panel .playing-card.ygo .your-card-meta{padding:0 4px 0 0;text-align:left;}
+  .game-top-row .your-card-panel .playing-card.ygo .card-name-jp{font-size:.88rem;line-height:1.25;}
+  .game-top-row .your-card-panel .playing-card.ygo .card-name-en{font-size:.58rem;line-height:1.25;}
+  .game-top-row .your-card-panel .playing-card.ygo .card-info-ja{font-size:.64rem;line-height:1.35;margin-top:3px;}
+  .game-top-row .your-card-panel .playing-card.ygo .card-stats{font-size:.68rem;margin-top:3px;}
+}
+@media(max-width:440px){
+  .game-top-row .your-card-panel .playing-card.ygo{grid-template-columns:78px minmax(0,1fr);min-height:112px;}
+  .game-top-row .your-card-panel .playing-card.ygo .ygo-card-face{width:78px;height:100px;}
+}
