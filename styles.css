@@ -2651,7 +2651,7 @@ section.setup-screen[hidden], section.game-screen[hidden]{display:none!important
   }
 }
 
-/* v67: mobile scrolling uses ONE dedicated document-area scroller.
+/* v68: mobile scrolling uses ONE dedicated document-area scroller.
    This avoids mobile browsers fighting between html/body/child scroll containers. */
 @media (max-width:760px){
   html{
@@ -2700,7 +2700,7 @@ section.setup-screen[hidden], section.game-screen[hidden]{display:none!important
 }
 
 
-/* v67: expanded CPU speech selection */
+/* v68: expanded CPU speech selection */
 .clue-category-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0;}
 .clue-category-button{min-height:48px;text-align:left;}
 .clue-list-label{margin:8px 0;font-size:.82rem;color:rgba(255,255,255,.72);}
@@ -2708,7 +2708,7 @@ section.setup-screen[hidden], section.game-screen[hidden]{display:none!important
 .clue-back-button{width:100%;margin-top:10px;}
 @media (max-width:640px){.clue-category-grid{grid-template-columns:1fr;}.submenu-choice-list{max-height:none;overflow:visible;}.clue-category-button{min-height:50px;}}
 
-/* v67: game screen layout refresh */
+/* v68: game screen layout refresh */
 .game-layout{display:flex;flex-direction:column;gap:18px;width:100%;}
 .game-top-row{display:grid;grid-template-columns:minmax(210px,260px) minmax(0,1fr);gap:18px;align-items:stretch;width:100%;}
 .game-top-row .your-card-panel,.game-top-row .player-talk-panel{height:100%;min-width:0;}
@@ -2727,3 +2727,10 @@ section.setup-screen[hidden], section.game-screen[hidden]{display:none!important
   .game-top-row .player-talk-panel{min-height:0;}
   .game-layout > .action-panel{margin-top:0;}
 }
+
+/* v68: speech selection columns */
+.clue-choice-columns{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:start;}
+.clue-choice-column{min-width:0;}
+.clue-choice-column .clue-category-grid{margin-top:0;}
+.clue-choice-column .basic-clue-list{margin-top:0;}
+@media (max-width:760px){.clue-choice-columns{grid-template-columns:1fr;gap:14px;}.clue-choice-column .clue-category-grid{grid-template-columns:1fr 1fr;}.clue-choice-column .choice-button{min-height:48px;}}

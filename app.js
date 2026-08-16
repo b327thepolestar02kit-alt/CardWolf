@@ -1,8 +1,8 @@
-/* CardWolf build v67 */
+/* CardWolf build v68 */
 const firebaseConfig = window.FIREBASE_CONFIG || {};
-if (window.CARDWOLF_BUILD_VERSION !== "v67") { window.CARDWOLF_BUILD_VERSION = "v67"; }
+if (window.CARDWOLF_BUILD_VERSION !== "v68") { window.CARDWOLF_BUILD_VERSION = "v68"; }
 const versionEl = document.querySelector(".build-version");
-if (versionEl) { versionEl.textContent = "v67"; versionEl.setAttribute("aria-label", "ゲームバージョン v67"); }
+if (versionEl) { versionEl.textContent = "v68"; versionEl.setAttribute("aria-label", "ゲームバージョン v68"); }
 
 // Firebase is loaded lazily so a CDN/auth/database problem can never disable
 // the basic game UI. The solo/setup buttons must remain usable even when the
@@ -62,6 +62,27 @@ const CARD_POOL = Array.isArray(window.CARD_POOL_DATA) ? window.CARD_POOL_DATA.f
 const JP_NAMES = {
 "Blue-Eyes White Dragon":"青眼の白龍","Dark Magician":"ブラック・マジシャン","Red-Eyes Black Dragon":"真紅眼の黒竜","Dark Magician Girl":"ブラック・マジシャン・ガール","Summoned Skull":"デーモンの召喚","Gaia The Fierce Knight":"暗黒騎士ガイア","Curse of Dragon":"カース・オブ・ドラゴン","Celtic Guardian":"エルフの剣士","Kuriboh":"クリボー","Jinzo":"人造人間－サイコ・ショッカー","Buster Blader":"バスター・ブレイダー","Black Luster Soldier":"カオス・ソルジャー","Exodia the Forbidden One":"封印されしエクゾディア","Left Arm of the Forbidden One":"封印されし者の左腕","Right Arm of the Forbidden One":"封印されし者の右腕","Left Leg of the Forbidden One":"封印されし者の左脚","Right Leg of the Forbidden One":"封印されし者の右脚","Relinquished":"サクリファイス","Dark Magician Girl the Dragon Knight":"竜騎士ブラック・マジシャン・ガール","Toon Dark Magician Girl":"トゥーン・ブラック・マジシャン・ガール","Slifer the Sky Dragon":"オシリスの天空竜","Obelisk the Tormentor":"オベリスクの巨神兵","The Winged Dragon of Ra":"ラーの翼神竜","Dark Magician of Chaos":"混沌の黒魔術師","Sangan":"クリッター","Witch of the Black Forest":"黒き森のウィッチ","Mystical Elf":"ホーリー・エルフ","Baby Dragon":"ベビードラゴン","Time Wizard":"時の魔術師","Red-Eyes Black Metal Dragon":"レッドアイズ・ブラックメタルドラゴン","Dark Paladin":"超魔導剣士－ブラック・パラディン","Chaos Emperor Dragon - Envoy of the End":"混沌帝龍 －終焉の使者－","Black Luster Soldier - Envoy of the Beginning":"カオス・ソルジャー －開闢の使者－","Marshmallon":"マシュマロン","Magician of Faith":"聖なる魔術師","Cyber Dragon":"サイバー・ドラゴン","Elemental HERO Neos":"E・HERO ネオス","Stardust Dragon":"スターダスト・ドラゴン","Black Rose Dragon":"ブラック・ローズ・ドラゴン","Number 39: Utopia":"No.39 希望皇ホープ"
 };
+
+JP_NAMES["Blue-Eyes Ultimate Dragon"]="青眼の究極竜";
+JP_NAMES["Blue-Eyes Alternative White Dragon"]="青眼の亜白龍";
+JP_NAMES["Red-Eyes Darkness Metal Dragon"]="レッドアイズ・ダークネスメタルドラゴン";
+JP_NAMES["Harpie Lady"]="ハーピィ・レディ";
+JP_NAMES["Harpie Lady Sisters"]="ハーピィ・レディ三姉妹";
+JP_NAMES["Harpie's Pet Dragon"]="ハーピィズペット竜";
+JP_NAMES["Thousand-Eyes Restrict"]="サウザンド・アイズ・サクリファイス";
+JP_NAMES["Ancient Gear Golem"]="古代の機械巨人";
+JP_NAMES["Cyber End Dragon"]="サイバー・エンド・ドラゴン";
+JP_NAMES["Cyber Twin Dragon"]="サイバー・ツイン・ドラゴン";
+JP_NAMES["Elemental HERO Flame Wingman"]="E・HERO フレイム・ウィングマン";
+JP_NAMES["Elemental HERO Shining Flare Wingman"]="E・HERO シャイニング・フレア・ウィングマン";
+JP_NAMES["Rainbow Dragon"]="究極宝玉神 レインボー・ドラゴン";
+JP_NAMES["Red Dragon Archfiend"]="レッド・デーモンズ・ドラゴン";
+JP_NAMES["Shooting Star Dragon"]="シューティング・スター・ドラゴン";
+JP_NAMES["Shooting Quasar Dragon"]="シューティング・クェーサー・ドラゴン";
+JP_NAMES["Number 17: Leviathan Dragon"]="No.17 リバイス・ドラゴン";
+JP_NAMES["Decode Talker"]="デコード・トーカー";
+JP_NAMES["Accesscode Talker"]="アクセスコード・トーカー";
+JP_NAMES["Odd-Eyes Pendulum Dragon"]="オッドアイズ・ペンデュラム・ドラゴン";
 function jpName(card){return JP_NAMES[card.name]||card.name;}
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));}
 function typeJa(card){const t=String(card.type||"");if(t.includes("Spell"))return "魔法カード";if(t.includes("Trap"))return "罠カード";if(t.includes("Fusion"))return "融合モンスター";if(t.includes("Synchro"))return "シンクロモンスター";if(t.includes("Xyz"))return "エクシーズモンスター";if(t.includes("Link"))return "リンクモンスター";if(t.includes("Effect"))return "効果モンスター";return "通常モンスター";}
@@ -111,17 +132,16 @@ const STAT_BUCKETS=[
   {id:"le2500",label:"2500以下",test:v=>Number.isFinite(Number(v))&&Number(v)>=0&&Number(v)<=2500},
   {id:"ge2501",label:"2501以上",test:v=>Number.isFinite(Number(v))&&Number(v)>=2501}
 ];
-function initialCharOptions(){
-  const chars=[...new Set(CARD_POOL.map(c=>jpName(c).trim().charAt(0)).filter(Boolean))];
-  return chars.sort((a,b)=>a.localeCompare(b,"ja"));
-}
 function featureList(card){
   const list=[
-    {id:"monster",label:"モンスターカードです",test:c=>String(c.type||"").includes("Monster")},
-    {id:"spell",label:"魔法カードです",test:c=>String(c.type||"").includes("Spell")},
-    {id:"trap",label:"罠カードです",test:c=>String(c.type||"").includes("Trap")},
-    {id:"effect",label:"効果を持つカードです",test:c=>/Effect|Fusion|Synchro|Xyz|Link/.test(String(c.type||""))},
-    {id:"normal",label:"通常モンスターです",test:c=>String(c.type||"").includes("Normal")},
+    {id:"normal",label:"通常モンスターです",test:c=>String(c.type||"").includes("Normal") && String(c.type||"").includes("Monster")},
+    {id:"effect",label:"効果モンスターです",test:c=>String(c.type||"").includes("Effect")},
+    {id:"fusion",label:"融合モンスターです",test:c=>String(c.type||"").includes("Fusion")},
+    {id:"synchro",label:"シンクロモンスターです",test:c=>String(c.type||"").includes("Synchro")},
+    {id:"xyz",label:"エクシーズモンスターです",test:c=>String(c.type||"").includes("Xyz")},
+    {id:"link",label:"リンクモンスターです",test:c=>String(c.type||"").includes("Link")},
+    {id:"ritual",label:"儀式モンスターです",test:c=>String(c.type||"").includes("Ritual")},
+    {id:"pendulum",label:"ペンデュラムモンスターです",test:c=>String(c.type||"").includes("Pendulum") && String(c.type||"").includes("Monster")},
     {id:"dragon",label:"ドラゴン族です",test:c=>String(c.race||"")==="Dragon"},
     {id:"spellcaster",label:"魔法使い族です",test:c=>String(c.race||"")==="Spellcaster"},
     {id:"warrior",label:"戦士族です",test:c=>String(c.race||"")==="Warrior"},
@@ -201,9 +221,14 @@ function availableClues(player){
 }
 function clueCategoryOptions(category){
  if(category==="basic") return [
-   {id:"monster",label:"モンスターカードです"},
-   {id:"spell",label:"魔法カードです"},
-   {id:"trap",label:"罠カードです"}
+   {id:"normal",label:"通常モンスターです"},
+   {id:"effect",label:"効果モンスターです"},
+   {id:"fusion",label:"融合モンスターです"},
+   {id:"synchro",label:"シンクロモンスターです"},
+   {id:"xyz",label:"エクシーズモンスターです"},
+   {id:"link",label:"リンクモンスターです"},
+   {id:"ritual",label:"儀式モンスターです"},
+   {id:"pendulum",label:"ペンデュラムモンスターです"}
  ];
  if(category==="level") return LEVEL_OPTIONS.map(v=>({id:`level-${v}`,label:`レベル／ランクが${v}です`}));
  if(category==="attribute") return ATTRIBUTE_OPTIONS.map(([v,l])=>({id:`attribute-${v.toLowerCase()}`,label:`${l}属性です`}));
@@ -224,7 +249,7 @@ function renderCluePhase(){
  if(root==="root"){
    const base=availableClues(current);
    game.currentOptions=base;
-   actionPanel.innerHTML=`<div class="action-heading"><p>${roundLabel}</p><h2>何と発言しますか？</h2><span>カテゴリから詳しい条件を選べます。${game.settings.liePenalty?"狼が2回以上嘘をつくと逆転チャンスを失います。":"嘘の回数によるペナルティはありません。"}</span></div><div class="clue-category-grid">${CLUE_MENU_CATEGORIES.map(c=>`<button class="choice-button clue-category-button" type="button" data-clue-category="${c.id}"><span>${c.label}</span><span>→</span></button>`).join("")}</div><div class="choice-list basic-clue-list"><p class="clue-list-label">すぐに選べる特徴</p>${base.map(s=>`<button class="choice-button ${s.ambiguous?"ambiguous-choice":""}" type="button" data-clue-id="${s.id}"><span>${s.label}</span><span>${s.ambiguous?"曖昧":"→"}</span></button>`).join("")}</div>`;
+   actionPanel.innerHTML=`<div class="action-heading"><p>${roundLabel}</p><h2>何と発言しますか？</h2><span>カテゴリから詳しい条件を選べます。${game.settings.liePenalty?"狼が2回以上嘘をつくと逆転チャンスを失います。":"嘘の回数によるペナルティはありません。"}</span></div><div class="clue-choice-columns"><div class="clue-choice-column"><p class="clue-list-label">一覧から選ぶ</p><div class="clue-category-grid">${CLUE_MENU_CATEGORIES.map(c=>`<button class="choice-button clue-category-button" type="button" data-clue-category="${c.id}"><span>${c.label}</span><span>→</span></button>`).join("")}</div></div><div class="clue-choice-column"><p class="clue-list-label">すぐに選べる特徴</p><div class="choice-list basic-clue-list">${base.map(s=>`<button class="choice-button ${s.ambiguous?"ambiguous-choice":""}" type="button" data-clue-id="${s.id}"><span>${s.label}</span><span>${s.ambiguous?"曖昧":"→"}</span></button>`).join("")}</div></div></div>`;
    actionPanel.querySelectorAll("[data-clue-category]").forEach(b=>b.addEventListener("click",()=>{game.clueMenu=b.dataset.clueCategory;renderCluePhase();}));
  }else{
    const options=clueCategoryOptions(root);
@@ -807,7 +832,7 @@ async function submitOnlineAction(action){
     // Each client gets its own immutable action entry. The host acknowledges
     // acceptance/rejection separately so a client never remains stuck in a
     // fake "waiting" state when the host rejects a stale action.
-    await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v67",createdAt:Date.now()});
+    await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v68",createdAt:Date.now()});
     return await new Promise((resolve)=>{
       let settled=false;
       const finish=(ok)=>{if(settled)return;settled=true;off(resultRef,"value",listener);onlineActionPromises.delete(actionId);resolve(Boolean(ok));};
