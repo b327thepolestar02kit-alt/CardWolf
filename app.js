@@ -1,8 +1,8 @@
-/* CardWolf build v74 */
+/* CardWolf build v75 */
 const firebaseConfig = window.FIREBASE_CONFIG || {};
-if (window.CARDWOLF_BUILD_VERSION !== "v74") { window.CARDWOLF_BUILD_VERSION = "v74"; }
+if (window.CARDWOLF_BUILD_VERSION !== "v75") { window.CARDWOLF_BUILD_VERSION = "v75"; }
 const versionEl = document.querySelector(".build-version");
-if (versionEl) { versionEl.textContent = "v74"; versionEl.setAttribute("aria-label", "ゲームバージョン v74"); }
+if (versionEl) { versionEl.textContent = "v75"; versionEl.setAttribute("aria-label", "ゲームバージョン v75"); }
 
 // Firebase is loaded lazily so a CDN/auth/database problem can never disable
 // the basic game UI. The solo/setup buttons must remain usable even when the
@@ -65,7 +65,8 @@ const JP_NAMES = {
 };
 function jpName(card){return JP_NAMES[card.name]||card.name;}
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));}
-function typeJa(card){const t=String(card.type||"");if(t.includes("Spell"))return "魔法カード";if(t.includes("Trap"))return "罠カード";if(t.includes("Fusion"))return "融合モンスター";if(t.includes("Synchro"))return "シンクロモンスター";if(/Xyz|XYZ/.test(t))return "エクシーズモンスター";if(t.includes("Link"))return "リンクモンスター";if(t.includes("Ritual"))return t.includes("Effect")?"儀式・効果モンスター":"儀式モンスター";if(t.includes("Effect")||t.includes("Flip")||t.includes("Toon"))return "効果モンスター";return "通常モンスター";}
+function isEffectMonster(card){const t=String(card?.type||"");if(/Effect|Flip|Toon/.test(t))return true;/* この60枚のカードプールでは、融合・シンクロ・エクシーズ・リンクはすべて効果モンスターとして分類する。召喚方法だけで「効果なし」とは判定しない。 */if(/Fusion|Synchro|Xyz|XYZ|Link/.test(t))return true;return false;}
+function typeJa(card){const t=String(card.type||"");if(t.includes("Spell"))return "魔法カード";if(t.includes("Trap"))return "罠カード";if(t.includes("Fusion"))return isEffectMonster(card)?"融合・効果モンスター":"融合モンスター";if(t.includes("Synchro"))return isEffectMonster(card)?"シンクロ・効果モンスター":"シンクロモンスター";if(/Xyz|XYZ/.test(t))return isEffectMonster(card)?"エクシーズ・効果モンスター":"エクシーズモンスター";if(t.includes("Link"))return isEffectMonster(card)?"リンク・効果モンスター":"リンクモンスター";if(t.includes("Ritual"))return t.includes("Effect")?"儀式・効果モンスター":"儀式モンスター";if(isEffectMonster(card))return "効果モンスター";return "通常モンスター";}
 function attributeJa(a){return ({LIGHT:"光",DARK:"闇",FIRE:"炎",WATER:"水",WIND:"風",EARTH:"地",DIVINE:"神"})[String(a||"").toUpperCase()]||"";}
 function raceJa(r){return ({Dragon:"ドラゴン族",Spellcaster:"魔法使い族",Warrior:"戦士族",Fiend:"悪魔族",Beast:"獣族","Beast-Warrior":"獣戦士族",Machine:"機械族",Fairy:"天使族",Aqua:"水族",Pyro:"炎族",Plant:"植物族",Rock:"岩石族",Zombie:"アンデット族",Thunder:"雷族","Winged-Beast":"鳥獣族",Dinosaur:"恐竜族","Sea-Serpent":"海竜族",Reptile:"爬虫類族",Psychic:"サイキック族",Wyrm:"幻竜族",Cyberse:"サイバース族"})[r]||r||"";}
 function cardInfo(card){const parts=[typeJa(card)],a=attributeJa(card.attribute),r=raceJa(card.race);if(a)parts.push(a+"属性");if(r)parts.push(r);if(String(card.type||"").includes("Link") && card.linkval!=null)parts.push("リンク"+card.linkval);else if(card.level!=null && card.level!=="")parts.push(/Xyz|XYZ/.test(String(card.type||""))?"ランク"+card.level:"レベル"+card.level);return parts.join(" / ");}
@@ -140,8 +141,8 @@ function featureList(card){
   const list=[
     {id:"monster",label:"モンスターカードです",test:c=>String(c.type||"").includes("Monster")},
     {id:"normal",label:"通常モンスターカードです",test:c=>String(c.type||"").includes("Normal")},
-    {id:"effectless",label:"効果を持たないモンスターです",test:c=>{const t=String(c.type||"");return t.includes("Normal")||t.includes("Fusion")||t.includes("Synchro")||t.includes("XYZ")||t.includes("Link")||t.includes("Ritual")||t.includes("Toon")}},
-    {id:"effect",label:"効果モンスターです",test:c=>/Effect|Flip|Toon/.test(String(c.type||""))},
+    {id:"effectless",label:"効果を持たないモンスターです",test:c=>String(c.type||"").includes("Monster")&&!isEffectMonster(c)},
+    {id:"effect",label:"効果モンスターです",test:c=>String(c.type||"").includes("Monster")&&isEffectMonster(c)},
     {id:"fusion",label:"融合モンスターです",test:c=>String(c.type||"").includes("Fusion")},
     {id:"synchro",label:"シンクロモンスターです",test:c=>String(c.type||"").includes("Synchro")},
     {id:"xyz",label:"エクシーズモンスターです",test:c=>/Xyz|XYZ/.test(String(c.type||""))},
@@ -839,7 +840,7 @@ async function submitOnlineAction(action){
     // Each client gets its own immutable action entry. The host acknowledges
     // acceptance/rejection separately so a client never remains stuck in a
     // fake "waiting" state when the host rejects a stale action.
-    await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v74",createdAt:Date.now()});
+    await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v75",createdAt:Date.now()});
     return await new Promise((resolve)=>{
       let settled=false;
       const finish=(ok)=>{if(settled)return;settled=true;off(resultRef,"value",listener);onlineActionPromises.delete(actionId);resolve(Boolean(ok));};

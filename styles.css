@@ -2735,7 +2735,7 @@ section.setup-screen[hidden], section.game-screen[hidden]{display:none!important
 .clue-category-button, .submenu-choice-list .choice-button { min-height:48px; }
 
 
-/* v74: clue layout, expanded statements, readable reverse declaration, compact mobile card */
+/* v75: clue layout, expanded statements, readable reverse declaration, compact mobile card */
 .clue-choice-layout{display:grid;grid-template-columns:minmax(220px,.9fr) minmax(0,1.1fr);gap:18px;align-items:start;margin-top:12px;}
 .clue-menu-column,.quick-clue-column{min-width:0;padding:12px;border:1px solid rgba(255,255,255,.10);border-radius:12px;background:rgba(5,10,18,.28);}
 .clue-menu-column .clue-list-label,.quick-clue-column .clue-list-label{margin:0 0 9px;font-size:.78rem;font-weight:800;color:#dce5f2;}
