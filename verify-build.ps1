@@ -1,5 +1,5 @@
 $ErrorActionPreference = 'Stop'
-$expected = 'v71'
+$expected = 'v73'
 
 function Assert-Contains($file, $pattern) {
   $text = Get-Content $file -Raw
@@ -9,15 +9,15 @@ function Assert-Contains($file, $pattern) {
 }
 
 Assert-Contains 'BUILD_VERSION.txt' $expected
-Assert-Contains 'version.json' '"version":"v71"'
-Assert-Contains 'index.html' 'ゲームバージョン v71'
-Assert-Contains 'index.html' 'styles.css?v=v71'
-Assert-Contains 'index.html' 'firebase-config.js?v=v71'
-Assert-Contains 'index.html' 'version-check.js?v=v71'
-Assert-Contains 'index.html' 'app.js?v=v71'
-Assert-Contains 'app.js' 'CardWolf build v71'
-Assert-Contains 'app.js' 'clientVersion:"v71"'
-Assert-Contains 'version-check.js' 'const expected = "v71"'
+Assert-Contains 'version.json' '"version":"v73"'
+Assert-Contains 'index.html' 'ゲームバージョン v73'
+Assert-Contains 'index.html' 'styles.css?v=v73'
+Assert-Contains 'index.html' 'firebase-config.js?v=v73'
+Assert-Contains 'index.html' 'version-check.js?v=v73'
+Assert-Contains 'index.html' 'app.js?v=v73'
+Assert-Contains 'app.js' 'CardWolf build v73'
+Assert-Contains 'app.js' 'clientVersion:"v73"'
+Assert-Contains 'version-check.js' 'const expected = "v73"'
 
 # Prevent the previous catastrophic failure: every local script/style reference
 # in index.html must point to a real file in this release folder.
@@ -35,7 +35,7 @@ foreach ($ref in $refs) {
 }
 
 # Ensure the deliberately bad suffix form can never return.
-if ($html -match '(styles\.css|firebase-config\.js|version-check\.js|app\.js)v71') {
+if ($html -match '(styles\.css|firebase-config\.js|version-check\.js|app\.js)v7[0-9]+') {
   throw 'Build integrity check failed: invalid version suffix detected in local asset reference.'
 }
 
