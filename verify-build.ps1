@@ -1,16 +1,16 @@
 $ErrorActionPreference = 'Stop'
-$expected = 'v68'
+$expected = 'v69'
 $checks = @(
   @{File='BUILD_VERSION.txt'; Pattern=$expected},
-  @{File='version.json'; Pattern='"version":"v68"'},
-  @{File='index.html'; Pattern='ゲームバージョン v68'},
-  @{File='app.js'; Pattern='CardWolf build v68'},
-  @{File='app.js'; Pattern='clientVersion:"v68"'},
-  @{File='version-check.js'; Pattern='const expected = "v68"'},
-  @{File='index.html'; Pattern='styles.css?v=68'},
-  @{File='index.html'; Pattern='firebase-config.js?v=68'},
-  @{File='index.html'; Pattern='version-check.js?v=68'},
-  @{File='index.html'; Pattern='app.js?v=68'}
+  @{File='version.json'; Pattern='"version":"v69"'},
+  @{File='index.html'; Pattern='ゲームバージョン v69'},
+  @{File='app.js'; Pattern='CardWolf build v69'},
+  @{File='app.js'; Pattern='clientVersion:"v69"'},
+  @{File='version-check.js'; Pattern='const expected = "v69"'},
+  @{File='index.html'; Pattern='styles.cssv69'},
+  @{File='index.html'; Pattern='firebase-config.jsv69'},
+  @{File='index.html'; Pattern='version-check.jsv69'},
+  @{File='index.html'; Pattern='app.jsv69'}
 )
 foreach ($c in $checks) {
   $text = Get-Content $c.File -Raw
