@@ -1,12 +1,12 @@
 $ErrorActionPreference = 'Stop'
-$expected = 'v65'
+$expected = 'v66'
 $checks = @(
   @{File='BUILD_VERSION.txt'; Pattern=$expected},
-  @{File='version.json'; Pattern='"version":"v65"'},
-  @{File='index.html'; Pattern='ゲームバージョン v65'},
-  @{File='app.js'; Pattern='CardWolf build v65'},
-  @{File='app.js'; Pattern='clientVersion:"v65"'},
-  @{File='version-check.js'; Pattern='const expected = "v65"'},
+  @{File='version.json'; Pattern='"version":"v66"'},
+  @{File='index.html'; Pattern='ゲームバージョン v66'},
+  @{File='app.js'; Pattern='CardWolf build v66'},
+  @{File='app.js'; Pattern='clientVersion:"v66"'},
+  @{File='version-check.js'; Pattern='const expected = "v66"'},
   @{File='index.html'; Pattern='firebase-config.js?v=65'},
   @{File='index.html'; Pattern='version-check.js?v=65'},
   @{File='index.html'; Pattern='app.js?v=65'}

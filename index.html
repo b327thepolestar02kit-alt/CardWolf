@@ -76,7 +76,7 @@
                 <button class="reset-score-button" id="resetScoreButton" type="button">戦績をリセット</button>
             </div>
 
-            <span class="build-version" aria-label="ゲームバージョン v65">v65</span>
+            <span class="build-version" aria-label="ゲームバージョン v66">v66</span>
 
             <div class="ygo-feature-strip"><span>MONSTER</span><span>ATTRIBUTE</span><span>RACE</span><span>ATK / DEF</span><span>LEVEL</span></div>
 
@@ -122,10 +122,10 @@
                                 <p>YOUR DUEL CARD</p>
                                 <h2 id="yourCardTitle">あなたのカード</h2>
                             </div>
-                            <span class="secret-tag">秘密のカード</span>
+                            
                         </div>
                         <div class="playing-card" id="yourCard"></div>
-                        <p class="card-help">このカードを知っているのは、あなただけです。</p>
+                        
                     </section>
 
                     <section class="action-panel" id="actionPanel" aria-live="polite"></section>
@@ -217,6 +217,7 @@
             <div class="setting-row">
                 <label for="speechCount"><strong>発言回数</strong><span>2回目は順番を逆にします</span></label>
                 <select id="speechCount">
+                    <option value="3">3回</option>
                     <option value="2" selected>2回（おすすめ）</option>
                     <option value="1">1回</option>
                 </select>

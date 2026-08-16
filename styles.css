@@ -2651,7 +2651,7 @@ section.setup-screen[hidden], section.game-screen[hidden]{display:none!important
   }
 }
 
-/* v65: mobile scrolling uses ONE dedicated document-area scroller.
+/* v66: mobile scrolling uses ONE dedicated document-area scroller.
    This avoids mobile browsers fighting between html/body/child scroll containers. */
 @media (max-width:760px){
   html{
@@ -2698,3 +2698,12 @@ section.setup-screen[hidden], section.game-screen[hidden]{display:none!important
     overflow:visible!important;
   }
 }
+
+
+/* v66: expanded CPU speech selection */
+.clue-category-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0;}
+.clue-category-button{min-height:48px;text-align:left;}
+.clue-list-label{margin:8px 0;font-size:.82rem;color:rgba(255,255,255,.72);}
+.submenu-choice-list{max-height:420px;overflow:auto;padding-right:3px;}
+.clue-back-button{width:100%;margin-top:10px;}
+@media (max-width:640px){.clue-category-grid{grid-template-columns:1fr;}.submenu-choice-list{max-height:none;overflow:visible;}.clue-category-button{min-height:50px;}}

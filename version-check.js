@@ -1,7 +1,7 @@
 /* CardWolf release/version guard. Loaded before app.js so the visible build
    number remains correct even if app.js encounters a runtime error. */
 (() => {
-  const expected = "v65";
+  const expected = "v66";
   window.CARDWOLF_VERSION = expected;
   const setVersion = (value) => {
     document.querySelectorAll(".build-version").forEach((el) => {
