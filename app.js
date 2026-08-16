@@ -1,8 +1,8 @@
-/* CardWolf build v71 */
+/* CardWolf build v73 */
 const firebaseConfig = window.FIREBASE_CONFIG || {};
-if (window.CARDWOLF_BUILD_VERSION !== "v71") { window.CARDWOLF_BUILD_VERSION = "v71"; }
+if (window.CARDWOLF_BUILD_VERSION !== "v73") { window.CARDWOLF_BUILD_VERSION = "v73"; }
 const versionEl = document.querySelector(".build-version");
-if (versionEl) { versionEl.textContent = "v71"; versionEl.setAttribute("aria-label", "ゲームバージョン v71"); }
+if (versionEl) { versionEl.textContent = "v73"; versionEl.setAttribute("aria-label", "ゲームバージョン v73"); }
 
 // Firebase is loaded lazily so a CDN/auth/database problem can never disable
 // the basic game UI. The solo/setup buttons must remain usable even when the
