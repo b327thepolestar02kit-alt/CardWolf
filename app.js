@@ -1,8 +1,8 @@
-/* CardWolf build v81 */
+/* CardWolf build v82 */
 const firebaseConfig = window.FIREBASE_CONFIG || {};
-if (window.CARDWOLF_BUILD_VERSION !== "v81") { window.CARDWOLF_BUILD_VERSION = "v81"; }
+if (window.CARDWOLF_BUILD_VERSION !== "v82") { window.CARDWOLF_BUILD_VERSION = "v82"; }
 const versionEl = document.querySelector(".build-version");
-if (versionEl) { versionEl.textContent = "v81"; versionEl.setAttribute("aria-label", "ゲームバージョン v81"); }
+if (versionEl) { versionEl.textContent = "v82"; versionEl.setAttribute("aria-label", "ゲームバージョン v82"); }
 
 // Firebase is loaded lazily so a CDN/auth/database problem can never disable
 // the basic game UI. The solo/setup buttons must remain usable even when the
@@ -907,13 +907,13 @@ async function submitOnlineAction(action){
       // acknowledgement race that caused v80's intermittent dead buttons.
       onValue(resultRef,listener);
       try{
-        await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v81",createdAt:Date.now()});
+        await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v82",createdAt:Date.now()});
       }catch(e){
         console.error("online action write failed",e);
         finish(false);
         return;
       }
-      timer=setTimeout(()=>finish(false),7000);
+      timer=setTimeout(()=>finish(false),5000);
     }).then(ok=>{
       if(!ok)alert("操作を受け付けられませんでした。画面を更新して、もう一度お試しください。");
       return ok;
@@ -965,6 +965,7 @@ async function hostApplyClue(uid,clueId,action={}){
   await advanceOnlineClueHost();
   return true;
 }
+const sleepMs=(ms)=>new Promise(resolve=>setTimeout(resolve,ms));
 async function advanceOnlineClueHost(){
   const lastTurn = onlineGame.orderIndex >= onlineGame.order.length - 1;
   if(!lastTurn){
@@ -978,8 +979,15 @@ async function advanceOnlineClueHost(){
   // Do not briefly leave the old clue turn in Firebase, otherwise another client
   // can render the same speaker's buttons again.
   if(onlineGame.round < onlineGame.settings.speechRounds){
+    const previousSpeakerId=onlineCurrentId();
+    const nextOrder=[...onlineGame.order].reverse();
+    const sameSpeakerAgain=String(nextOrder[0])===String(previousSpeakerId);
+    // When the final speaker of round 1 is also the first speaker of round 2,
+    // an immediate Firebase update makes the clue menu appear to change
+    // instantly after the click. Give the player a short, visible transition.
+    if(sameSpeakerAgain) await sleepMs(850);
     onlineGame.round += 1;
-    onlineGame.order = [...onlineGame.order].reverse();
+    onlineGame.order = nextOrder;
     onlineGame.orderIndex = 0;
     onlineGame.logs.push({type:"system",name:"ラウンド切替",text:`第${onlineGame.round}ラウンド。発言順を逆にします。`});
     await hostWriteGame();
@@ -1246,6 +1254,12 @@ async function startOnlineHostGame(){
   // state that a slow browser may have retained from the previous result.
   renderOnlineGame();
   if(isVoice) hostStartVoiceDiscussionTimer(); else hostMaybeCpuTurn();
+  // The room listener intentionally ignores snapshots while the host is
+  // building a new match. Therefore it cannot be relied on to attach the
+  // action listener for the first turn. Attach it explicitly before releasing
+  // the processing lock; otherwise human clue buttons can appear to work only
+  // after some later room update happens to trigger the listener.
+  if(!onlineActionUnsubscribe) attachOnlineHostActionListener();
   // New match is authoritative now; resume Firebase listener processing.
   onlineHostProcessing=false;
 }
