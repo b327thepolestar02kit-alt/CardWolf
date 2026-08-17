@@ -434,6 +434,40 @@ function returnToSetup(){
   const mainScroller=document.querySelector("main"); if(mainScroller) mainScroller.scrollTop=0; else window.scrollTo({top:0,behavior:"auto"});
 }
 function openPool(){poolGrid.innerHTML=CARD_POOL.map(c=>`<div class="pool-card"><img src="${cardImage(c)}" alt="${escapeHtml(jpName(c))}">${cardDisplay(c)}</div>`).join("");poolDialog.showModal();}
+// v91: Online action buttons are rendered from Firebase snapshots. A snapshot can
+// replace actionPanel.innerHTML between pointer-down and click, which makes the
+// old button's click handler disappear and feels like the button is unresponsive.
+// Handle the interaction at the stable parent on pointerdown instead. This runs
+// before the usual click event and survives actionPanel re-renders.
+actionPanel.addEventListener("pointerdown", async (event)=>{
+  const clueCategory=event.target.closest?.("[data-online-clue-category]");
+  if(clueCategory && actionPanel.contains(clueCategory)){
+    event.preventDefault();
+    if(!onlineGame || onlineGame.phase!=="clue" || String(onlineCurrentId())!==String(firebaseUid) || !isOnlineTurnReady()) return;
+    onlineClueMenu=clueCategory.dataset.onlineClueCategory;
+    renderOnlineClue();
+    return;
+  }
+  const clueButton=event.target.closest?.("[data-online-clue]");
+  if(clueButton && actionPanel.contains(clueButton)){
+    event.preventDefault();
+    if(clueButton.disabled)return;
+    await onlineSubmitClue(clueButton.dataset.onlineClue);
+    return;
+  }
+  const voteButton=event.target.closest?.("[data-online-vote]");
+  if(voteButton && actionPanel.contains(voteButton)){
+    event.preventDefault();
+    if(voteButton.disabled || onlinePendingAction)return;
+    if(!onlineGame || onlineGame.phase!=="vote" || !isOnlineVoteReady())return;
+    const voteId=String(voteButton.dataset.onlineVote);
+    onlinePendingAction={type:"vote",voteId,round:Number(onlineGame.round),orderIndex:Number(onlineGame.orderIndex)};
+    renderOnlineVote();
+    const ok=await submitOnlineAction({type:"vote",voteId,round:onlineGame.round,at:Date.now()});
+    if(!ok){onlinePendingAction=null;renderOnlineVote();}
+  }
+});
+
 practicePlayerCountSelect?.addEventListener("change",syncPracticePlayerCount);
 restartButton.addEventListener("click",returnToSetup);document.getElementById("rulesButton").addEventListener("click",()=>rulesDialog.showModal());document.getElementById("closeRulesButton").addEventListener("click",()=>rulesDialog.close());document.getElementById("poolButton").addEventListener("click",openPool);document.getElementById("closePoolButton").addEventListener("click",()=>poolDialog.close());advancedSettingsButton.addEventListener("click",()=>settingsDialog.showModal());closeSettingsButton.addEventListener("click",()=>settingsDialog.close());closeSettingsButtonBottom.addEventListener("click",()=>settingsDialog.close());resetScoreButton.addEventListener("click",()=>{matchRecord={wins:0,losses:0};renderRecord();});rulesDialog.addEventListener("click",e=>{if(e.target===rulesDialog)rulesDialog.close();});poolDialog.addEventListener("click",e=>{if(e.target===poolDialog)poolDialog.close();});settingsDialog.addEventListener("click",e=>{if(e.target===settingsDialog)settingsDialog.close();});syncPracticePlayerCount();renderRecord();if(CARD_POOL.length===0)soloModeButton.disabled=true;
 
@@ -886,15 +920,17 @@ function renderOnlineClue(){
   if(root==="root"){
     const opts=onlineFeatureOptions(onlineMyCard,onlineGame.usedClueIds,current?.clues);
     actionPanel.innerHTML=`<div class="action-heading"><p>${roundLabel}</p><h2>何と発言しますか？</h2><span>左の一覧から詳しい条件を選ぶか、右の「すぐに選べる特徴」から選択できます。${onlineGame.settings.liePenalty?"狼が嘘発言を2回するか、曖昧発言と嘘発言をそれぞれ1回すると、逆転チャンスを失います。":"嘘の回数によるペナルティはありません。"}</span></div><div class="clue-choice-layout"><section class="clue-menu-column"><p class="clue-list-label">特徴一覧</p><div class="clue-category-grid">${CLUE_MENU_CATEGORIES.map(c=>`<button class="choice-button clue-category-button" type="button" data-online-clue-category="${c.id}"><span>${c.label}</span><span>→</span></button>`).join("")}</div></section><section class="quick-clue-column"><p class="clue-list-label">すぐに選べる特徴</p><div class="choice-list basic-clue-list">${opts.map(s=>`<button class="choice-button ${clueChoiceClass(s,onlineMyCard)}" type="button" data-online-clue="${s.id}"><span>${s.label}</span><span>${s.ambiguous?"曖昧":"→"}</span></button>`).join("")}</div></section></div>`;
-    actionPanel.querySelectorAll("[data-online-clue-category]").forEach(b=>b.addEventListener("click",()=>{onlineClueMenu=b.dataset.onlineClueCategory;renderOnlineClue();}));
   }else{
     const options=clueCategoryOptions(root);
     actionPanel.innerHTML=`<div class="action-heading"><p>${roundLabel}</p><h2>${CLUE_MENU_CATEGORIES.find(c=>c.id===root)?.label||"特徴を選択"}</h2><span>一覧から選択してください。ほかのプレイヤーが発言済みの内容は選択できません。</span></div><div class="choice-list submenu-choice-list">${options.map(o=>{const used=usedIds.has(o.id);const statement=findOnlineClue(o.id);return `<button class="choice-button ${used?"choice-used ":""}${statement?clueChoiceClass(statement,onlineMyCard):""}" type="button" data-online-clue="${o.id}" ${used?"disabled aria-disabled=\"true\"":""}><span>${o.label}</span><span>${used?"発言済み":statement?.ambiguous?"曖昧":"→"}</span></button>`;}).join("")}</div><button class="secondary-button compact clue-back-button" id="onlineClueBackButton" type="button">← 戻る</button>`;
     actionPanel.querySelector("#onlineClueBackButton").addEventListener("click",()=>{onlineClueMenu="root";renderOnlineClue();});
   }
-  actionPanel.querySelectorAll("[data-online-clue]").forEach(b=>b.addEventListener("click",()=>onlineSubmitClue(b.dataset.onlineClue)));
 }
 
+function isOnlineVoteReady(){
+  const voteKey=`${onlineGame?.matchId||onlineMatchId}|vote|${onlineGame?.round}|${onlineGame?.orderIndex}`;
+  return onlineTurnReadyKey===voteKey;
+}
 function renderOnlineVote(){
   phaseLabel.textContent="PHASE / 狼に投票する";phaseTitle.textContent="違うカードの人は誰？";
   const voteKey=`${onlineGame?.matchId||onlineMatchId}|vote|${onlineGame?.round}|${onlineGame?.orderIndex}`;
@@ -916,7 +952,7 @@ function renderOnlineVote(){
   // A clue action can finish at exactly the moment the vote phase appears.
   // Never carry that stale pending state into voting. Likewise, a rejected
   // vote must not leave the vote UI permanently locked.
-  if(onlinePendingAction?.type!=="vote") onlinePendingAction=null;
+  if(onlinePendingAction?.type==="vote") { const sameVoteTurn=Number(onlinePendingAction.round)===Number(onlineGame.round) && Number(onlinePendingAction.orderIndex||0)===Number(onlineGame.orderIndex||0); if(!sameVoteTurn) onlinePendingAction=null; } else if(onlinePendingAction) onlinePendingAction=null;
   const me=onlinePlayerById(firebaseUid);
   const hasVote=me?.vote!==null&&me?.vote!==undefined&&String(me.vote)!=="";
   if(hasVote || onlinePendingAction?.type==="vote"){
@@ -926,15 +962,7 @@ function renderOnlineVote(){
   }
   const candidates=onlineGame.players.filter(p=>String(p.id)!==String(firebaseUid));
   actionPanel.innerHTML=`<div class="action-heading"><p>VOTING TIME</p><h2>狼だと思う人を選ぶ</h2><span>全員の発言を振り返って、ひとりに投票してください。</span></div><div class="vote-grid">${candidates.map(p=>`<button class="vote-button" type="button" data-online-vote="${escapeHtml(String(p.id))}"><span class="mini-avatar">P</span><span><strong>${escapeHtml(p.name)}</strong><small>${(p.clues||[]).map(c=>`「${escapeHtml(c.label)}」`).join(" / ")}</small></span></button>`).join("")}</div>`;
-  actionPanel.querySelectorAll("[data-online-vote]").forEach(b=>b.addEventListener("click",async()=>{
-    if(onlinePendingAction)return;
-    const voteId=String(b.dataset.onlineVote);
-    actionPanel.querySelectorAll("[data-online-vote]").forEach(x=>x.disabled=true);
-    onlinePendingAction={type:"vote",voteId};
-    renderOnlineVote();
-    const ok=await submitOnlineAction({type:"vote",voteId,round:onlineGame.round,at:Date.now()});
-    if(!ok){onlinePendingAction=null;renderOnlineVote();}
-  }));
+
 }
 function renderOnlineReverse(){
   const wolfId=onlineGame.reveal?.wolfId||onlineGame.wolfUid||onlineGame.eliminatedId;
@@ -998,7 +1026,7 @@ async function submitOnlineAction(action){
       // acknowledgement race that caused v80's intermittent dead buttons.
       onValue(resultRef,listener);
       try{
-        await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v90",createdAt:Date.now()});
+        await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v91",createdAt:Date.now()});
       }catch(e){
         console.error("online action write failed",e);
         finish(false);

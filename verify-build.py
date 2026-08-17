@@ -5,8 +5,8 @@ cards=json.loads(txt)
 assert len(cards)==60, f"card count={len(cards)}"
 for c in cards: assert c.get("name") and c.get("image"), c.get("name")
 for rel in ["index.html","styles.css","app.js","version-check.js","version.json","BUILD_VERSION.txt","data/cards.js"]: assert os.path.exists(os.path.join(root,rel)), rel
-assert open(os.path.join(root,"BUILD_VERSION.txt")).read().strip()=="v89"
-assert json.load(open(os.path.join(root,"version.json")))['version']=="v89"
+assert open(os.path.join(root,"BUILD_VERSION.txt")).read().strip()=="v91"
+assert json.load(open(os.path.join(root,"version.json")))['version']=="v91"
 html=open(os.path.join(root,"index.html"),encoding="utf-8").read()
 for ref in re.findall(r'(?:src|href)=["\']([^"\']+?)(?:\?[^"\']*)?["\']',html):
     if ref.startswith(('http:','https:','#','data:','mailto:')): continue
