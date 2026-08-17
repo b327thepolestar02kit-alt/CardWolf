@@ -538,6 +538,7 @@ function onlineSnapshot(extra={}){
     phase:onlineGame.phase, round:onlineGame.round, order:Array.isArray(onlineGame.order)?onlineGame.order:[],
     orderIndex:Number.isFinite(Number(onlineGame.orderIndex))?Number(onlineGame.orderIndex):0,
     discussionStartedAt:onlineGame.discussionStartedAt||null, discussionDeadlineAt:onlineGame.discussionDeadlineAt||null,
+    transition:onlineGame.transition||null,
     usedClueIds:Array.isArray(onlineGame.usedClueIds)?onlineGame.usedClueIds:[],
     logs:Array.isArray(onlineGame.logs)?onlineGame.logs:[], settings:onlineGame.settings||onlineSettings(),
     players:onlinePublicPlayers(), tallies:onlineGame.tallies||null,
@@ -712,6 +713,10 @@ function renderOnlineLog(){
 async function onlineSubmitClue(id){
   if(onlineGame.phase!=="clue"||String(onlineCurrentId())!==String(firebaseUid))return;
   const card=onlineMyCard;if(!card)return;
+  if(onlinePendingAction){
+    const sameTurn=onlinePendingAction.type==="clue" && Number(onlinePendingAction.round)===Number(onlineGame.round) && Number(onlinePendingAction.orderIndex)===Number(onlineGame.orderIndex);
+    if(!sameTurn) onlinePendingAction=null;
+  }
   if(onlinePendingAction)return;
   const me=onlinePlayerById(firebaseUid), opts=onlineFeatureOptions(card,onlineGame.usedClueIds,me?.clues);
   const usedIds=Array.isArray(onlineGame.usedClueIds)?onlineGame.usedClueIds:[];
@@ -802,8 +807,21 @@ function hostStartVoiceDiscussionTimer(){
   },delay+100);
 }
 function renderOnlineClue(){
-  if(onlinePendingAction?.type==="clue" && String(onlineCurrentId())!==String(firebaseUid)) onlinePendingAction=null;
+  // A clue action belongs to one exact turn. If Firebase has already advanced
+  // to another round/index, never let the old pending flag block the new
+  // buttons. This was the main cause of the intermittent "button does nothing"
+  // behavior, especially when the same human speaks twice in succession.
+  if(onlinePendingAction?.type==="clue") {
+    const sameTurn=Number(onlinePendingAction.round)===Number(onlineGame.round) && Number(onlinePendingAction.orderIndex)===Number(onlineGame.orderIndex);
+    if(!sameTurn || onlineGame.transition) onlinePendingAction=null;
+  }
   const current=onlinePlayerById(onlineCurrentId()), roundLabel=onlineGame.round===1?"第1ラウンド":"第2ラウンド（逆順）";
+  if(onlineGame.transition?.type==="round") {
+    phaseLabel.textContent="ROUND CHANGE / 発言順切替";
+    phaseTitle.textContent=onlineGame.transition.text||"次のラウンドへ切り替えています…";
+    actionPanel.innerHTML=`<div class="thinking-state round-transition-state"><span class="thinking-card" aria-hidden="true">↕</span><div><p>ROUND CHANGE</p><h2>発言順を入れ替えています</h2><span>次の発言を選ぶまで少しお待ちください。</span></div></div>`;
+    return;
+  }
   phaseLabel.textContent=`PHASE ${onlineGame.round} / ${roundLabel}・特徴を話す`;
   phaseTitle.textContent=String(onlineCurrentId())===String(firebaseUid)?"あなたの特徴を話そう":`${current?.name||"プレイヤー"}の発言を聞こう`;
   if(String(onlineCurrentId())!==String(firebaseUid)){
@@ -826,6 +844,10 @@ function renderOnlineClue(){
 
 function renderOnlineVote(){
   phaseLabel.textContent="PHASE / 狼に投票する";phaseTitle.textContent="違うカードの人は誰？";
+  // A clue action can finish at exactly the moment the vote phase appears.
+  // Never carry that stale pending state into voting. Likewise, a rejected
+  // vote must not leave the vote UI permanently locked.
+  if(onlinePendingAction?.type!=="vote") onlinePendingAction=null;
   const me=onlinePlayerById(firebaseUid);
   const hasVote=me?.vote!==null&&me?.vote!==undefined&&String(me.vote)!=="";
   if(hasVote || onlinePendingAction?.type==="vote"){
@@ -907,13 +929,13 @@ async function submitOnlineAction(action){
       // acknowledgement race that caused v80's intermittent dead buttons.
       onValue(resultRef,listener);
       try{
-        await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v82",createdAt:Date.now()});
+        await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v83",createdAt:Date.now()});
       }catch(e){
         console.error("online action write failed",e);
         finish(false);
         return;
       }
-      timer=setTimeout(()=>finish(false),5000);
+      timer=setTimeout(()=>finish(false),12000);
     }).then(ok=>{
       if(!ok)alert("操作を受け付けられませんでした。画面を更新して、もう一度お試しください。");
       return ok;
@@ -982,13 +1004,19 @@ async function advanceOnlineClueHost(){
     const previousSpeakerId=onlineCurrentId();
     const nextOrder=[...onlineGame.order].reverse();
     const sameSpeakerAgain=String(nextOrder[0])===String(previousSpeakerId);
-    // When the final speaker of round 1 is also the first speaker of round 2,
-    // an immediate Firebase update makes the clue menu appear to change
-    // instantly after the click. Give the player a short, visible transition.
-    if(sameSpeakerAgain) await sleepMs(850);
+    // Publish an explicit transition state BEFORE changing the order. This is
+    // important when the same human is the last speaker of round 1 and first
+    // speaker of round 2: otherwise the menu can appear to jump immediately
+    // after the click, and the old pending-action flag can block the new menu.
+    if(sameSpeakerAgain){
+      onlineGame.transition={type:"round",text:"第2ラウンドへ切り替えます"};
+      await hostWriteGame();
+      await sleepMs(1200);
+    }
     onlineGame.round += 1;
     onlineGame.order = nextOrder;
     onlineGame.orderIndex = 0;
+    onlineGame.transition=null;
     onlineGame.logs.push({type:"system",name:"ラウンド切替",text:`第${onlineGame.round}ラウンド。発言順を逆にします。`});
     await hostWriteGame();
     hostMaybeCpuTurn();
@@ -1214,7 +1242,7 @@ async function startOnlineHostGame(){
   onlineGame={
     matchId,matchStartedAt,phase,round:1,order,orderIndex:0,
     discussionStartedAt,discussionDeadlineAt,
-    usedClueIds:[],logs:[],settings,players:publicPlayers,
+    usedClueIds:[],logs:[],settings,players:publicPlayers,transition:null,
     tallies:null,eliminatedId:null,result:null,reveal:null,reverseGuess:null
   };
   onlineDiscussionDeadlineAt=discussionDeadlineAt||0;
