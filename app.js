@@ -998,7 +998,7 @@ async function submitOnlineAction(action){
       // acknowledgement race that caused v80's intermittent dead buttons.
       onValue(resultRef,listener);
       try{
-        await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v88",createdAt:Date.now()});
+        await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v89",createdAt:Date.now()});
       }catch(e){
         console.error("online action write failed",e);
         finish(false);
@@ -1073,15 +1073,15 @@ async function advanceOnlineClueHost(){
     const previousSpeakerId=onlineCurrentId();
     const nextOrder=[...onlineGame.order].reverse();
     const sameSpeakerAgain=String(nextOrder[0])===String(previousSpeakerId);
-    // Publish an explicit transition state BEFORE changing the order. This is
-    // important when the same human is the last speaker of round 1 and first
-    // speaker of round 2: otherwise the menu can appear to jump immediately
-    // after the click, and the old pending-action flag can block the new menu.
-    if(sameSpeakerAgain){
-      onlineGame.transition={type:"round",text:"第2ラウンドへ切り替えます"};
-      await hostWriteGame();
-      await sleepMs(1200);
-    }
+    // Always publish an explicit transition state BEFORE changing the order.
+    // This keeps the round-change UI visible for every client, and prevents
+    // the final speaker's menu from jumping straight to the next turn.
+    // When the same human speaks twice in succession, this is especially
+    // important: the user should see a clear transition instead of a brief
+    // blank/preparing state.
+    onlineGame.transition={type:"round",text:"第2ラウンドへ切り替えます"};
+    await hostWriteGame();
+    await sleepMs(sameSpeakerAgain ? 1200 : 900);
     onlineGame.round += 1;
     onlineGame.order = nextOrder;
     onlineGame.orderIndex = 0;
