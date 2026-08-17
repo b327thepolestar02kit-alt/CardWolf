@@ -2763,3 +2763,17 @@ section.setup-screen[hidden], section.game-screen[hidden]{display:none!important
   .game-top-row .your-card-panel .playing-card.ygo{grid-template-columns:78px minmax(0,1fr);min-height:112px;}
   .game-top-row .your-card-panel .playing-card.ygo .ygo-card-face{width:78px;height:100px;}
 }
+
+
+/* v78: make false statement choices subtly distinguishable */
+.choice-button.lie-choice {
+  border-color: rgba(205, 125, 115, .42) !important;
+  background: rgba(120, 55, 48, .10) !important;
+}
+.choice-button.lie-choice:hover {
+  border-color: rgba(220, 145, 130, .62) !important;
+  background: rgba(135, 65, 55, .15) !important;
+}
+.choice-button.lie-choice span {
+  color: #f4eeee !important;
+}
