@@ -1,8 +1,8 @@
-/* CardWolf build v82 */
+/* CardWolf build v84 */
 const firebaseConfig = window.FIREBASE_CONFIG || {};
-if (window.CARDWOLF_BUILD_VERSION !== "v82") { window.CARDWOLF_BUILD_VERSION = "v82"; }
+if (window.CARDWOLF_BUILD_VERSION !== "v84") { window.CARDWOLF_BUILD_VERSION = "v84"; }
 const versionEl = document.querySelector(".build-version");
-if (versionEl) { versionEl.textContent = "v82"; versionEl.setAttribute("aria-label", "ゲームバージョン v82"); }
+if (versionEl) { versionEl.textContent = "v84"; versionEl.setAttribute("aria-label", "ゲームバージョン v84"); }
 
 // Firebase is loaded lazily so a CDN/auth/database problem can never disable
 // the basic game UI. The solo/setup buttons must remain usable even when the
@@ -131,7 +131,7 @@ const ATK_STAT_BUCKETS=[
   {id:"ge2501",label:"2501以上",test:v=>Number.isFinite(Number(v))&&Number(v)>=2501}
 ];
 const DEF_STAT_BUCKETS=[
-  {id:"unknown",label:"？（不明／守備力を持たない）",test:v=>v===-1||v===null||v===undefined||v===""},
+  {id:"unknown",label:"？（不明）または－（守備力を持たない）",test:v=>v===-1||v===null||v===undefined||v===""},
   ...ATK_STAT_BUCKETS.slice(1)
 ];
 function initialCharOptions(){
@@ -468,6 +468,8 @@ let onlineHostActionQueue=Promise.resolve();
 let onlineHostProcessing=false;
 let onlineMatchId="";
 let onlineClueMenu="root";
+let onlineTurnReadyKey="";
+let onlineTurnReadyTimer=null;
 
 function setMode(isOnline){
   onlineMode=Boolean(isOnline);
@@ -659,7 +661,7 @@ async function leaveOnlineRoom(options={}){
       }
     }
   }catch(e){console.warn("online leave failed",e);}
-  onlineRoomCodeValue="";onlineHost=false;onlineGame=null;onlineMyCard=null;onlineClueMenu="root";onlineHostSecrets=null;onlineLastActionId=null;onlinePendingAction=null;
+  onlineRoomCodeValue="";onlineHost=false;onlineGame=null;onlineTurnReadyKey="";if(onlineTurnReadyTimer){clearTimeout(onlineTurnReadyTimer);onlineTurnReadyTimer=null;}onlineMyCard=null;onlineClueMenu="root";onlineHostSecrets=null;onlineLastActionId=null;onlinePendingAction=null;
   onlineLobby.hidden=true;createRoomButton.hidden=false;joinRoomButton.hidden=false;roomCodeInput.hidden=false;
   try{onlineDialog.close();}catch{};onlineDialog.removeAttribute("open");
   if(options.returnToSetup) returnToSetup();
@@ -806,6 +808,29 @@ function hostStartVoiceDiscussionTimer(){
     await hostEndDiscussion();
   },delay+100);
 }
+function onlineTurnKey(){
+  if(!onlineGame)return "";
+  return `${onlineGame.matchId||onlineMatchId}|${onlineGame.phase}|${onlineGame.round}|${onlineGame.orderIndex}|${onlineCurrentId()}`;
+}
+function scheduleOnlineTurnReady(){
+  const key=onlineTurnKey();
+  if(onlineTurnReadyTimer){clearTimeout(onlineTurnReadyTimer);onlineTurnReadyTimer=null;}
+  onlineTurnReadyKey="";
+  if(!onlineGame||onlineGame.phase!=="clue"||String(onlineCurrentId())!==String(firebaseUid)||onlineGame.transition)return;
+  // Firebase can render the new turn a few milliseconds before the host has
+  // finished the preceding action. Do not expose an active button during that
+  // small synchronization window; otherwise a very fast click can be rejected
+  // as a stale turn. The UI explicitly shows a short "preparing" state.
+  onlineTurnReadyTimer=setTimeout(()=>{
+    if(onlineTurnKey()===key && onlineGame && onlineGame.phase==="clue" && String(onlineCurrentId())===String(firebaseUid) && !onlineGame.transition){
+      onlineTurnReadyKey=key;
+      renderOnlineClue();
+    }
+    onlineTurnReadyTimer=null;
+  },500);
+}
+function isOnlineTurnReady(){return onlineTurnReadyKey!=="" && onlineTurnReadyKey===onlineTurnKey();}
+
 function renderOnlineClue(){
   // A clue action belongs to one exact turn. If Firebase has already advanced
   // to another round/index, never let the old pending flag block the new
@@ -827,6 +852,11 @@ function renderOnlineClue(){
   if(String(onlineCurrentId())!==String(firebaseUid)){
     actionPanel.innerHTML=`<div class="thinking-state"><span class="thinking-card" aria-hidden="true">?</span><div><p>ONLINE TURN</p><h2>${escapeHtml(current?.name||"プレイヤー")}が発言中</h2><span>前の発言とは違う特徴を選んでいます…</span></div></div>`;return;
   }
+  if(!isOnlineTurnReady()){
+    actionPanel.innerHTML=`<div class="thinking-state online-turn-preparing"><span class="thinking-card" aria-hidden="true">…</span><div><p>ONLINE TURN</p><h2>発言の準備中です</h2><span>少しだけお待ちください。</span></div></div>`;
+    scheduleOnlineTurnReady();
+    return;
+  }
   const usedIds=new Set(onlineGame.usedClueIds||[]);
   const findOnlineClue=id=>[...featureList(onlineMyCard||{}),...AMBIGUOUS_CLUES].find(s=>s.id===id)||null;
   const root=onlineClueMenu||"root";
@@ -844,6 +874,14 @@ function renderOnlineClue(){
 
 function renderOnlineVote(){
   phaseLabel.textContent="PHASE / 狼に投票する";phaseTitle.textContent="違うカードの人は誰？";
+  const voteKey=`${onlineGame?.matchId||onlineMatchId}|vote|${onlineGame?.round}|${onlineGame?.orderIndex}`;
+  if(onlineTurnReadyKey!==voteKey){
+    if(onlineTurnReadyTimer){clearTimeout(onlineTurnReadyTimer);onlineTurnReadyTimer=null;}
+    onlineTurnReadyKey="";
+    actionPanel.innerHTML=`<div class="thinking-state online-turn-preparing"><span class="thinking-card" aria-hidden="true">…</span><div><p>VOTING</p><h2>投票の準備中です</h2><span>少しだけお待ちください。</span></div></div>`;
+    onlineTurnReadyTimer=setTimeout(()=>{onlineTurnReadyKey=voteKey;onlineTurnReadyTimer=null;renderOnlineVote();},500);
+    return;
+  }
   // A clue action can finish at exactly the moment the vote phase appears.
   // Never carry that stale pending state into voting. Likewise, a rejected
   // vote must not leave the vote UI permanently locked.
@@ -929,7 +967,7 @@ async function submitOnlineAction(action){
       // acknowledgement race that caused v80's intermittent dead buttons.
       onValue(resultRef,listener);
       try{
-        await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v83",createdAt:Date.now()});
+        await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v84",createdAt:Date.now()});
       }catch(e){
         console.error("online action write failed",e);
         finish(false);
@@ -1218,6 +1256,7 @@ async function startOnlineHostGame(){
   clearTimeout(onlineCpuTimer);onlineCpuTimer=null;
   clearInterval(onlineDiscussionTimer);onlineDiscussionTimer=null;
   onlinePendingAction=null;
+  onlineTurnReadyKey=""; if(onlineTurnReadyTimer){clearTimeout(onlineTurnReadyTimer);onlineTurnReadyTimer=null;}
   onlineLastActionId="";
   onlineProcessedActionIds.clear();
   onlineActionPromises.clear();

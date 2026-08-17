@@ -1,5 +1,5 @@
 $ErrorActionPreference = 'Stop'
-$expected = 'v83'
+$expected = 'v84'
 
 function Assert-Contains($file, $pattern) {
   $text = Get-Content $file -Raw
@@ -9,15 +9,15 @@ function Assert-Contains($file, $pattern) {
 }
 
 Assert-Contains 'BUILD_VERSION.txt' $expected
-Assert-Contains 'version.json' '"version":"v83"'
-Assert-Contains 'index.html' 'ゲームバージョン v83'
-Assert-Contains 'index.html' 'styles.css?v=v83'
-Assert-Contains 'index.html' 'firebase-config.js?v=v83'
-Assert-Contains 'index.html' 'version-check.js?v=v83'
-Assert-Contains 'index.html' 'app.js?v=v83'
-Assert-Contains 'app.js' 'CardWolf build v83'
-Assert-Contains 'app.js' 'clientVersion:"v83"'
-Assert-Contains 'version-check.js' 'const expected = "v83"'
+Assert-Contains 'version.json' '"version":"v84"'
+Assert-Contains 'index.html' 'ゲームバージョン v84'
+Assert-Contains 'index.html' 'styles.css?v=v84'
+Assert-Contains 'index.html' 'firebase-config.js?v=v84'
+Assert-Contains 'index.html' 'version-check.js?v=v84'
+Assert-Contains 'index.html' 'app.js?v=v84'
+Assert-Contains 'app.js' 'CardWolf build v84'
+Assert-Contains 'app.js' 'clientVersion:"v84"'
+Assert-Contains 'version-check.js' 'const expected = "v84"'
 
 # Prevent the previous catastrophic failure: every local script/style reference
 # in index.html must point to a real file in this release folder.
