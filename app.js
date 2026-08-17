@@ -470,6 +470,7 @@ let onlineMatchId="";
 let onlineClueMenu="root";
 let onlineTurnReadyKey="";
 let onlineTurnReadyTimer=null;
+let onlineTurnReadyPendingKey="";
 let onlineRoomSnapshotSeq=0;
 let onlineLoadedGameMatchId="";
 
@@ -679,7 +680,7 @@ async function leaveOnlineRoom(options={}){
       }
     }
   }catch(e){console.warn("online leave failed",e);}
-  onlineRoomCodeValue="";onlineHost=false;onlineGame=null;onlineTurnReadyKey="";onlineLoadedGameMatchId="";if(onlineTurnReadyTimer){clearTimeout(onlineTurnReadyTimer);onlineTurnReadyTimer=null;}onlineMyCard=null;onlineClueMenu="root";onlineHostSecrets=null;onlineLastActionId=null;onlinePendingAction=null;
+  onlineRoomCodeValue="";onlineHost=false;onlineGame=null;onlineTurnReadyKey="";onlineTurnReadyPendingKey="";onlineLoadedGameMatchId="";if(onlineTurnReadyTimer){clearTimeout(onlineTurnReadyTimer);onlineTurnReadyTimer=null;}onlineMyCard=null;onlineClueMenu="root";onlineHostSecrets=null;onlineLastActionId=null;onlinePendingAction=null;
   onlineLobby.hidden=true;createRoomButton.hidden=false;joinRoomButton.hidden=false;roomCodeInput.hidden=false;
   try{onlineDialog.close();}catch{};onlineDialog.removeAttribute("open");
   if(options.returnToSetup) returnToSetup();
@@ -832,19 +833,23 @@ function onlineTurnKey(){
 }
 function scheduleOnlineTurnReady(){
   const key=onlineTurnKey();
+  if(!onlineGame||onlineGame.phase!=="clue"||String(onlineCurrentId())!==String(firebaseUid)||onlineGame.transition)return;
+  // IMPORTANT: Firebase may deliver several identical snapshots during the
+  // first 500ms of a new turn. The old implementation restarted the 500ms
+  // timer on every snapshot, so a busy room could keep the button permanently
+  // in "preparing" state. Keep one timer per turn instead.
+  if(onlineTurnReadyKey===key)return;
+  if(onlineTurnReadyPendingKey===key && onlineTurnReadyTimer)return;
   if(onlineTurnReadyTimer){clearTimeout(onlineTurnReadyTimer);onlineTurnReadyTimer=null;}
   onlineTurnReadyKey="";
-  if(!onlineGame||onlineGame.phase!=="clue"||String(onlineCurrentId())!==String(firebaseUid)||onlineGame.transition)return;
-  // Firebase can render the new turn a few milliseconds before the host has
-  // finished the preceding action. Do not expose an active button during that
-  // small synchronization window; otherwise a very fast click can be rejected
-  // as a stale turn. The UI explicitly shows a short "preparing" state.
+  onlineTurnReadyPendingKey=key;
   onlineTurnReadyTimer=setTimeout(()=>{
+    onlineTurnReadyTimer=null;
+    onlineTurnReadyPendingKey="";
     if(onlineTurnKey()===key && onlineGame && onlineGame.phase==="clue" && String(onlineCurrentId())===String(firebaseUid) && !onlineGame.transition){
       onlineTurnReadyKey=key;
       renderOnlineClue();
     }
-    onlineTurnReadyTimer=null;
   },500);
 }
 function isOnlineTurnReady(){return onlineTurnReadyKey!=="" && onlineTurnReadyKey===onlineTurnKey();}
@@ -894,10 +899,18 @@ function renderOnlineVote(){
   phaseLabel.textContent="PHASE / 狼に投票する";phaseTitle.textContent="違うカードの人は誰？";
   const voteKey=`${onlineGame?.matchId||onlineMatchId}|vote|${onlineGame?.round}|${onlineGame?.orderIndex}`;
   if(onlineTurnReadyKey!==voteKey){
-    if(onlineTurnReadyTimer){clearTimeout(onlineTurnReadyTimer);onlineTurnReadyTimer=null;}
-    onlineTurnReadyKey="";
+    if(onlineTurnReadyPendingKey!==voteKey){
+      if(onlineTurnReadyTimer){clearTimeout(onlineTurnReadyTimer);onlineTurnReadyTimer=null;}
+      onlineTurnReadyKey="";
+      onlineTurnReadyPendingKey=voteKey;
+      onlineTurnReadyTimer=setTimeout(()=>{
+        onlineTurnReadyTimer=null;
+        onlineTurnReadyPendingKey="";
+        onlineTurnReadyKey=voteKey;
+        renderOnlineVote();
+      },500);
+    }
     actionPanel.innerHTML=`<div class="thinking-state online-turn-preparing"><span class="thinking-card" aria-hidden="true">…</span><div><p>VOTING</p><h2>投票の準備中です</h2><span>少しだけお待ちください。</span></div></div>`;
-    onlineTurnReadyTimer=setTimeout(()=>{onlineTurnReadyKey=voteKey;onlineTurnReadyTimer=null;renderOnlineVote();},500);
     return;
   }
   // A clue action can finish at exactly the moment the vote phase appears.
@@ -985,7 +998,7 @@ async function submitOnlineAction(action){
       // acknowledgement race that caused v80's intermittent dead buttons.
       onValue(resultRef,listener);
       try{
-        await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v87",createdAt:Date.now()});
+        await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v88",createdAt:Date.now()});
       }catch(e){
         console.error("online action write failed",e);
         finish(false);
