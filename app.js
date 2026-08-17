@@ -118,7 +118,7 @@ const RACE_OPTIONS=[
   ["Spellcaster","魔法使い族"],["Dragon","ドラゴン族"],["Warrior","戦士族"],["Fiend","悪魔族"],
   ["Fairy","天使族"],["Beast","獣族"],["Winged-Beast","鳥獣族"],["Machine","機械族"]
 ];
-const LEVEL_OPTIONS=Array.from({length:12},(_,i)=>i+1);
+const LEVEL_OPTIONS=Array.from({length:6},(_,i)=>i+1);
 const ATK_STAT_BUCKETS=[
   {id:"unknown",label:"？（不明）",test:v=>v===-1||v===null||v===undefined||v===""},
   {id:"le500",label:"500以下",test:v=>Number.isFinite(Number(v))&&Number(v)>=0&&Number(v)<=500},
@@ -144,8 +144,8 @@ function quickNameClues(card){
   const name=jpName(card).trim();
   const first=name.charAt(0), last=name.slice(-1);
   return [
-    {id:`name-initial-${first.codePointAt(0).toString(16)}`,label:`カード名の開始文字は「${first}」です`,test:c=>jpName(c).trim().startsWith(first)},
-    {id:`name-ending-${last.codePointAt(0).toString(16)}`,label:`カード名の最後の文字は「${last}」です`,test:c=>jpName(c).trim().endsWith(last)}
+    {id:`name-initial-${first.codePointAt(0).toString(16)}`,label:`カード名の最初は「${first}」です`,test:c=>jpName(c).trim().startsWith(first)},
+    {id:`name-ending-${last.codePointAt(0).toString(16)}`,label:`カード名の最後は「${last}」です`,test:c=>jpName(c).trim().endsWith(last)}
   ];
 }
 function featureList(card){
@@ -180,8 +180,8 @@ function featureList(card){
     {id:"name-red",label:"「真紅眼」に関係するカードです",test:c=>c.name.includes("Red-Eyes")},
     {id:"toon",label:"「トゥーン」の名前を持ちます",test:c=>c.name.includes("Toon")},
     {id:"forbidden",label:"「封印されし」の名前を持ちます",test:c=>c.name.includes("Forbidden")},
-    ...initialCharOptions().map(ch=>({id:`name-initial-${ch.codePointAt(0).toString(16)}`,label:`カード名の開始文字は「${ch}」です`,test:c=>jpName(c).trim().startsWith(ch)})),
-    ...endingCharOptions().map(ch=>({id:`name-ending-${ch.codePointAt(0).toString(16)}`,label:`カード名の最後の文字は「${ch}」です`,test:c=>jpName(c).trim().endsWith(ch)}))
+    ...initialCharOptions().map(ch=>({id:`name-initial-${ch.codePointAt(0).toString(16)}`,label:`カード名の最初は「${ch}」です`,test:c=>jpName(c).trim().startsWith(ch)})),
+    ...endingCharOptions().map(ch=>({id:`name-ending-${ch.codePointAt(0).toString(16)}`,label:`カード名の最後は「${ch}」です`,test:c=>jpName(c).trim().endsWith(ch)}))
   ];
   return list;
 }
@@ -271,7 +271,7 @@ function renderCluePhase(){
  if(root==="root"){
    const base=availableClues(current);
    game.currentOptions=base;
-   actionPanel.innerHTML=`<div class="action-heading"><p>${roundLabel}</p><h2>何と発言しますか？</h2><span>左の一覧から詳しい条件を選ぶか、右の「すぐに選べる特徴」から選択できます。${game.settings.liePenalty?"狼が2回以上嘘をつくと逆転チャンスを失います。":"嘘の回数によるペナルティはありません。"}</span></div><div class="clue-choice-layout"><section class="clue-menu-column"><p class="clue-list-label">特徴一覧</p><div class="clue-category-grid">${CLUE_MENU_CATEGORIES.map(c=>`<button class="choice-button clue-category-button" type="button" data-clue-category="${c.id}"><span>${c.label}</span><span>→</span></button>`).join("")}</div></section><section class="quick-clue-column"><p class="clue-list-label">すぐに選べる特徴</p><div class="choice-list basic-clue-list">${base.map(s=>`<button class="choice-button ${s.ambiguous?"ambiguous-choice":""}" type="button" data-clue-id="${s.id}"><span>${s.label}</span><span>${s.ambiguous?"曖昧":"→"}</span></button>`).join("")}</div></section></div>`;
+   actionPanel.innerHTML=`<div class="action-heading"><p>${roundLabel}</p><h2>何と発言しますか？</h2><span>左の一覧から詳しい条件を選ぶか、右の「すぐに選べる特徴」から選択できます。${game.settings.liePenalty?"狼が嘘発言を2回するか、曖昧発言と嘘発言をそれぞれ1回すると、逆転チャンスを失います。":"嘘の回数によるペナルティはありません。"}</span></div><div class="clue-choice-layout"><section class="clue-menu-column"><p class="clue-list-label">特徴一覧</p><div class="clue-category-grid">${CLUE_MENU_CATEGORIES.map(c=>`<button class="choice-button clue-category-button" type="button" data-clue-category="${c.id}"><span>${c.label}</span><span>→</span></button>`).join("")}</div></section><section class="quick-clue-column"><p class="clue-list-label">すぐに選べる特徴</p><div class="choice-list basic-clue-list">${base.map(s=>`<button class="choice-button ${s.ambiguous?"ambiguous-choice":""}" type="button" data-clue-id="${s.id}"><span>${s.label}</span><span>${s.ambiguous?"曖昧":"→"}</span></button>`).join("")}</div></section></div>`;
    actionPanel.querySelectorAll("[data-clue-category]").forEach(b=>b.addEventListener("click",()=>{game.clueMenu=b.dataset.clueCategory;renderCluePhase();}));
  }else{
    const options=clueCategoryOptions(root);
@@ -802,7 +802,7 @@ function renderOnlineClue(){
     actionPanel.innerHTML=`<div class="thinking-state"><span class="thinking-card" aria-hidden="true">?</span><div><p>ONLINE TURN</p><h2>${escapeHtml(current?.name||"プレイヤー")}が発言中</h2><span>前の発言とは違う特徴を選んでいます…</span></div></div>`;return;
   }
   const opts=onlineFeatureOptions(onlineMyCard,onlineGame.usedClueIds,current?.clues);
-  actionPanel.innerHTML=`<div class="action-heading"><p>${roundLabel}</p><h2>何と発言しますか？</h2><span>前の人と同じ特徴は選べません。${onlineGame.settings.liePenalty?"狼が2回以上嘘をつくと逆転チャンスを失います。":"嘘の回数によるペナルティはありません。"}</span></div><div class="choice-list">${opts.map(s=>`<button class="choice-button ${s.ambiguous?"ambiguous-choice":""}" type="button" data-online-clue="${s.id}"><span>${s.label}</span><span>${s.ambiguous?"曖昧":"→"}</span></button>`).join("")}</div>`;
+  actionPanel.innerHTML=`<div class="action-heading"><p>${roundLabel}</p><h2>何と発言しますか？</h2><span>前の人と同じ特徴は選べません。${onlineGame.settings.liePenalty?"狼が嘘発言を2回するか、曖昧発言と嘘発言をそれぞれ1回すると、逆転チャンスを失います。":"嘘の回数によるペナルティはありません。"}</span></div><div class="choice-list">${opts.map(s=>`<button class="choice-button ${s.ambiguous?"ambiguous-choice":""}" type="button" data-online-clue="${s.id}"><span>${s.label}</span><span>${s.ambiguous?"曖昧":"→"}</span></button>`).join("")}</div>`;
   actionPanel.querySelectorAll("[data-online-clue]").forEach(b=>b.addEventListener("click",()=>onlineSubmitClue(b.dataset.onlineClue)));
 }
 function renderOnlineVote(){
