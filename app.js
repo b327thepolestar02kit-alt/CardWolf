@@ -1,8 +1,8 @@
-/* CardWolf build v84 */
+/* CardWolf build v85 */
 const firebaseConfig = window.FIREBASE_CONFIG || {};
-if (window.CARDWOLF_BUILD_VERSION !== "v84") { window.CARDWOLF_BUILD_VERSION = "v84"; }
+if (window.CARDWOLF_BUILD_VERSION !== "v85") { window.CARDWOLF_BUILD_VERSION = "v85"; }
 const versionEl = document.querySelector(".build-version");
-if (versionEl) { versionEl.textContent = "v84"; versionEl.setAttribute("aria-label", "ゲームバージョン v84"); }
+if (versionEl) { versionEl.textContent = "v85"; versionEl.setAttribute("aria-label", "ゲームバージョン v85"); }
 
 // Firebase is loaded lazily so a CDN/auth/database problem can never disable
 // the basic game UI. The solo/setup buttons must remain usable even when the
@@ -466,10 +466,12 @@ let onlineDiscussionTimer=null;
 let onlineDiscussionDeadlineAt=0;
 let onlineHostActionQueue=Promise.resolve();
 let onlineHostProcessing=false;
-let onlineMatchId="";
+let onlineMatchId="";onlineRoomSnapshotSeq=0;onlineLoadedGameMatchId="";
 let onlineClueMenu="root";
 let onlineTurnReadyKey="";
 let onlineTurnReadyTimer=null;
+let onlineRoomSnapshotSeq=0;
+let onlineLoadedGameMatchId="";
 
 function setMode(isOnline){
   onlineMode=Boolean(isOnline);
@@ -608,6 +610,7 @@ function openOnlineLobby(){
   onlineLobby.hidden=false;onlineRoomCode.textContent=onlineRoomCodeValue;createRoomButton.hidden=true;joinRoomButton.hidden=true;roomCodeInput.hidden=true;
   if(onlineRoomUnsubscribe)onlineRoomUnsubscribe();
   onlineRoomUnsubscribe=onValue(onlineRoomRef(),snap=>{
+    const snapshotSeq=++onlineRoomSnapshotSeq;
     const data=snap.val();
     if(!data){onlineLobbyStatus.textContent="ルームが終了しました";return;}
     renderOnlineLobby(data);
@@ -626,7 +629,22 @@ function openOnlineLobby(){
       onlineGame={...data.game, usedClueIds:Array.isArray(data.game.usedClueIds)?data.game.usedClueIds:[], logs:Array.isArray(data.game.logs)?data.game.logs:[], players:Array.isArray(data.game.players)?data.game.players:[], settings:data.game.settings||onlineSettings(), order:Array.isArray(data.game.order)?data.game.order:[], orderIndex:Number.isFinite(data.game.orderIndex)?data.game.orderIndex:0};
       if(onlineGame.reverseGuess && typeof onlineGame.reverseGuess!=="string") onlineGame.reverseGuess=onlineGame.reverseGuess.name||null;
       if(onlineGame.reveal?.reverseGuess && typeof onlineGame.reveal.reverseGuess!=="string") onlineGame.reveal.reverseGuess=onlineGame.reveal.reverseGuess.name||null;
-      loadOnlineOwnCard(data).then(()=>renderOnlineGame());
+      const needsPrivateCard=!onlineMyCard || String(onlineLoadedGameMatchId)!==String(onlineGame.matchId||"");
+      if(needsPrivateCard){
+        const thisMatchId=String(onlineGame.matchId||"");
+        loadOnlineOwnCard(data).then(()=>{
+          if(snapshotSeq!==onlineRoomSnapshotSeq)return;
+          if(!onlineGame || String(onlineGame.matchId||"")!==thisMatchId)return;
+          onlineLoadedGameMatchId=thisMatchId;
+          renderOnlineGame();
+        });
+      }else{
+        // Do not perform a second asynchronous Firebase read for every public
+        // game update. The private card is already known, so render the newest
+        // room snapshot synchronously. This prevents an older private-card read
+        // from redrawing a stale turn after a valid clue click.
+        renderOnlineGame();
+      }
       onlineDialog.close();
       setupScreen.hidden=true;gameScreen.hidden=false;
       if(onlineHost && !onlineActionUnsubscribe) attachOnlineHostActionListener();
@@ -661,7 +679,7 @@ async function leaveOnlineRoom(options={}){
       }
     }
   }catch(e){console.warn("online leave failed",e);}
-  onlineRoomCodeValue="";onlineHost=false;onlineGame=null;onlineTurnReadyKey="";if(onlineTurnReadyTimer){clearTimeout(onlineTurnReadyTimer);onlineTurnReadyTimer=null;}onlineMyCard=null;onlineClueMenu="root";onlineHostSecrets=null;onlineLastActionId=null;onlinePendingAction=null;
+  onlineRoomCodeValue="";onlineHost=false;onlineGame=null;onlineTurnReadyKey="";onlineLoadedGameMatchId="";if(onlineTurnReadyTimer){clearTimeout(onlineTurnReadyTimer);onlineTurnReadyTimer=null;}onlineMyCard=null;onlineClueMenu="root";onlineHostSecrets=null;onlineLastActionId=null;onlinePendingAction=null;
   onlineLobby.hidden=true;createRoomButton.hidden=false;joinRoomButton.hidden=false;roomCodeInput.hidden=false;
   try{onlineDialog.close();}catch{};onlineDialog.removeAttribute("open");
   if(options.returnToSetup) returnToSetup();
@@ -967,7 +985,7 @@ async function submitOnlineAction(action){
       // acknowledgement race that caused v80's intermittent dead buttons.
       onValue(resultRef,listener);
       try{
-        await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v84",createdAt:Date.now()});
+        await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v85",createdAt:Date.now()});
       }catch(e){
         console.error("online action write failed",e);
         finish(false);
