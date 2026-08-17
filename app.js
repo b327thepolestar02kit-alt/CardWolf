@@ -443,7 +443,7 @@ actionPanel.addEventListener("pointerdown", async (event)=>{
   const clueCategory=event.target.closest?.("[data-online-clue-category]");
   if(clueCategory && actionPanel.contains(clueCategory)){
     event.preventDefault();
-    if(!onlineGame || onlineGame.phase!=="clue" || String(onlineCurrentId())!==String(firebaseUid) || !isOnlineTurnReady()) return;
+    if(!onlineGame || onlineGame.phase!=="clue" || String(onlineCurrentId())!==String(firebaseUid)) return;
     onlineClueMenu=clueCategory.dataset.onlineClueCategory;
     renderOnlineClue();
     return;
@@ -459,7 +459,7 @@ actionPanel.addEventListener("pointerdown", async (event)=>{
   if(voteButton && actionPanel.contains(voteButton)){
     event.preventDefault();
     if(voteButton.disabled || onlinePendingAction)return;
-    if(!onlineGame || onlineGame.phase!=="vote" || !isOnlineVoteReady())return;
+    if(!onlineGame || onlineGame.phase!=="vote")return;
     const voteId=String(voteButton.dataset.onlineVote);
     onlinePendingAction={type:"vote",voteId,round:Number(onlineGame.round),orderIndex:Number(onlineGame.orderIndex)};
     renderOnlineVote();
@@ -887,6 +887,12 @@ function scheduleOnlineTurnReady(){
   },500);
 }
 function isOnlineTurnReady(){return onlineTurnReadyKey!=="" && onlineTurnReadyKey===onlineTurnKey();}
+// IMPORTANT v93: turn-readiness is visual feedback only. It must never be a
+// prerequisite for accepting a user click. A visible button can survive a
+// Firebase snapshot while the cosmetic 500ms readiness key is being rebuilt;
+// previously that made a perfectly valid click silently return. The host
+// validates the exact round/orderIndex, so accepting the click here is safe.
+
 
 function renderOnlineClue(){
   // A clue action belongs to one exact turn. If Firebase has already advanced
@@ -1005,7 +1011,7 @@ async function submitOnlineActionOnce(action){
     onlineActionPromises.set(actionId,finish);
     try{
       onValue(resultRef,listener);
-      await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v92",createdAt:Date.now()});
+      await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v93",createdAt:Date.now()});
     }catch(e){console.error("online action write failed",e);finish(false);return;}
     timer=setTimeout(()=>finish(false),8000);
   });
