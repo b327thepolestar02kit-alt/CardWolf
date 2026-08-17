@@ -1,8 +1,8 @@
-/* CardWolf build v75 */
+/* CardWolf build v76 */
 const firebaseConfig = window.FIREBASE_CONFIG || {};
-if (window.CARDWOLF_BUILD_VERSION !== "v75") { window.CARDWOLF_BUILD_VERSION = "v75"; }
+if (window.CARDWOLF_BUILD_VERSION !== "v76") { window.CARDWOLF_BUILD_VERSION = "v76"; }
 const versionEl = document.querySelector(".build-version");
-if (versionEl) { versionEl.textContent = "v75"; versionEl.setAttribute("aria-label", "ゲームバージョン v75"); }
+if (versionEl) { versionEl.textContent = "v76"; versionEl.setAttribute("aria-label", "ゲームバージョン v76"); }
 
 // Firebase is loaded lazily so a CDN/auth/database problem can never disable
 // the basic game UI. The solo/setup buttons must remain usable even when the
@@ -65,13 +65,13 @@ const JP_NAMES = {
 };
 function jpName(card){return JP_NAMES[card.name]||card.name;}
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));}
-function isEffectMonster(card){const t=String(card?.type||"");if(/Effect|Flip|Toon/.test(t))return true;/* この60枚のカードプールでは、融合・シンクロ・エクシーズ・リンクはすべて効果モンスターとして分類する。召喚方法だけで「効果なし」とは判定しない。 */if(/Fusion|Synchro|Xyz|XYZ|Link/.test(t))return true;return false;}
+function isEffectMonster(card){return /Effect|Flip/.test(String(card?.type||""));}
 function typeJa(card){const t=String(card.type||"");if(t.includes("Spell"))return "魔法カード";if(t.includes("Trap"))return "罠カード";if(t.includes("Fusion"))return isEffectMonster(card)?"融合・効果モンスター":"融合モンスター";if(t.includes("Synchro"))return isEffectMonster(card)?"シンクロ・効果モンスター":"シンクロモンスター";if(/Xyz|XYZ/.test(t))return isEffectMonster(card)?"エクシーズ・効果モンスター":"エクシーズモンスター";if(t.includes("Link"))return isEffectMonster(card)?"リンク・効果モンスター":"リンクモンスター";if(t.includes("Ritual"))return t.includes("Effect")?"儀式・効果モンスター":"儀式モンスター";if(isEffectMonster(card))return "効果モンスター";return "通常モンスター";}
 function attributeJa(a){return ({LIGHT:"光",DARK:"闇",FIRE:"炎",WATER:"水",WIND:"風",EARTH:"地",DIVINE:"神"})[String(a||"").toUpperCase()]||"";}
 function raceJa(r){return ({Dragon:"ドラゴン族",Spellcaster:"魔法使い族",Warrior:"戦士族",Fiend:"悪魔族",Beast:"獣族","Beast-Warrior":"獣戦士族",Machine:"機械族",Fairy:"天使族",Aqua:"水族",Pyro:"炎族",Plant:"植物族",Rock:"岩石族",Zombie:"アンデット族",Thunder:"雷族","Winged-Beast":"鳥獣族",Dinosaur:"恐竜族","Sea-Serpent":"海竜族",Reptile:"爬虫類族",Psychic:"サイキック族",Wyrm:"幻竜族",Cyberse:"サイバース族"})[r]||r||"";}
 function cardInfo(card){const parts=[typeJa(card)],a=attributeJa(card.attribute),r=raceJa(card.race);if(a)parts.push(a+"属性");if(r)parts.push(r);if(String(card.type||"").includes("Link") && card.linkval!=null)parts.push("リンク"+card.linkval);else if(card.level!=null && card.level!=="")parts.push(/Xyz|XYZ/.test(String(card.type||""))?"ランク"+card.level:"レベル"+card.level);return parts.join(" / ");}
-function statDisplay(v){if(v===-1||v==="-1"||v===null||v===undefined||v==="")return "？";const n=Number(v);return Number.isFinite(n)?String(n):"？";}
-function cardStats(card){const hasAtk=card.atk!==undefined&&card.atk!==null&&card.atk!=="";const hasDef=card.def!==undefined&&card.def!==null&&card.def!=="";const atk=hasAtk?`ATK ${statDisplay(card.atk)}`:"",def=hasDef?`DEF ${statDisplay(card.def)}`:"";return [atk,def].filter(Boolean).join(" / ");}
+function statDisplay(v,kind="atk"){if(v===-1||v==="-1")return kind==="def"?"－":"？";if(v===null||v===undefined||v==="")return "？";const n=Number(v);return Number.isFinite(n)?String(n):"？";}
+function cardStats(card){const hasAtk=card.atk!==undefined&&card.atk!==null&&card.atk!=="";const hasDef=card.def!==undefined&&card.def!==null&&card.def!=="";const atk=hasAtk?`ATK ${statDisplay(card.atk,"atk")}`:"",def=hasDef?`DEF ${statDisplay(card.def,"def")}`:"";return [atk,def].filter(Boolean).join(" / ");}
 function reverseGuessInfo(card){
   const type=typeJa(card);
   const attr=attributeJa(card.attribute);
@@ -118,8 +118,7 @@ const RACE_OPTIONS=[
   ["Spellcaster","魔法使い族"],["Dragon","ドラゴン族"],["Warrior","戦士族"],["Fiend","悪魔族"],
   ["Fairy","天使族"],["Beast","獣族"],["Winged-Beast","鳥獣族"],["Machine","機械族"]
 ];
-const LEVEL_OPTIONS=Array.from({length:14},(_,i)=>i);
-const LINK_OPTIONS=Array.from({length:6},(_,i)=>i+1);
+const LEVEL_OPTIONS=Array.from({length:12},(_,i)=>i+1);
 const ATK_STAT_BUCKETS=[
   {id:"unknown",label:"？（不明）",test:v=>v===-1||v===null||v===undefined||v===""},
   {id:"le500",label:"500以下",test:v=>Number.isFinite(Number(v))&&Number(v)>=0&&Number(v)<=500},
@@ -136,6 +135,18 @@ const DEF_STAT_BUCKETS=[
 function initialCharOptions(){
   const chars=[...new Set(CARD_POOL.map(c=>jpName(c).trim().charAt(0)).filter(Boolean))];
   return chars.sort((a,b)=>a.localeCompare(b,"ja"));
+}
+function endingCharOptions(){
+  const chars=[...new Set(CARD_POOL.map(c=>jpName(c).trim().slice(-1)).filter(Boolean))];
+  return chars.sort((a,b)=>a.localeCompare(b,"ja"));
+}
+function quickNameClues(card){
+  const name=jpName(card).trim();
+  const first=name.charAt(0), last=name.slice(-1);
+  return [
+    {id:`name-initial-${first.codePointAt(0).toString(16)}`,label:`カード名の開始文字は「${first}」です`,test:c=>jpName(c).trim().startsWith(first)},
+    {id:`name-ending-${last.codePointAt(0).toString(16)}`,label:`カード名の最後の文字は「${last}」です`,test:c=>jpName(c).trim().endsWith(last)}
+  ];
 }
 function featureList(card){
   const list=[
@@ -158,8 +169,7 @@ function featureList(card){
     {id:"fairy",label:"天使族です",test:c=>String(c.race||"")==="Fairy"},
     {id:"minor-race",label:"マイナーな種族です",test:c=>{const r=String(c.race||"");return Boolean(r)&&!MAJOR_RACES.includes(r);}},
     ...ATTRIBUTE_OPTIONS.map(([value,label])=>({id:`attribute-${value.toLowerCase()}`,label:`${label}属性です`,test:c=>String(c.attribute||"").toUpperCase()===value})),
-    ...LEVEL_OPTIONS.map(level=>({id:`level-${level}`,label:`レベル／ランクが${level}です`,test:c=>!String(c.type||"").includes("Link")&&Number(c.level)===level})),
-    ...LINK_OPTIONS.map(link=>({id:`link-${link}`,label:`リンク${link}です`,test:c=>String(c.type||"").includes("Link")&&Number(c.linkval)===link})),
+    ...LEVEL_OPTIONS.map(level=>({id:`level-${level}`,label:`レベル／ランク／リンクが${level}です`,test:c=>{const t=String(c.type||"");return t.includes("Link")?Number(c.linkval)===level:Number(c.level)===level;}})),
     ...ATK_STAT_BUCKETS.map(bucket=>({id:`atk-${bucket.id}`,label:`攻撃力が${bucket.label}です`,test:c=>bucket.test(c.atk)})),
     ...DEF_STAT_BUCKETS.map(bucket=>({id:`def-${bucket.id}`,label:`守備力が${bucket.label}です`,test:c=>bucket.test(c.def)})),
     {id:"high-atk",label:"攻撃力が2500以上です",test:c=>Number.isFinite(Number(c.atk))&&Number(c.atk)>=2500},
@@ -170,7 +180,8 @@ function featureList(card){
     {id:"name-red",label:"「真紅眼」に関係するカードです",test:c=>c.name.includes("Red-Eyes")},
     {id:"toon",label:"「トゥーン」の名前を持ちます",test:c=>c.name.includes("Toon")},
     {id:"forbidden",label:"「封印されし」の名前を持ちます",test:c=>c.name.includes("Forbidden")},
-    ...initialCharOptions().map(ch=>({id:`name-initial-${ch.codePointAt(0).toString(16)}`,label:`カード名の開始文字は「${ch}」です`,test:c=>jpName(c).trim().startsWith(ch)}))
+    ...initialCharOptions().map(ch=>({id:`name-initial-${ch.codePointAt(0).toString(16)}`,label:`カード名の開始文字は「${ch}」です`,test:c=>jpName(c).trim().startsWith(ch)})),
+    ...endingCharOptions().map(ch=>({id:`name-ending-${ch.codePointAt(0).toString(16)}`,label:`カード名の最後の文字は「${ch}」です`,test:c=>jpName(c).trim().endsWith(ch)}))
   ];
   return list;
 }
@@ -218,13 +229,16 @@ function availableClues(player){
  const used=new Set(game.usedClueIds||[]);
  let truthful=shuffle(statementsFor(player.card)).filter(s=>!used.has(s.id));
  let falsehoods=shuffle(falseStatementsFor(player.card)).filter(s=>!used.has(s.id));
- let options=[...truthful.slice(0,4),...falsehoods.slice(0,2)];
+ const pinned=quickNameClues(player.card).filter(s=>!used.has(s.id));
+ let options=[...pinned,...truthful.slice(0,3),...falsehoods.slice(0,2)];
  if(game.settings.speechRounds>=2 && !(player.clues||[]).some(c=>c.ambiguous)){
    const vague=shuffle(AMBIGUOUS_CLUES).filter(v=>!used.has(v.id));
    options.push(...vague.slice(0,2));
  }
  if(options.length<4){const extra=shuffle(featureList(player.card)).filter(s=>!used.has(s.id)&&!options.some(o=>o.id===s.id));options.push(...extra.slice(0,4-options.length));}
- return shuffle(options).slice(0,6);
+ const pinnedIds=new Set(pinned.map(s=>s.id));
+ const others=shuffle(options.filter(s=>!pinnedIds.has(s.id)));
+ return [...pinned,...others.slice(0,Math.max(0,6-pinned.length))];
 }
 function clueCategoryOptions(category){
  if(category==="basic") return [
@@ -238,7 +252,7 @@ function clueCategoryOptions(category){
    {id:"link",label:"リンクモンスターです"},
    {id:"extra-deck",label:"デュエル開始時にEXデッキに入るモンスターです"}
  ];
- if(category==="level") return [...LEVEL_OPTIONS.map(v=>({id:`level-${v}`,label:`レベル／ランクが${v}です`})), ...LINK_OPTIONS.map(v=>({id:`link-${v}`,label:`リンク${v}です`}))];
+ if(category==="level") return LEVEL_OPTIONS.map(v=>({id:`level-${v}`,label:`レベル／ランク／リンクが${v}です`}));
  if(category==="attribute") return ATTRIBUTE_OPTIONS.map(([v,l])=>({id:`attribute-${v.toLowerCase()}`,label:`${l}属性です`}));
  if(category==="race") { const raceIds={Spellcaster:"spellcaster",Dragon:"dragon",Warrior:"warrior",Fiend:"fiend",Fairy:"fairy",Beast:"beast","Winged-Beast":"winged-beast",Machine:"machine"}; return [...RACE_OPTIONS.map(([v,l])=>({id:raceIds[v],label:`${l}です`})),{id:"minor-race",label:"マイナーな種族です"}]; }
  if(category==="atk") return ATK_STAT_BUCKETS.map(b=>({id:`atk-${b.id}`,label:`攻撃力が${b.label}です`}));
@@ -339,7 +353,15 @@ function advanceClueTurn(){
 }
 function renderVotePhase(){phaseLabel.textContent="PHASE / 狼に投票する";phaseTitle.textContent="違うカードの人は誰？";const candidates=game.players.filter(p=>!p.isHuman);actionPanel.innerHTML=`<div class="action-heading"><p>VOTING TIME</p><h2>狼だと思う人を選ぶ</h2><span>2ラウンドの発言を振り返って、ひとりに投票してください。</span></div><div class="vote-grid">${candidates.map(p=>`<button class="vote-button" type="button" data-vote-id="${p.id}"><span class="mini-avatar">${String(p.id).padStart(2,"0")}</span><span><strong>${p.name}</strong><small>${p.clues.map(c=>`「${c.label}」`).join(" / ")}</small></span></button>`).join("")}</div>`;actionPanel.querySelectorAll("[data-vote-id]").forEach(b=>b.addEventListener("click",()=>submitVotes(Number(b.dataset.voteId))));}
 function chooseCpuVote(voter){const candidates=game.players.filter(p=>p.id!==voter.id);return candidates.map(candidate=>{const contradictions=candidate.clues.filter(clue=>!clue.ambiguous && !safeTest(clue,voter.card)).length;const lies=candidate.lies;return{id:candidate.id,score:contradictions*2.2+lies*1.1+Math.random()*1.4};}).sort((a,b)=>b.score-a.score)[0].id;}
-function submitVotes(humanVoteId){game.players[0].vote=humanVoteId;game.players.slice(1).forEach(p=>p.vote=chooseCpuVote(p));const tallies=Object.fromEntries(game.players.map(p=>[p.id,0]));game.players.forEach(p=>{if(tallies[p.vote]!=null)tallies[p.vote]++;});game.tallies=tallies;const high=Math.max(...Object.values(tallies)),tied=game.players.filter(p=>tallies[p.id]===high),eliminated=randomItem(tied);game.eliminatedId=eliminated.id;game.logs.push({type:"system",name:"投票結果",text:tied.length>1?`${high}票で同票。抽選により${eliminated.name}が選ばれました。`:`${eliminated.name}が${high}票で選ばれました。`});if(eliminated.isWolf){if(game.settings.liePenalty&&game.players[game.wolfIndex].lies>=2){game.result="citizen";game.logs.push({type:"system",name:"ペナルティ",text:"狼は2回以上の嘘をついたため、逆転チャンスを失いました。"});game.phase="result";}else game.phase="reverse";}else{game.result="wolf";game.phase="result";}renderGame();}
+function canWolfReverse(wolf){
+  if(!wolf) return false;
+  const clues=wolf.clues||[];
+  const madeAmbiguous=clues.some(c=>c && c.ambiguous);
+  const madeLie=Number(wolf.lies||0)>=1;
+  if(clues.length>=2 && madeAmbiguous && madeLie) return false;
+  return true;
+}
+function submitVotes(humanVoteId){game.players[0].vote=humanVoteId;game.players.slice(1).forEach(p=>p.vote=chooseCpuVote(p));const tallies=Object.fromEntries(game.players.map(p=>[p.id,0]));game.players.forEach(p=>{if(tallies[p.vote]!=null)tallies[p.vote]++;});game.tallies=tallies;const high=Math.max(...Object.values(tallies)),tied=game.players.filter(p=>tallies[p.id]===high),eliminated=randomItem(tied);game.eliminatedId=eliminated.id;game.logs.push({type:"system",name:"投票結果",text:tied.length>1?`${high}票で同票。抽選により${eliminated.name}が選ばれました。`:`${eliminated.name}が${high}票で選ばれました。`});if(eliminated.isWolf){if(!canWolfReverse(game.players[game.wolfIndex])){game.result="citizen";game.logs.push({type:"system",name:"ペナルティ",text:"狼は曖昧発言と嘘発言を行ったため、逆転チャンスを失いました。"});game.phase="result";}else if(game.settings.liePenalty&&game.players[game.wolfIndex].lies>=2){game.result="citizen";game.logs.push({type:"system",name:"ペナルティ",text:"狼は2回以上の嘘をついたため、逆転チャンスを失いました。"});game.phase="result";}else game.phase="reverse";}else{game.result="wolf";game.phase="result";}renderGame();}
 function voteSummaryHtml(){
   if(!game||!game.tallies) return "";
   const rows=game.players.map(p=>`<div class="vote-row"><span>${escapeHtml(p.name)}</span><strong>${game.tallies[p.id]||0}票</strong></div>`).join("");
@@ -637,7 +659,8 @@ function onlineFeatureOptions(card,used,playerClues){
   const usedSet=new Set(Array.isArray(used)?used:[]);
   let truthful=shuffle(statementsFor(card)).filter(s=>!usedSet.has(s.id));
   let falsehoods=shuffle(falseStatementsFor(card)).filter(s=>!usedSet.has(s.id));
-  let options=[...truthful.slice(0,4),...falsehoods.slice(0,2)];
+  const pinned=quickNameClues(card).filter(s=>!usedSet.has(s.id));
+  let options=[...pinned,...truthful.slice(0,3),...falsehoods.slice(0,2)];
   if((onlineGame?.settings?.speechRounds||2)>=2 && !(playerClues||[]).some(c=>c.ambiguous)){
     const vague=shuffle(AMBIGUOUS_CLUES).filter(v=>!usedSet.has(v.id));
     options.push(...vague.slice(0,2));
@@ -646,7 +669,9 @@ function onlineFeatureOptions(card,used,playerClues){
     const extra=shuffle(featureList(card)).filter(s=>!usedSet.has(s.id)&&!options.some(o=>o.id===s.id));
     options.push(...extra.slice(0,4-options.length));
   }
-  return shuffle(options).slice(0,6);
+  const pinnedIds=new Set(pinned.map(s=>s.id));
+  const others=shuffle(options.filter(s=>!pinnedIds.has(s.id)));
+  return [...pinned,...others.slice(0,Math.max(0,6-pinned.length))];
 }
 function onlinePlayerById(id){return (onlineGame?.players||[]).find(p=>String(p.id)===String(id));}
 function onlineCurrentId(){return onlineGame?.order?.[onlineGame.orderIndex];}
@@ -840,7 +865,7 @@ async function submitOnlineAction(action){
     // Each client gets its own immutable action entry. The host acknowledges
     // acceptance/rejection separately so a client never remains stuck in a
     // fake "waiting" state when the host rejects a stale action.
-    await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v75",createdAt:Date.now()});
+    await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v76",createdAt:Date.now()});
     return await new Promise((resolve)=>{
       let settled=false;
       const finish=(ok)=>{if(settled)return;settled=true;off(resultRef,"value",listener);onlineActionPromises.delete(actionId);resolve(Boolean(ok));};
@@ -985,7 +1010,10 @@ async function hostEvaluateVotes(){
   onlineGame.logs.push({type:"system",name:"投票結果",text:tied.length>1?`${high}票で同票。抽選により${eliminated.name}が選ばれました。`:`${eliminated.name}が${high}票で選ばれました。`});
   const wolfId=onlineHostSecrets.wolfUid;
   if(String(eliminated.id)===String(wolfId)){
-    if(onlineGame.settings.liePenalty&&(onlineHostSecrets.lies[wolfId]||0)>=2){onlineGame.result="citizen";onlineGame.phase="result";onlineGame.logs.push({type:"system",name:"ペナルティ",text:"狼は2回以上の嘘をついたため、逆転チャンスを失いました。"});await hostFinishResult(null);}
+    const wolfPlayer=onlinePlayerById(wolfId);
+    const blockedByAmbiguousLie=(wolfPlayer?.clues||[]).length>=2&&(wolfPlayer?.clues||[]).some(c=>c.ambiguous)&&(onlineHostSecrets.lies[wolfId]||0)>=1;
+    if(blockedByAmbiguousLie){onlineGame.result="citizen";onlineGame.phase="result";onlineGame.logs.push({type:"system",name:"ペナルティ",text:"狼は曖昧発言と嘘発言を行ったため、逆転チャンスを失いました。"});await hostFinishResult(null);}
+    else if(onlineGame.settings.liePenalty&&(onlineHostSecrets.lies[wolfId]||0)>=2){onlineGame.result="citizen";onlineGame.phase="result";onlineGame.logs.push({type:"system",name:"ペナルティ",text:"狼は2回以上の嘘をついたため、逆転チャンスを失いました。"});await hostFinishResult(null);}
     else {
       onlineGame.phase="reverse";
       await hostWriteGame();
