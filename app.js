@@ -1,8 +1,8 @@
-/* CardWolf build v76 */
+/* CardWolf build v81 */
 const firebaseConfig = window.FIREBASE_CONFIG || {};
-if (window.CARDWOLF_BUILD_VERSION !== "v76") { window.CARDWOLF_BUILD_VERSION = "v76"; }
+if (window.CARDWOLF_BUILD_VERSION !== "v81") { window.CARDWOLF_BUILD_VERSION = "v81"; }
 const versionEl = document.querySelector(".build-version");
-if (versionEl) { versionEl.textContent = "v76"; versionEl.setAttribute("aria-label", "ゲームバージョン v76"); }
+if (versionEl) { versionEl.textContent = "v81"; versionEl.setAttribute("aria-label", "ゲームバージョン v81"); }
 
 // Firebase is loaded lazily so a CDN/auth/database problem can never disable
 // the basic game UI. The solo/setup buttons must remain usable even when the
@@ -881,21 +881,39 @@ async function submitOnlineAction(action){
   const actionRef=ref(firebaseDb,`rooms/${roomCode}/actions/${firebaseUid}/${actionId}`);
   const resultRef=ref(firebaseDb,`rooms/${roomCode}/actionResults/${firebaseUid}/${actionId}`);
   try{
-    // Each client gets its own immutable action entry. The host acknowledges
-    // acceptance/rejection separately so a client never remains stuck in a
-    // fake "waiting" state when the host rejects a stale action.
-    await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v80",createdAt:Date.now()});
-    return await new Promise((resolve)=>{
+    // IMPORTANT: attach the acknowledgement listener BEFORE publishing the
+    // action. Firebase can process a fast host action immediately; registering
+    // onValue after set() created a race where the acknowledgement was already
+    // written before the client started listening, making the button appear
+    // intermittently unresponsive.
+    return await new Promise(async(resolve)=>{
       let settled=false;
-      const finish=(ok)=>{if(settled)return;settled=true;off(resultRef,"value",listener);onlineActionPromises.delete(actionId);resolve(Boolean(ok));};
+      let timer=null;
+      const finish=(ok)=>{
+        if(settled)return;
+        settled=true;
+        if(timer)clearTimeout(timer);
+        try{off(resultRef,"value",listener);}catch{}
+        onlineActionPromises.delete(actionId);
+        resolve(Boolean(ok));
+      };
       const listener=(snap)=>{
         const result=snap.val();
         if(!result)return;
         finish(result.accepted===true);
       };
       onlineActionPromises.set(actionId,finish);
+      // Start listening first, then write the action. This removes the
+      // acknowledgement race that caused v80's intermittent dead buttons.
       onValue(resultRef,listener);
-      setTimeout(()=>finish(false),7000);
+      try{
+        await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v81",createdAt:Date.now()});
+      }catch(e){
+        console.error("online action write failed",e);
+        finish(false);
+        return;
+      }
+      timer=setTimeout(()=>finish(false),7000);
     }).then(ok=>{
       if(!ok)alert("操作を受け付けられませんでした。画面を更新して、もう一度お試しください。");
       return ok;
