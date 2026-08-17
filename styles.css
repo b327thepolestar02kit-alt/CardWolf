@@ -2765,7 +2765,7 @@ section.setup-screen[hidden], section.game-screen[hidden]{display:none!important
 }
 
 
-/* v78: make false statement choices subtly distinguishable */
+/* v79: make false statement choices subtly distinguishable */
 .choice-button.lie-choice {
   border-color: rgba(205, 125, 115, .42) !important;
   background: rgba(120, 55, 48, .10) !important;

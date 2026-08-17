@@ -85,7 +85,8 @@ function cardDisplay(card){return `<div class="card-name-jp">${escapeHtml(jpName
 const CPU_NAMES=["ミナト","スズ","トキ","アオイ","レン","コハク","ナギ"];
 const setupScreen=document.getElementById("setupScreen"),gameScreen=document.getElementById("gameScreen"),restartButton=document.getElementById("restartButton"),playersElement=document.getElementById("players"),yourCardElement=document.getElementById("yourCard"),actionPanel=document.getElementById("actionPanel"),phaseLabel=document.getElementById("phaseLabel"),phaseTitle=document.getElementById("phaseTitle"),talkLog=document.getElementById("talkLog"),logCount=document.getElementById("logCount"),rulesDialog=document.getElementById("rulesDialog"),poolDialog=document.getElementById("poolDialog"),poolGrid=document.getElementById("poolGrid"),poolCountElement=document.getElementById("poolCount");
 const speechCountSelect=document.getElementById("speechCount"),liePenaltyToggle=document.getElementById("liePenalty"),showLieCountToggle=document.getElementById("showLieCount");
-if(showLieCountToggle) showLieCountToggle.checked=true;
+if(liePenaltyToggle) liePenaltyToggle.checked=false;
+if(showLieCountToggle) showLieCountToggle.checked=false;
 const playerNameInput=document.getElementById("playerName"),winCountElement=document.getElementById("winCount"),lossCountElement=document.getElementById("lossCount"),gameWinCountElement=document.getElementById("gameWinCount"),gameLossCountElement=document.getElementById("gameLossCount");
 const settingsDialog=document.getElementById("settingsDialog"),advancedSettingsButton=document.getElementById("advancedSettingsButton"),closeSettingsButton=document.getElementById("closeSettingsButton"),closeSettingsButtonBottom=document.getElementById("closeSettingsButtonBottom"),resetScoreButton=document.getElementById("resetScoreButton"),practicePlayerCountSelect=document.getElementById("practicePlayerCount");
 const soloModeButton=document.getElementById("soloModeButton"),onlineModeButton=document.getElementById("onlineModeButton");
@@ -118,7 +119,8 @@ const RACE_OPTIONS=[
   ["Spellcaster","魔法使い族"],["Dragon","ドラゴン族"],["Warrior","戦士族"],["Fiend","悪魔族"],
   ["Fairy","天使族"],["Beast","獣族"],["Winged-Beast","鳥獣族"],["Machine","機械族"]
 ];
-const LEVEL_OPTIONS=Array.from({length:13},(_,i)=>i+1);
+const LEVEL_LINK_OPTIONS=Array.from({length:7},(_,i)=>i);
+const LEVEL_ONLY_OPTIONS=Array.from({length:7},(_,i)=>i+7);
 const ATK_STAT_BUCKETS=[
   {id:"unknown",label:"？（不明）",test:v=>v===-1||v===null||v===undefined||v===""},
   {id:"le500",label:"500以下",test:v=>Number.isFinite(Number(v))&&Number(v)>=0&&Number(v)<=500},
@@ -169,7 +171,8 @@ function featureList(card){
     {id:"fairy",label:"天使族です",test:c=>String(c.race||"")==="Fairy"},
     {id:"minor-race",label:"マイナーな種族です",test:c=>{const r=String(c.race||"");return Boolean(r)&&!MAJOR_RACES.includes(r);}},
     ...ATTRIBUTE_OPTIONS.map(([value,label])=>({id:`attribute-${value.toLowerCase()}`,label:`${label}属性です`,test:c=>String(c.attribute||"").toUpperCase()===value})),
-    ...LEVEL_OPTIONS.map(level=>({id:`level-${level}`,label:`レベル／ランク／リンクが${level}です`,test:c=>{const t=String(c.type||"");return t.includes("Link") ? (level<=6 && Number(c.linkval)===level) : Number(c.level)===level;}})),
+    ...LEVEL_LINK_OPTIONS.map(level=>({id:`level-${level}`,label:`レベル／ランク／リンクが${level}です`,test:c=>{const t=String(c.type||"");return t.includes("Link") ? Number(c.linkval)===level : Number(c.level)===level;}})),
+    ...LEVEL_ONLY_OPTIONS.map(level=>({id:`level-${level}`,label:`レベル／ランクが${level}です`,test:c=>Number(c.level)===level})),
     ...ATK_STAT_BUCKETS.map(bucket=>({id:`atk-${bucket.id}`,label:`攻撃力が${bucket.label}です`,test:c=>bucket.test(c.atk)})),
     ...DEF_STAT_BUCKETS.map(bucket=>({id:`def-${bucket.id}`,label:`守備力が${bucket.label}です`,test:c=>bucket.test(c.def)})),
     {id:"high-atk",label:"攻撃力が2500以上です",test:c=>Number.isFinite(Number(c.atk))&&Number(c.atk)>=2500},
@@ -193,7 +196,7 @@ function syncPracticePlayerCount(){
   selectedPlayerCount=Math.min(8,Math.max(3,value));
   if(practicePlayerCountSelect) practicePlayerCountSelect.value=String(selectedPlayerCount);
 }
-function getSettings(){return{speechRounds:Number(speechCountSelect.value||2),liePenalty:Boolean(liePenaltyToggle.checked),showLieCount:Boolean(showLieCountToggle&& !showLieCountToggle.checked)};}
+function getSettings(){return{speechRounds:Number(speechCountSelect.value||2),liePenalty:Boolean(liePenaltyToggle.checked),showLieCount:Boolean(showLieCountToggle&& showLieCountToggle.checked)};}
 function randomPlayerName(){return randomItem(["ユウ","カイ","レン","アキラ","ナギ","ハヤト","ソラ","ミナ","リク","シン"]);}
 function getPlayerName(){const n=(playerNameInput?.value||"").trim();return n||randomPlayerName();}
 if(poolCountElement) poolCountElement.textContent=String(CARD_POOL_COUNT);
@@ -252,7 +255,7 @@ function clueCategoryOptions(category){
    {id:"link",label:"リンクモンスターです"},
    {id:"extra-deck",label:"デュエル開始時にEXデッキに入るモンスターです"}
  ];
- if(category==="level") return LEVEL_OPTIONS.map(v=>({id:`level-${v}`,label:`レベル／ランク／リンクが${v}です`}));
+ if(category==="level") return [...LEVEL_LINK_OPTIONS.map(v=>({id:`level-${v}`,label:`レベル／ランク／リンクが${v}です`})),...LEVEL_ONLY_OPTIONS.map(v=>({id:`level-${v}`,label:`レベル／ランクが${v}です`}))];
  if(category==="attribute") return ATTRIBUTE_OPTIONS.map(([v,l])=>({id:`attribute-${v.toLowerCase()}`,label:`${l}属性です`}));
  if(category==="race") { const raceIds={Spellcaster:"spellcaster",Dragon:"dragon",Warrior:"warrior",Fiend:"fiend",Fairy:"fairy",Beast:"beast","Winged-Beast":"winged-beast",Machine:"machine"}; return [...RACE_OPTIONS.map(([v,l])=>({id:raceIds[v],label:`${l}です`})),{id:"minor-race",label:"マイナーな種族です"}]; }
  if(category==="atk") return ATK_STAT_BUCKETS.map(b=>({id:`atk-${b.id}`,label:`攻撃力が${b.label}です`}));
