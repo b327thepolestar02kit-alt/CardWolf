@@ -1,8 +1,8 @@
-/* CardWolf build v85 */
+/* CardWolf build v86 */
 const firebaseConfig = window.FIREBASE_CONFIG || {};
-if (window.CARDWOLF_BUILD_VERSION !== "v85") { window.CARDWOLF_BUILD_VERSION = "v85"; }
+if (window.CARDWOLF_BUILD_VERSION !== "v86") { window.CARDWOLF_BUILD_VERSION = "v86"; }
 const versionEl = document.querySelector(".build-version");
-if (versionEl) { versionEl.textContent = "v85"; versionEl.setAttribute("aria-label", "ゲームバージョン v85"); }
+if (versionEl) { versionEl.textContent = "v86"; versionEl.setAttribute("aria-label", "ゲームバージョン v86"); }
 
 // Firebase is loaded lazily so a CDN/auth/database problem can never disable
 // the basic game UI. The solo/setup buttons must remain usable even when the
@@ -466,7 +466,7 @@ let onlineDiscussionTimer=null;
 let onlineDiscussionDeadlineAt=0;
 let onlineHostActionQueue=Promise.resolve();
 let onlineHostProcessing=false;
-let onlineMatchId="";onlineRoomSnapshotSeq=0;onlineLoadedGameMatchId="";
+let onlineMatchId="";onlineLoadedGameMatchId="";
 let onlineClueMenu="root";
 let onlineTurnReadyKey="";
 let onlineTurnReadyTimer=null;
@@ -985,7 +985,7 @@ async function submitOnlineAction(action){
       // acknowledgement race that caused v80's intermittent dead buttons.
       onValue(resultRef,listener);
       try{
-        await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v85",createdAt:Date.now()});
+        await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v86",createdAt:Date.now()});
       }catch(e){
         console.error("online action write failed",e);
         finish(false);
