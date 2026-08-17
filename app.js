@@ -992,56 +992,63 @@ function renderOnlineGame(){
   renderOnlinePlayers();renderOnlineCard();renderOnlineLog();
   if(onlineGame.phase==="discussion")renderOnlineDiscussion();else if(onlineGame.phase==="clue")renderOnlineClue();else if(onlineGame.phase==="vote")renderOnlineVote();else if(onlineGame.phase==="reverse")renderOnlineReverse();else renderOnlineResult();
 }
-async function submitOnlineAction(action){
-  if(!onlineRoomCodeValue||!firebaseUid){console.warn("online action ignored: room/auth not ready");return false;}
-  if(!onlineGame){console.warn("online action ignored: game state not ready");return false;}
+async function submitOnlineActionOnce(action){
+  if(!onlineRoomCodeValue||!firebaseUid||!onlineGame)return false;
   const roomCode=onlineRoomCodeValue;
   const actionId=`${firebaseUid}-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
   const actionRef=ref(firebaseDb,`rooms/${roomCode}/actions/${firebaseUid}/${actionId}`);
   const resultRef=ref(firebaseDb,`rooms/${roomCode}/actionResults/${firebaseUid}/${actionId}`);
-  try{
-    // IMPORTANT: attach the acknowledgement listener BEFORE publishing the
-    // action. Firebase can process a fast host action immediately; registering
-    // onValue after set() created a race where the acknowledgement was already
-    // written before the client started listening, making the button appear
-    // intermittently unresponsive.
-    return await new Promise(async(resolve)=>{
-      let settled=false;
-      let timer=null;
-      const finish=(ok)=>{
-        if(settled)return;
-        settled=true;
-        if(timer)clearTimeout(timer);
-        try{off(resultRef,"value",listener);}catch{}
-        onlineActionPromises.delete(actionId);
-        resolve(Boolean(ok));
-      };
-      const listener=(snap)=>{
-        const result=snap.val();
-        if(!result)return;
-        finish(result.accepted===true);
-      };
-      onlineActionPromises.set(actionId,finish);
-      // Start listening first, then write the action. This removes the
-      // acknowledgement race that caused v80's intermittent dead buttons.
+  return await new Promise(async(resolve)=>{
+    let settled=false,timer=null;
+    const finish=ok=>{if(settled)return;settled=true;if(timer)clearTimeout(timer);try{off(resultRef,"value",listener);}catch{}onlineActionPromises.delete(actionId);resolve(Boolean(ok));};
+    const listener=snap=>{const result=snap.val();if(result)finish(result.accepted===true);};
+    onlineActionPromises.set(actionId,finish);
+    try{
       onValue(resultRef,listener);
-      try{
-        await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v91",createdAt:Date.now()});
-      }catch(e){
-        console.error("online action write failed",e);
-        finish(false);
-        return;
-      }
-      timer=setTimeout(()=>finish(false),12000);
-    }).then(ok=>{
-      if(!ok)alert("操作を受け付けられませんでした。画面を更新して、もう一度お試しください。");
-      return ok;
-    });
-  }catch(e){
-    console.error("online action failed",e);
-    alert(`操作を送信できませんでした。\n\n${e?.message||e}`);
-    return false;
+      await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v92",createdAt:Date.now()});
+    }catch(e){console.error("online action write failed",e);finish(false);return;}
+    timer=setTimeout(()=>finish(false),8000);
+  });
+}
+function onlineActionAlreadyApplied(action){
+  const me=onlinePlayerById(firebaseUid);
+  if(!onlineGame||!me)return false;
+  if(action.type==="clue")return Array.isArray(me.clues)&&me.clues.some(c=>String(c.id)===String(action.clueId));
+  if(action.type==="vote")return me.vote!==null&&me.vote!==undefined&&String(me.vote)!=="";
+  return false;
+}
+async function refreshOnlineGameBeforeActionRetry(){
+  try{
+    const snap=await get(onlineRoomRef()),data=snap.val();
+    if(!data?.game)return false;
+    const g=data.game;
+    onlineMatchId=String(g.matchId||onlineMatchId||"");
+    onlineGame={...g,usedClueIds:Array.isArray(g.usedClueIds)?g.usedClueIds:[],logs:Array.isArray(g.logs)?g.logs:[],players:Array.isArray(g.players)?g.players:[],settings:g.settings||onlineSettings(),order:Array.isArray(g.order)?g.order:[],orderIndex:Number.isFinite(g.orderIndex)?g.orderIndex:0};
+    renderOnlineGame();
+    return true;
+  }catch(e){console.warn("online retry refresh failed",e);return false;}
+}
+async function submitOnlineAction(action){
+  if(!onlineRoomCodeValue||!firebaseUid||!onlineGame)return false;
+  const originalMatchId=onlineGame.matchId||onlineMatchId||"";
+  const first={...action,matchId:originalMatchId};
+  if(await submitOnlineActionOnce(first))return true;
+
+  // Do not ask the player to hammer the button. A stale public snapshot can
+  // legitimately make the host reject the first request. Refresh the room and
+  // automatically retry once if the action is still valid.
+  await refreshOnlineGameBeforeActionRetry();
+  if(onlineActionAlreadyApplied(action))return true;
+  const canRetry=(action.type==="clue"&&onlineGame.phase==="clue"&&String(onlineCurrentId())===String(firebaseUid))||
+                 (action.type==="vote"&&onlineGame.phase==="vote");
+  if(canRetry){
+    const retry={...action,matchId:onlineGame.matchId||onlineMatchId||"",round:Number(onlineGame.round),orderIndex:Number(onlineGame.orderIndex||0)};
+    if(await submitOnlineActionOnce(retry))return true;
+    await refreshOnlineGameBeforeActionRetry();
+    if(onlineActionAlreadyApplied(action))return true;
   }
+  alert("操作を受け付けられませんでした。通信が安定してから、もう一度お試しください。");
+  return false;
 }
 function hostChooseCpuVote(voter){
   const candidates=onlineGame.players.filter(p=>String(p.id)!==String(voter.id));
