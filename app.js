@@ -998,7 +998,7 @@ async function submitOnlineAction(action){
       // acknowledgement race that caused v80's intermittent dead buttons.
       onValue(resultRef,listener);
       try{
-        await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v89",createdAt:Date.now()});
+        await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v90",createdAt:Date.now()});
       }catch(e){
         console.error("online action write failed",e);
         finish(false);
@@ -1081,6 +1081,10 @@ async function advanceOnlineClueHost(){
     // blank/preparing state.
     onlineGame.transition={type:"round",text:"第2ラウンドへ切り替えます"};
     await hostWriteGame();
+    // The host ignores its own room snapshot while processing the action.
+    // Render the transition locally immediately so the host sees the same
+    // explicit round-change screen as the other clients.
+    renderOnlineGame();
     await sleepMs(sameSpeakerAgain ? 1200 : 900);
     onlineGame.round += 1;
     onlineGame.order = nextOrder;
