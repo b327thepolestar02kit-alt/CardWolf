@@ -467,6 +467,7 @@ let onlineDiscussionDeadlineAt=0;
 let onlineHostActionQueue=Promise.resolve();
 let onlineHostProcessing=false;
 let onlineMatchId="";
+let onlineClueMenu="root";
 
 function setMode(isOnline){
   onlineMode=Boolean(isOnline);
@@ -657,7 +658,7 @@ async function leaveOnlineRoom(options={}){
       }
     }
   }catch(e){console.warn("online leave failed",e);}
-  onlineRoomCodeValue="";onlineHost=false;onlineGame=null;onlineMyCard=null;onlineHostSecrets=null;onlineLastActionId=null;onlinePendingAction=null;
+  onlineRoomCodeValue="";onlineHost=false;onlineGame=null;onlineMyCard=null;onlineClueMenu="root";onlineHostSecrets=null;onlineLastActionId=null;onlinePendingAction=null;
   onlineLobby.hidden=true;createRoomButton.hidden=false;joinRoomButton.hidden=false;roomCodeInput.hidden=false;
   try{onlineDialog.close();}catch{};onlineDialog.removeAttribute("open");
   if(options.returnToSetup) returnToSetup();
@@ -808,10 +809,21 @@ function renderOnlineClue(){
   if(String(onlineCurrentId())!==String(firebaseUid)){
     actionPanel.innerHTML=`<div class="thinking-state"><span class="thinking-card" aria-hidden="true">?</span><div><p>ONLINE TURN</p><h2>${escapeHtml(current?.name||"プレイヤー")}が発言中</h2><span>前の発言とは違う特徴を選んでいます…</span></div></div>`;return;
   }
-  const opts=onlineFeatureOptions(onlineMyCard,onlineGame.usedClueIds,current?.clues);
-  actionPanel.innerHTML=`<div class="action-heading"><p>${roundLabel}</p><h2>何と発言しますか？</h2><span>前の人と同じ特徴は選べません。${onlineGame.settings.liePenalty?"狼が嘘発言を2回するか、曖昧発言と嘘発言をそれぞれ1回すると、逆転チャンスを失います。":"嘘の回数によるペナルティはありません。"}</span></div><div class="choice-list">${opts.map(s=>`<button class="choice-button ${clueChoiceClass(s,onlineMyCard)}" type="button" data-online-clue="${s.id}"><span>${s.label}</span><span>${s.ambiguous?"曖昧":"→"}</span></button>`).join("")}</div>`;
+  const usedIds=new Set(onlineGame.usedClueIds||[]);
+  const findOnlineClue=id=>[...featureList(onlineMyCard||{}),...AMBIGUOUS_CLUES].find(s=>s.id===id)||null;
+  const root=onlineClueMenu||"root";
+  if(root==="root"){
+    const opts=onlineFeatureOptions(onlineMyCard,onlineGame.usedClueIds,current?.clues);
+    actionPanel.innerHTML=`<div class="action-heading"><p>${roundLabel}</p><h2>何と発言しますか？</h2><span>左の一覧から詳しい条件を選ぶか、右の「すぐに選べる特徴」から選択できます。${onlineGame.settings.liePenalty?"狼が嘘発言を2回するか、曖昧発言と嘘発言をそれぞれ1回すると、逆転チャンスを失います。":"嘘の回数によるペナルティはありません。"}</span></div><div class="clue-choice-layout"><section class="clue-menu-column"><p class="clue-list-label">特徴一覧</p><div class="clue-category-grid">${CLUE_MENU_CATEGORIES.map(c=>`<button class="choice-button clue-category-button" type="button" data-online-clue-category="${c.id}"><span>${c.label}</span><span>→</span></button>`).join("")}</div></section><section class="quick-clue-column"><p class="clue-list-label">すぐに選べる特徴</p><div class="choice-list basic-clue-list">${opts.map(s=>`<button class="choice-button ${clueChoiceClass(s,onlineMyCard)}" type="button" data-online-clue="${s.id}"><span>${s.label}</span><span>${s.ambiguous?"曖昧":"→"}</span></button>`).join("")}</div></section></div>`;
+    actionPanel.querySelectorAll("[data-online-clue-category]").forEach(b=>b.addEventListener("click",()=>{onlineClueMenu=b.dataset.onlineClueCategory;renderOnlineClue();}));
+  }else{
+    const options=clueCategoryOptions(root);
+    actionPanel.innerHTML=`<div class="action-heading"><p>${roundLabel}</p><h2>${CLUE_MENU_CATEGORIES.find(c=>c.id===root)?.label||"特徴を選択"}</h2><span>一覧から選択してください。ほかのプレイヤーが発言済みの内容は選択できません。</span></div><div class="choice-list submenu-choice-list">${options.map(o=>{const used=usedIds.has(o.id);const statement=findOnlineClue(o.id);return `<button class="choice-button ${used?"choice-used ":""}${statement?clueChoiceClass(statement,onlineMyCard):""}" type="button" data-online-clue="${o.id}" ${used?"disabled aria-disabled=\"true\"":""}><span>${o.label}</span><span>${used?"発言済み":statement?.ambiguous?"曖昧":"→"}</span></button>`;}).join("")}</div><button class="secondary-button compact clue-back-button" id="onlineClueBackButton" type="button">← 戻る</button>`;
+    actionPanel.querySelector("#onlineClueBackButton").addEventListener("click",()=>{onlineClueMenu="root";renderOnlineClue();});
+  }
   actionPanel.querySelectorAll("[data-online-clue]").forEach(b=>b.addEventListener("click",()=>onlineSubmitClue(b.dataset.onlineClue)));
 }
+
 function renderOnlineVote(){
   phaseLabel.textContent="PHASE / 狼に投票する";phaseTitle.textContent="違うカードの人は誰？";
   const me=onlinePlayerById(firebaseUid);
@@ -872,7 +884,7 @@ async function submitOnlineAction(action){
     // Each client gets its own immutable action entry. The host acknowledges
     // acceptance/rejection separately so a client never remains stuck in a
     // fake "waiting" state when the host rejects a stale action.
-    await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v76",createdAt:Date.now()});
+    await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v80",createdAt:Date.now()});
     return await new Promise((resolve)=>{
       let settled=false;
       const finish=(ok)=>{if(settled)return;settled=true;off(resultRef,"value",listener);onlineActionPromises.delete(actionId);resolve(Boolean(ok));};
@@ -1170,6 +1182,7 @@ async function startOnlineHostGame(){
   const discussionDeadlineAt=isVoice?matchStartedAt+discussionSeconds*1000:null;
 
   onlineMatchId=matchId;
+  onlineClueMenu="root";
   onlineHostSecrets={cards,wolves,lies,wolfUid,citizenCard,wolfCard};
   onlineMyCard=cards[firebaseUid]||null;
   onlineGame={
