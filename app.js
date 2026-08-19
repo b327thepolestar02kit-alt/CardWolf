@@ -757,6 +757,13 @@ function renderOnlinePlayers(){
     </article>`;
   }).join("");
 }
+function onlineDebug(event, details={}){
+  const entry={t:new Date().toISOString(),event,...details};
+  console.log("[CardWolf Online Debug]",entry);
+  window.cardWolfOnlineDebug=window.cardWolfOnlineDebug||[];
+  window.cardWolfOnlineDebug.push(entry);
+  if(window.cardWolfOnlineDebug.length>200)window.cardWolfOnlineDebug.shift();
+}
 function renderOnlineCard(){
   yourCardElement.className="playing-card ygo";
   yourCardElement.innerHTML=onlineMyCard?`<div class="ygo-card-face"><img src="${cardImage(onlineMyCard)}" alt="${escapeHtml(jpName(onlineMyCard))}"></div><div class="your-card-meta">${cardDisplay(onlineMyCard)}</div>`:`<div class="online-card-wait">カードを準備しています…</div>`;
@@ -766,21 +773,24 @@ function renderOnlineLog(){
   talkLog.innerHTML=(onlineGame.logs||[]).length?(onlineGame.logs||[]).map((e,i)=>`<article class="log-entry ${e.type||""}"><span>${String(i+1).padStart(2,"0")}</span><strong>${escapeHtml(e.name||"")}</strong><p>${escapeHtml(e.text||"")}</p></article>`).join(""):`<p class="empty-log">発言が始まると、ここに記録されます。</p>`;
 }
 async function onlineSubmitClue(id){
-  if(onlineGame.phase!=="clue"||String(onlineCurrentId())!==String(firebaseUid))return;
-  const card=onlineMyCard;if(!card)return;
+  if(!onlineGame){onlineDebug("clue-rejected-client",{reason:"no-game",id});return;}
+  if(onlineGame.phase!=="clue"||String(onlineCurrentId())!==String(firebaseUid)){onlineDebug("clue-rejected-client",{reason:"not-your-turn",id,phase:onlineGame.phase,current:onlineCurrentId(),uid:firebaseUid,round:onlineGame.round,orderIndex:onlineGame.orderIndex});return;}
+  const card=onlineMyCard;if(!card){onlineDebug("clue-rejected-client",{reason:"no-card",id});return;}
+  onlineDebug("clue-click",{id,round:onlineGame.round,orderIndex:onlineGame.orderIndex,current:onlineCurrentId()});
   if(onlinePendingAction){
     const sameTurn=onlinePendingAction.type==="clue" && Number(onlinePendingAction.round)===Number(onlineGame.round) && Number(onlinePendingAction.orderIndex)===Number(onlineGame.orderIndex);
     if(!sameTurn) onlinePendingAction=null;
   }
-  if(onlinePendingAction)return;
+  if(onlinePendingAction){onlineDebug("clue-rejected-client",{reason:"pending",id,pending:onlinePendingAction});return;}
   const me=onlinePlayerById(firebaseUid), opts=onlineFeatureOptions(card,onlineGame.usedClueIds,me?.clues);
   const usedIds=Array.isArray(onlineGame.usedClueIds)?onlineGame.usedClueIds:[];
   onlineGame.usedClueIds=usedIds;
-  const st=opts.find(s=>String(s.id)===String(id));if(!st||usedIds.includes(st.id))return;
+  const st=opts.find(s=>String(s.id)===String(id));if(!st||usedIds.includes(st.id)){onlineDebug("clue-rejected-client",{reason:"invalid-or-used",id,used:usedIds});return;}
   const turnRound=Number(onlineGame.round),turnIndex=Number(onlineGame.orderIndex);
   onlinePendingAction={type:"clue",clueId:String(id),round:turnRound,orderIndex:turnIndex};
   actionPanel.querySelectorAll("[data-online-clue]").forEach(b=>{b.disabled=true;b.classList.add("is-sending");});
   const ok=await submitOnlineAction({type:"clue",clueId:st.id,round:turnRound,orderIndex:turnIndex,at:Date.now()});
+  onlineDebug("clue-submit-finished",{id,ok,round:turnRound,orderIndex:turnIndex});
   if(!ok){onlinePendingAction=null;renderOnlineClue();}
 }
 function renderOnlineDiscussion(){
@@ -887,7 +897,7 @@ function scheduleOnlineTurnReady(){
   },500);
 }
 function isOnlineTurnReady(){return onlineTurnReadyKey!=="" && onlineTurnReadyKey===onlineTurnKey();}
-// IMPORTANT v93: turn-readiness is visual feedback only. It must never be a
+// IMPORTANT v94: turn-readiness is visual feedback only. It must never be a
 // prerequisite for accepting a user click. A visible button can survive a
 // Firebase snapshot while the cosmetic 500ms readiness key is being rebuilt;
 // previously that made a perfectly valid click silently return. The host
@@ -915,11 +925,6 @@ function renderOnlineClue(){
   if(String(onlineCurrentId())!==String(firebaseUid)){
     actionPanel.innerHTML=`<div class="thinking-state"><span class="thinking-card" aria-hidden="true">?</span><div><p>ONLINE TURN</p><h2>${escapeHtml(current?.name||"プレイヤー")}が発言中</h2><span>前の発言とは違う特徴を選んでいます…</span></div></div>`;return;
   }
-  if(!isOnlineTurnReady()){
-    actionPanel.innerHTML=`<div class="thinking-state online-turn-preparing"><span class="thinking-card" aria-hidden="true">…</span><div><p>ONLINE TURN</p><h2>発言の準備中です</h2><span>少しだけお待ちください。</span></div></div>`;
-    scheduleOnlineTurnReady();
-    return;
-  }
   const usedIds=new Set(onlineGame.usedClueIds||[]);
   const findOnlineClue=id=>[...featureList(onlineMyCard||{}),...AMBIGUOUS_CLUES].find(s=>s.id===id)||null;
   const root=onlineClueMenu||"root";
@@ -939,22 +944,6 @@ function isOnlineVoteReady(){
 }
 function renderOnlineVote(){
   phaseLabel.textContent="PHASE / 狼に投票する";phaseTitle.textContent="違うカードの人は誰？";
-  const voteKey=`${onlineGame?.matchId||onlineMatchId}|vote|${onlineGame?.round}|${onlineGame?.orderIndex}`;
-  if(onlineTurnReadyKey!==voteKey){
-    if(onlineTurnReadyPendingKey!==voteKey){
-      if(onlineTurnReadyTimer){clearTimeout(onlineTurnReadyTimer);onlineTurnReadyTimer=null;}
-      onlineTurnReadyKey="";
-      onlineTurnReadyPendingKey=voteKey;
-      onlineTurnReadyTimer=setTimeout(()=>{
-        onlineTurnReadyTimer=null;
-        onlineTurnReadyPendingKey="";
-        onlineTurnReadyKey=voteKey;
-        renderOnlineVote();
-      },500);
-    }
-    actionPanel.innerHTML=`<div class="thinking-state online-turn-preparing"><span class="thinking-card" aria-hidden="true">…</span><div><p>VOTING</p><h2>投票の準備中です</h2><span>少しだけお待ちください。</span></div></div>`;
-    return;
-  }
   // A clue action can finish at exactly the moment the vote phase appears.
   // Never carry that stale pending state into voting. Likewise, a rejected
   // vote must not leave the vote UI permanently locked.
@@ -1007,13 +996,13 @@ async function submitOnlineActionOnce(action){
   return await new Promise(async(resolve)=>{
     let settled=false,timer=null;
     const finish=ok=>{if(settled)return;settled=true;if(timer)clearTimeout(timer);try{off(resultRef,"value",listener);}catch{}onlineActionPromises.delete(actionId);resolve(Boolean(ok));};
-    const listener=snap=>{const result=snap.val();if(result)finish(result.accepted===true);};
+    const listener=snap=>{const result=snap.val();if(result){onlineDebug("action-result",{actionId,accepted:result.accepted===true,reason:result.reason||null,result});finish(result.accepted===true);}};
     onlineActionPromises.set(actionId,finish);
     try{
       onValue(resultRef,listener);
-      await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v93",createdAt:Date.now()});
+      await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v94",createdAt:Date.now()});
     }catch(e){console.error("online action write failed",e);finish(false);return;}
-    timer=setTimeout(()=>finish(false),8000);
+    timer=setTimeout(()=>{onlineDebug("action-timeout",{actionId,action});finish(false);},8000);
   });
 }
 function onlineActionAlreadyApplied(action){
@@ -1225,6 +1214,9 @@ async function hostEvaluateVotes(){
 }
 async function hostFinishResult(reverseGuess){
   onlineGame.reverseGuess=reverseGuess?CARD_POOL.find(c=>c.name===reverseGuess)||null:null;
+  if(reverseGuess){
+    onlineGame.result=String(reverseGuess)===String(onlineHostSecrets.citizenCard?.name)?"wolf-reversal":"citizen";
+  }
   const citizen=onlineHostSecrets.citizenCard,wolfCard=onlineHostSecrets.wolfCard;
   const reveal={citizenCard:citizen,wolfCard,reverseGuess:onlineGame.reverseGuess?.name||onlineGame.reverseGuess||null,roles:{},cards:{},wolfId:onlineHostSecrets.wolfUid};
   onlineGame.players.forEach(p=>{reveal.roles[p.id]=onlineHostSecrets.wolves[p.id]?"wolf":"citizen";reveal.cards[p.id]=onlineHostSecrets.cards[p.id];});
@@ -1234,11 +1226,15 @@ async function hostFinishResult(reverseGuess){
 }
 async function hostProcessAction(action){
   if(!onlineHost||!onlineGame||!action)return false;
-  // Actions from the previous match must never be applied to a replayed game.
-  if(!action.matchId || String(action.matchId)!==String(onlineGame.matchId))return false;
+  let reason="rejected";
+  if(!action.matchId || String(action.matchId)!==String(onlineGame.matchId)){
+    reason="match-mismatch";
+    if(action.actionId&&action.uid) await set(ref(firebaseDb,`rooms/${onlineRoomCodeValue}/actionResults/${action.uid}/${action.actionId}`),{accepted:false,reason,processedAt:Date.now()});
+    return false;
+  }
   let accepted=false;
   if(action.type==="clue"){
-    accepted=await hostApplyClue(action.uid,action.clueId,action);
+    accepted=await hostApplyClue(action.uid,action.clueId,action); reason=accepted?"accepted":"clue-rejected";
   }else if(action.type==="vote"&&onlineGame.phase==="vote"){
     const p=onlinePlayerById(action.uid);
     if(!p||!p.isHuman)return false;
@@ -1248,17 +1244,17 @@ async function hostProcessAction(action){
     const validTarget=onlineGame.players.some(x=>String(x.id)===voteId);
     if(validTarget&&voteId!==String(action.uid)){
       p.vote=voteId;
-      accepted=true;
+      accepted=true;reason="accepted";
       await hostEvaluateVotes();
       if(onlineGame.phase==="vote") await hostWriteGame();
     }
   }else if(action.type==="reverse"&&onlineGame.phase==="reverse"&&String(action.uid)===String(onlineHostSecrets.wolfUid)){
     const guess=CARD_POOL.find(c=>c.name===action.guess);
-    if(guess){accepted=true;await hostFinishResult(guess.name);}
+    if(guess){accepted=true;reason="accepted";await hostFinishResult(guess.name);}
   }
   if(action.actionId&&action.uid){
     try{
-      await set(ref(firebaseDb,`rooms/${onlineRoomCodeValue}/actionResults/${action.uid}/${action.actionId}`),{accepted,processedAt:Date.now()});
+      await set(ref(firebaseDb,`rooms/${onlineRoomCodeValue}/actionResults/${action.uid}/${action.actionId}`),{accepted,reason,processedAt:Date.now()});
     }catch(e){console.warn("online action acknowledgement failed",e);}
   }
   return accepted;
