@@ -411,6 +411,13 @@ async function returnToSetup(){
   // The caller that owns the room performs best-effort Firebase cleanup below, but the local identity is cleared first.
   onlineRoomCodeValue="";
   onlineHost=false;
+  onlineHostProcessing=false;
+  onlineMatchId="";
+  onlineLoadedGameMatchId="";
+  onlineTurnReadyKey="";
+  onlineTurnReadyPendingKey="";
+  onlinePendingAction=null;
+  onlineClueMenu="root";
   onlineHostSecrets=null;
   onlineGame=null;
   onlineMyCard=null;
@@ -785,10 +792,14 @@ async function onlineSubmitClue(id){
     if(!sameTurn) onlinePendingAction=null;
   }
   if(onlinePendingAction){onlineDebug("clue-rejected-client",{reason:"pending",id,pending:onlinePendingAction});return;}
-  const me=onlinePlayerById(firebaseUid), opts=onlineFeatureOptions(card,onlineGame.usedClueIds,me?.clues);
+  const me=onlinePlayerById(firebaseUid);
   const usedIds=Array.isArray(onlineGame.usedClueIds)?onlineGame.usedClueIds:[];
   onlineGame.usedClueIds=usedIds;
-  const st=opts.find(s=>String(s.id)===String(id));if(!st){onlineDebug("clue-rejected-client",{reason:"invalid-option",id,used:usedIds});renderOnlineClue();return;}
+  // The clicked button and the validation source must never come from two different
+  // randomized option lists. Validate against the canonical statement set for this card.
+  const canonical=[...featureList(card),...AMBIGUOUS_CLUES];
+  const st=canonical.find(s=>String(s.id)===String(id));
+  if(!st){onlineDebug("clue-rejected-client",{reason:"invalid-option",id,used:usedIds,canonicalIds:canonical.map(s=>s.id),menu:onlineClueMenu});renderOnlineClue();return;}
   // A rendered menu can be one Firebase snapshot behind. Never silently discard a click merely because
   // usedClueIds changed after the button was painted. Send the exact turn/action to the host, which is
   // authoritative; if it is already used, refresh the menu and show the new state.
@@ -904,7 +915,7 @@ function scheduleOnlineTurnReady(){
   },500);
 }
 function isOnlineTurnReady(){return onlineTurnReadyKey!=="" && onlineTurnReadyKey===onlineTurnKey();}
-// IMPORTANT v95: turn-readiness is visual feedback only. It must never be a
+// IMPORTANT v96: turn-readiness is visual feedback only. It must never be a
 // prerequisite for accepting a user click. A visible button can survive a
 // Firebase snapshot while the cosmetic 500ms readiness key is being rebuilt;
 // previously that made a perfectly valid click silently return. The host
@@ -921,6 +932,13 @@ function renderOnlineClue(){
     if(!sameTurn || onlineGame.transition) onlinePendingAction=null;
   }
   const current=onlinePlayerById(onlineCurrentId()), roundLabel=onlineGame.round===1?"第1ラウンド":"第2ラウンド（逆順）";
+  // Once a clue was accepted for submission, keep this exact turn visually frozen.
+  // Firebase echoes can otherwise render the next menu for a fraction of a second.
+  if(onlinePendingAction?.type==="clue" && Number(onlinePendingAction.round)===Number(onlineGame.round) && Number(onlinePendingAction.orderIndex)===Number(onlineGame.orderIndex)){
+    phaseLabel.textContent="PHASE / 発言送信"; phaseTitle.textContent="発言を送信しています";
+    actionPanel.innerHTML=`<div class="thinking-state online-action-wait"><span class="thinking-card" aria-hidden="true">✓</span><div><p>CLUE SENT</p><h2>発言を送信しています</h2><span>ゲームの進行を確認しています…</span></div></div>`;
+    return;
+  }
   if(onlineGame.transition?.type==="round") {
     phaseLabel.textContent="ROUND CHANGE / 発言順切替";
     phaseTitle.textContent=onlineGame.transition.text||"次のラウンドへ切り替えています…";
@@ -939,8 +957,10 @@ function renderOnlineClue(){
     const opts=onlineFeatureOptions(onlineMyCard,onlineGame.usedClueIds,current?.clues);
     actionPanel.innerHTML=`<div class="action-heading"><p>${roundLabel}</p><h2>何と発言しますか？</h2><span>左の一覧から詳しい条件を選ぶか、右の「すぐに選べる特徴」から選択できます。${onlineGame.settings.liePenalty?"狼が嘘発言を2回するか、曖昧発言と嘘発言をそれぞれ1回すると、逆転チャンスを失います。":"嘘の回数によるペナルティはありません。"}</span></div><div class="clue-choice-layout"><section class="clue-menu-column"><p class="clue-list-label">特徴一覧</p><div class="clue-category-grid">${CLUE_MENU_CATEGORIES.map(c=>`<button class="choice-button clue-category-button" type="button" data-online-clue-category="${c.id}"><span>${c.label}</span><span>→</span></button>`).join("")}</div></section><section class="quick-clue-column"><p class="clue-list-label">すぐに選べる特徴</p><div class="choice-list basic-clue-list">${opts.map(s=>`<button class="choice-button ${clueChoiceClass(s,onlineMyCard)}" type="button" data-online-clue="${s.id}"><span>${s.label}</span><span>${s.ambiguous?"曖昧":"→"}</span></button>`).join("")}</div></section></div>`;
   }else{
-    const options=clueCategoryOptions(root);
-    actionPanel.innerHTML=`<div class="action-heading"><p>${roundLabel}</p><h2>${CLUE_MENU_CATEGORIES.find(c=>c.id===root)?.label||"特徴を選択"}</h2><span>一覧から選択してください。ほかのプレイヤーが発言済みの内容は選択できません。</span></div><div class="choice-list submenu-choice-list">${options.map(o=>{const used=usedIds.has(o.id);const statement=findOnlineClue(o.id);return `<button class="choice-button ${used?"choice-used ":""}${statement?clueChoiceClass(statement,onlineMyCard):""}" type="button" data-online-clue="${o.id}" ${used?"disabled aria-disabled=\"true\"":""}><span>${o.label}</span><span>${used?"発言済み":statement?.ambiguous?"曖昧":"→"}</span></button>`;}).join("")}</div><button class="secondary-button compact clue-back-button" id="onlineClueBackButton" type="button">← 戻る</button>`;
+    const canonical=new Map([...featureList(onlineMyCard||{}),...AMBIGUOUS_CLUES].map(s=>[String(s.id),s]));
+    // Never paint a menu item that the authoritative game rules cannot resolve.
+    const options=clueCategoryOptions(root).filter(o=>canonical.has(String(o.id)));
+    actionPanel.innerHTML=`<div class="action-heading"><p>${roundLabel}</p><h2>${CLUE_MENU_CATEGORIES.find(c=>c.id===root)?.label||"特徴を選択"}</h2><span>一覧から選択してください。ほかのプレイヤーが発言済みの内容は選択できません。</span></div><div class="choice-list submenu-choice-list">${options.map(o=>{const used=usedIds.has(o.id);const statement=canonical.get(String(o.id));return `<button class="choice-button ${used?"choice-used ":""}${statement?clueChoiceClass(statement,onlineMyCard):""}" type="button" data-online-clue="${o.id}" ${used?"disabled aria-disabled=\"true\"":""}><span>${o.label}</span><span>${used?"発言済み":statement?.ambiguous?"曖昧":"→"}</span></button>`;}).join("")}</div><button class="secondary-button compact clue-back-button" id="onlineClueBackButton" type="button">← 戻る</button>`;
     actionPanel.querySelector("#onlineClueBackButton").addEventListener("click",()=>{onlineClueMenu="root";renderOnlineClue();});
   }
 }
@@ -1007,7 +1027,7 @@ async function submitOnlineActionOnce(action){
     onlineActionPromises.set(actionId,finish);
     try{
       onValue(resultRef,listener);
-      await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v95",createdAt:Date.now()});
+      await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v96",createdAt:Date.now()});
     }catch(e){console.error("online action write failed",e);finish(false);return;}
     timer=setTimeout(()=>{onlineDebug("action-timeout",{actionId,action});finish(false);},8000);
   });
