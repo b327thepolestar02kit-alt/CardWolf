@@ -396,7 +396,7 @@ function submitCpuGuess(){
 function finishReverseGuess(guess){game.reverseGuess=guess;const correct=guess&&guess.name===game.citizenCard.name;game.result=correct?"wolf-reversal":"citizen";game.logs.push({type:"system",name:"逆転宣言",text:`狼は「${guess?jpName(guess):"不明"}」と宣言しました。`});game.phase="result";renderGame();}
 function recordFinishedGame(){if(!game||game.recorded)return;const wolfWon=game.result==="wolf"||game.result==="wolf-reversal";if(game.players[0].isWolf===wolfWon)matchRecord.wins++;else matchRecord.losses++;game.recorded=true;renderRecord();}
 function renderResultPhase(){recordFinishedGame();phaseLabel.textContent="GAME OVER / 答え合わせ";const wolfWon=game.result==="wolf"||game.result==="wolf-reversal";phaseTitle.textContent=wolfWon?"狼チームの勝利":"市民チームの勝利";const msg={wolf:"選ばれたプレイヤーは市民でした。狼は正体を隠し切りました。","wolf-reversal":`狼が市民カード「${jpName(game.citizenCard)}」を見事に当て、逆転しました。`,citizen:`狼の宣言は「${game.reverseGuess?jpName(game.reverseGuess):"不明"}」。正解は「${jpName(game.citizenCard)}」でした。`}[game.result];actionPanel.innerHTML=`<div class="result-banner ${wolfWon?"wolf-win":"citizen-win"}"><p>${wolfWon?"狼チームの勝利":"市民チームの勝利"}</p><h2>${wolfWon?"狼の勝利":"市民の勝利"}</h2><span>${msg}</span></div><div class="answer-cards"><div><small>市民カード</small><img class="ygo-thumb" src="${cardImage(game.citizenCard)}"><strong>${jpName(game.citizenCard)}</strong><em>${cardInfo(game.citizenCard)}${cardStats(game.citizenCard)?" · "+cardStats(game.citizenCard):""}</em></div><div><small>狼カード</small><img class="ygo-thumb" src="${cardImage(game.wolfCard)}"><strong>${jpName(game.wolfCard)}</strong><em>${cardInfo(game.wolfCard)}${cardStats(game.wolfCard)?" · "+cardStats(game.wolfCard):""}</em></div></div><button class="primary-button compact" id="playAgainButton" type="button"><span>もう一度遊ぶ</span><span>↻</span></button>`;document.getElementById("playAgainButton").addEventListener("click",startGame);}
-function returnToSetup(){
+async function returnToSetup(){
   clearTimeout(cpuTimer);
   clearTimeout(onlineCpuTimer);
   // Detach Firebase listeners immediately; cleanup is best-effort and never
@@ -406,6 +406,9 @@ function returnToSetup(){
   onlineRoomUnsubscribe=null;
   onlineActionUnsubscribe=null;
   const oldRoom=onlineRoomCodeValue;
+  const oldWasHost=onlineHost;
+  // Old room identity must never survive a return to the title/setup screen.
+  // The caller that owns the room performs best-effort Firebase cleanup below, but the local identity is cleared first.
   onlineRoomCodeValue="";
   onlineHost=false;
   onlineHostSecrets=null;
@@ -416,8 +419,8 @@ function returnToSetup(){
   try{onlineDialog.close();}catch{}
   onlineDialog.removeAttribute("open");
   if(oldRoom){
-    // Best-effort removal of this user's membership. Never await it here.
-    firebaseAuthPromise.then(()=>remove(ref(firebaseDb,`rooms/${oldRoom}/players/${firebaseUid}`))).catch(()=>{});
+    // Best-effort cleanup. Hosts remove the room; guests remove only their own membership.
+    firebaseAuthPromise.then(()=>oldWasHost?remove(ref(firebaseDb,`rooms/${oldRoom}`)):remove(ref(firebaseDb,`rooms/${oldRoom}/players/${firebaseUid}`))).catch(()=>{});
   }
   onlineMode=false;
   window.cardWolfOnlineMode=false;
@@ -785,10 +788,14 @@ async function onlineSubmitClue(id){
   const me=onlinePlayerById(firebaseUid), opts=onlineFeatureOptions(card,onlineGame.usedClueIds,me?.clues);
   const usedIds=Array.isArray(onlineGame.usedClueIds)?onlineGame.usedClueIds:[];
   onlineGame.usedClueIds=usedIds;
-  const st=opts.find(s=>String(s.id)===String(id));if(!st||usedIds.includes(st.id)){onlineDebug("clue-rejected-client",{reason:"invalid-or-used",id,used:usedIds});return;}
+  const st=opts.find(s=>String(s.id)===String(id));if(!st){onlineDebug("clue-rejected-client",{reason:"invalid-option",id,used:usedIds});renderOnlineClue();return;}
+  // A rendered menu can be one Firebase snapshot behind. Never silently discard a click merely because
+  // usedClueIds changed after the button was painted. Send the exact turn/action to the host, which is
+  // authoritative; if it is already used, refresh the menu and show the new state.
+  if(usedIds.includes(st.id)) onlineDebug("clue-stale-menu",{id,used:usedIds});
   const turnRound=Number(onlineGame.round),turnIndex=Number(onlineGame.orderIndex);
   onlinePendingAction={type:"clue",clueId:String(id),round:turnRound,orderIndex:turnIndex};
-  actionPanel.querySelectorAll("[data-online-clue]").forEach(b=>{b.disabled=true;b.classList.add("is-sending");});
+  actionPanel.innerHTML=`<div class="thinking-state online-action-wait"><span class="thinking-card" aria-hidden="true">✓</span><div><p>CLUE SENT</p><h2>発言を送信しています</h2><span>ゲームの進行を確認しています…</span></div></div>`;
   const ok=await submitOnlineAction({type:"clue",clueId:st.id,round:turnRound,orderIndex:turnIndex,at:Date.now()});
   onlineDebug("clue-submit-finished",{id,ok,round:turnRound,orderIndex:turnIndex});
   if(!ok){onlinePendingAction=null;renderOnlineClue();}
@@ -897,7 +904,7 @@ function scheduleOnlineTurnReady(){
   },500);
 }
 function isOnlineTurnReady(){return onlineTurnReadyKey!=="" && onlineTurnReadyKey===onlineTurnKey();}
-// IMPORTANT v94: turn-readiness is visual feedback only. It must never be a
+// IMPORTANT v95: turn-readiness is visual feedback only. It must never be a
 // prerequisite for accepting a user click. A visible button can survive a
 // Firebase snapshot while the cosmetic 500ms readiness key is being rebuilt;
 // previously that made a perfectly valid click silently return. The host
@@ -1000,7 +1007,7 @@ async function submitOnlineActionOnce(action){
     onlineActionPromises.set(actionId,finish);
     try{
       onValue(resultRef,listener);
-      await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v94",createdAt:Date.now()});
+      await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v95",createdAt:Date.now()});
     }catch(e){console.error("online action write failed",e);finish(false);return;}
     timer=setTimeout(()=>{onlineDebug("action-timeout",{actionId,action});finish(false);},8000);
   });
