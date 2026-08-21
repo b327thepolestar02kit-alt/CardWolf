@@ -405,6 +405,9 @@ async function returnToSetup(){
   if(onlineActionUnsubscribe){try{onlineActionUnsubscribe();}catch{}}
   onlineRoomUnsubscribe=null;
   onlineActionUnsubscribe=null;
+  // Invalidate every queued Firebase callback before clearing the room state.
+  onlineSessionEpoch++;
+  onlineRoomSnapshotSeq++;
   const oldRoom=onlineRoomCodeValue;
   const oldWasHost=onlineHost;
   // Old room identity must never survive a return to the title/setup screen.
@@ -423,6 +426,11 @@ async function returnToSetup(){
   onlineMyCard=null;
   onlineLastActionId="";
   onlineScoreRecorded=false;
+  onlineLobby.hidden=true;
+  onlineRoomCode.textContent="----";
+  onlineLobbyStatus.textContent="新しい部屋を作成するか、ルームコードを入力してください";
+  createRoomButton.hidden=false; joinRoomButton.hidden=false; roomCodeInput.hidden=false;
+  onlineStartButton.hidden=true; onlineStartButton.disabled=true; roomCodeInput.value="";
   try{onlineDialog.close();}catch{}
   onlineDialog.removeAttribute("open");
   if(oldRoom){
@@ -517,6 +525,8 @@ let onlineTurnReadyTimer=null;
 let onlineTurnReadyPendingKey="";
 let onlineRoomSnapshotSeq=0;
 let onlineLoadedGameMatchId="";
+// Monotonic session token: callbacks from a room that was already left must never redraw the UI.
+let onlineSessionEpoch=0;
 
 function setMode(isOnline){
   onlineMode=Boolean(isOnline);
@@ -526,6 +536,18 @@ function setMode(isOnline){
   soloModeButton.setAttribute("aria-pressed","false");
   onlineModeButton.setAttribute("aria-pressed","false");
   if(onlineMode){
+    // Returning to Online after "最初から" must always start from a clean room chooser.
+    // Never reuse a stale room code or lobby DOM left by an older Firebase callback.
+    if(!onlineRoomCodeValue){
+      onlineSessionEpoch++;
+      onlineRoomSnapshotSeq++;
+      onlineLobby.hidden=true;
+      onlineRoomCode.textContent="----";
+      onlineLobbyStatus.textContent="新しい部屋を作成するか、ルームコードを入力してください";
+      createRoomButton.hidden=false; joinRoomButton.hidden=false; roomCodeInput.hidden=false;
+      onlineStartButton.hidden=true; onlineStartButton.disabled=true;
+      roomCodeInput.value="";
+    }
     // Open the lobby immediately. Use a non-modal fallback as a safety net
     // so the button never appears to do nothing on a browser/runtime issue.
     try{
@@ -652,9 +674,14 @@ async function joinOnlineRoom(){
   openOnlineLobby();
 }
 function openOnlineLobby(){
+  const listenerEpoch=onlineSessionEpoch;
+  const listenerRoom=onlineRoomCodeValue;
   onlineLobby.hidden=false;onlineRoomCode.textContent=onlineRoomCodeValue;createRoomButton.hidden=true;joinRoomButton.hidden=true;roomCodeInput.hidden=true;
   if(onlineRoomUnsubscribe)onlineRoomUnsubscribe();
   onlineRoomUnsubscribe=onValue(onlineRoomRef(),snap=>{
+    // Firebase can deliver an already queued snapshot after off()/unsubscribe().
+    // Ignore it unless this exact room is still the active online session.
+    if(listenerEpoch!==onlineSessionEpoch || listenerRoom!==onlineRoomCodeValue) return;
     const snapshotSeq=++onlineRoomSnapshotSeq;
     const data=snap.val();
     if(!data){onlineLobbyStatus.textContent="ルームが終了しました";return;}
@@ -705,6 +732,9 @@ async function loadOnlineOwnCard(data){
 }
 async function leaveOnlineRoom(options={}){
   if(!onlineRoomCodeValue)return;
+  // Invalidate callbacks before awaiting any network operation.
+  onlineSessionEpoch++;
+  onlineRoomSnapshotSeq++;
   const roomCode=onlineRoomCodeValue, wasHost=onlineHost;
   if(onlineRoomUnsubscribe)onlineRoomUnsubscribe();
   if(onlineActionUnsubscribe)onlineActionUnsubscribe();
@@ -915,7 +945,7 @@ function scheduleOnlineTurnReady(){
   },500);
 }
 function isOnlineTurnReady(){return onlineTurnReadyKey!=="" && onlineTurnReadyKey===onlineTurnKey();}
-// IMPORTANT v96: turn-readiness is visual feedback only. It must never be a
+// IMPORTANT v97: turn-readiness is visual feedback only. It must never be a
 // prerequisite for accepting a user click. A visible button can survive a
 // Firebase snapshot while the cosmetic 500ms readiness key is being rebuilt;
 // previously that made a perfectly valid click silently return. The host
@@ -1027,7 +1057,7 @@ async function submitOnlineActionOnce(action){
     onlineActionPromises.set(actionId,finish);
     try{
       onValue(resultRef,listener);
-      await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v96",createdAt:Date.now()});
+      await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v97",createdAt:Date.now()});
     }catch(e){console.error("online action write failed",e);finish(false);return;}
     timer=setTimeout(()=>{onlineDebug("action-timeout",{actionId,action});finish(false);},8000);
   });
