@@ -173,6 +173,10 @@ function featureList(card){
     ...ATTRIBUTE_OPTIONS.map(([value,label])=>({id:`attribute-${value.toLowerCase()}`,label:`${label}属性です`,test:c=>String(c.attribute||"").toUpperCase()===value})),
     ...LEVEL_LINK_OPTIONS.map(level=>({id:`level-${level}`,label:`レベル／ランク／リンクが${level}です`,test:c=>{const t=String(c.type||"");return t.includes("Link") ? Number(c.linkval)===level : Number(c.level)===level;}})),
     ...LEVEL_ONLY_OPTIONS.map(level=>({id:`level-${level}`,label:`レベル／ランクが${level}です`,test:c=>Number(c.level)===level})),
+    {id:"level-low",label:"レベル4以下のモンスターです。",test:c=>Number(c.level)>0&&Number(c.level)<=4},
+    {id:"level-5-6",label:"レベル5または6のモンスターです。",test:c=>[5,6].includes(Number(c.level))},
+    {id:"level-high",label:"レベル7以上のモンスターです。",test:c=>Number(c.level)>=7},
+    {id:"level-none",label:"レベルを持たないモンスターです。",test:c=>Number(c.level)===0},
     ...ATK_STAT_BUCKETS.map(bucket=>({id:`atk-${bucket.id}`,label:`攻撃力が${bucket.label}です`,test:c=>bucket.test(c.atk)})),
     ...DEF_STAT_BUCKETS.map(bucket=>({id:`def-${bucket.id}`,label:`守備力が${bucket.label}です`,test:c=>bucket.test(c.def)})),
     {id:"high-atk",label:"攻撃力が2500以上です",test:c=>Number.isFinite(Number(c.atk))&&Number(c.atk)>=2500},
@@ -368,13 +372,13 @@ function canWolfReverse(wolf){
   if(clues.length>=2 && madeAmbiguous && madeLie) return false;
   return true;
 }
-function submitVotes(humanVoteId){game.players[0].vote=humanVoteId;game.players.slice(1).forEach(p=>p.vote=chooseCpuVote(p));const tallies=Object.fromEntries(game.players.map(p=>[p.id,0]));game.players.forEach(p=>{if(tallies[p.vote]!=null)tallies[p.vote]++;});game.tallies=tallies;const high=Math.max(...Object.values(tallies)),tied=game.players.filter(p=>tallies[p.id]===high),eliminated=randomItem(tied);game.eliminatedId=eliminated.id;game.logs.push({type:"system",name:"投票結果",text:tied.length>1?`${high}票で同票。抽選により${eliminated.name}が選ばれました。`:`${eliminated.name}が${high}票で選ばれました。`});if(eliminated.isWolf){if(!canWolfReverse(game.players[game.wolfIndex])){game.result="citizen";game.logs.push({type:"system",name:"ペナルティ",text:"狼は曖昧発言と嘘発言を行ったため、逆転チャンスを失いました。"});game.phase="result";}else if(game.settings.liePenalty&&game.players[game.wolfIndex].lies>=2){game.result="citizen";game.logs.push({type:"system",name:"ペナルティ",text:"狼は2回以上の嘘をついたため、逆転チャンスを失いました。"});game.phase="result";}else game.phase="reverse";}else{game.result="wolf";game.phase="result";}renderGame();}
+function submitVotes(humanVoteId){game.players[0].vote=humanVoteId;game.players.slice(1).forEach(p=>p.vote=chooseCpuVote(p));const tallies=Object.fromEntries(game.players.map(p=>[p.id,0]));game.players.forEach(p=>{if(tallies[p.vote]!=null)tallies[p.vote]++;});game.tallies=tallies;const high=Math.max(...Object.values(tallies)),tied=game.players.filter(p=>tallies[p.id]===high);let eliminated;if(tied.length>1&&!game.settings.noRevote&&game.players.length>tied.length){const voters=game.players.filter(p=>!tied.includes(p));const rt=Object.fromEntries(tied.map(p=>[p.id,0]));voters.forEach(p=>{const pick=randomItem(tied);rt[pick.id]++;});game.tallies=Object.assign({},tallies,rt);const mh=Math.max(...Object.values(rt)),rtied=tied.filter(p=>rt[p.id]===mh);eliminated=randomItem(rtied);game.logs.push({type:"system",name:"再投票",text:`最多票が同数のため再投票。${eliminated.name}が選ばれました。`});}else eliminated=randomItem(tied);game.eliminatedId=eliminated.id;if(eliminated.isWolf){if(!canWolfReverse(game.players[game.wolfIndex])||(game.settings.liePenalty&&game.players[game.wolfIndex].lies>=2)){game.result="citizen";game.phase="result";}else game.phase="reverse";}else{game.result="wolf";game.phase="result";}renderGame();}
 function voteSummaryHtml(){
   if(!game||!game.tallies) return "";
   const rows=game.players.map(p=>`<div class="vote-row"><span>${escapeHtml(p.name)}</span><strong>${game.tallies[p.id]||0}票</strong></div>`).join("");
   return `<section class="vote-summary-panel"><h3>投票結果</h3><p>誰が何票集めたかを確認できます。</p>${rows}</section>`;
 }
-function renderReversePhase(){phaseLabel.textContent="FINAL PHASE / 狼の逆転チャンス";const wolf=game.players[game.wolfIndex];phaseTitle.textContent=`${wolf.name}は狼だった！`;if(wolf.isHuman){actionPanel.innerHTML=`<div class="action-heading danger"><p>あなたは狼です</p><h2>市民カードを当てよう</h2><span>市民カードと同じカードを選べば逆転勝利です。</span></div><div class="guess-card-grid">${CARD_POOL.filter(c=>c.name!==wolf.card.name).map(c=>`<button class="guess-card-button" data-guess="${escapeHtml(c.name)}"><img src="${cardImage(c)}" alt="${escapeHtml(jpName(c))}"><span>${escapeHtml(jpName(c))}</span><small>${escapeHtml(reverseGuessInfo(c))}</small></button>`).join("")}</div>`;actionPanel.querySelectorAll("[data-guess]").forEach(b=>b.addEventListener("click",()=>finishReverseGuess(CARD_POOL.find(c=>c.name===b.dataset.guess))));return;}actionPanel.innerHTML=`<div class="wolf-reveal"><span class="wolf-eye" aria-hidden="true">W</span><div><p>最終チャンス</p><h2>${wolf.name}が市民カードを推理します</h2><span>当てられたら、狼の逆転勝利です。</span></div></div><button class="primary-button compact" id="cpuGuessButton" type="button"><span>逆転宣言を見る</span><span>→</span></button>`;document.getElementById("cpuGuessButton").addEventListener("click",submitCpuGuess);}
+function renderReversePhase(){phaseLabel.textContent="FINAL PHASE / 狼の逆転チャンス";const wolf=game.players[game.wolfIndex];phaseTitle.textContent=`${wolf.name}は狼だった！`;if(wolf.isHuman){actionPanel.innerHTML=`<div class="action-heading danger"><p>あなたは狼です</p><h2>市民カードを当てよう</h2><span>市民カードと同じカードを選べば逆転勝利です。</span></div><div class="vote-tally">${game.players.map(p=>`<span>${p.name}: ${game.tallies?.[p.id]||0}票</span>`).join("")}</div><input class="reverse-search" id="reverseSearch" placeholder="カード名を検索（日本語）"><div class="guess-card-grid">${CARD_POOL.filter(c=>c.name!==wolf.card.name).map(c=>`<button class="guess-card-button" data-guess="${escapeHtml(c.name)}"><img src="${cardImage(c)}" alt="${escapeHtml(jpName(c))}"><span>${escapeHtml(jpName(c))}</span><small>${escapeHtml(reverseGuessInfo(c))}</small></button>`).join("")}</div>`;document.getElementById("reverseSearch")?.addEventListener("input",e=>{const q=e.target.value;actionPanel.querySelectorAll("[data-guess]").forEach(b=>b.style.display=(b.textContent.includes(q)?"":"none"));});actionPanel.querySelectorAll("[data-guess]").forEach(b=>b.addEventListener("click",()=>finishReverseGuess(CARD_POOL.find(c=>c.name===b.dataset.guess))));return;}actionPanel.innerHTML=`<div class="wolf-reveal"><span class="wolf-eye" aria-hidden="true">W</span><div><p>最終チャンス</p><h2>${wolf.name}が市民カードを推理します</h2><span>当てられたら、狼の逆転勝利です。</span></div></div><button class="primary-button compact" id="cpuGuessButton" type="button"><span>逆転宣言を見る</span><span>→</span></button>`;document.getElementById("cpuGuessButton").addEventListener("click",submitCpuGuess);}
 function submitCpuGuess(){
   if(!game || game.phase!=="reverse") return;
   const wolf=game.players[game.wolfIndex];
@@ -945,7 +949,7 @@ function scheduleOnlineTurnReady(){
   },500);
 }
 function isOnlineTurnReady(){return onlineTurnReadyKey!=="" && onlineTurnReadyKey===onlineTurnKey();}
-// IMPORTANT v97: turn-readiness is visual feedback only. It must never be a
+// IMPORTANT v98: turn-readiness is visual feedback only. It must never be a
 // prerequisite for accepting a user click. A visible button can survive a
 // Firebase snapshot while the cosmetic 500ms readiness key is being rebuilt;
 // previously that made a perfectly valid click silently return. The host
@@ -1057,7 +1061,7 @@ async function submitOnlineActionOnce(action){
     onlineActionPromises.set(actionId,finish);
     try{
       onValue(resultRef,listener);
-      await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v97",createdAt:Date.now()});
+      await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v98",createdAt:Date.now()});
     }catch(e){console.error("online action write failed",e);finish(false);return;}
     timer=setTimeout(()=>{onlineDebug("action-timeout",{actionId,action});finish(false);},8000);
   });
