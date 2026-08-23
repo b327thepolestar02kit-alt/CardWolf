@@ -1,8 +1,8 @@
-/* CardWolf build v87 */
+/* CardWolf build v105 */
 const firebaseConfig = window.FIREBASE_CONFIG || {};
-if (window.CARDWOLF_BUILD_VERSION !== "v87") { window.CARDWOLF_BUILD_VERSION = "v87"; }
+if (window.CARDWOLF_BUILD_VERSION !== "v105") { window.CARDWOLF_BUILD_VERSION = "v105"; }
 const versionEl = document.querySelector(".build-version");
-if (versionEl) { versionEl.textContent = "v87"; versionEl.setAttribute("aria-label", "ゲームバージョン v87"); }
+if (versionEl) { versionEl.textContent = "v105"; versionEl.setAttribute("aria-label", "ゲームバージョン v105"); }
 
 // Firebase is loaded lazily so a CDN/auth/database problem can never disable
 // the basic game UI. The solo/setup buttons must remain usable even when the
@@ -60,9 +60,7 @@ async function ensureFirebaseAuth(){
 
 const CARD_POOL = Array.isArray(window.CARD_POOL_DATA) ? window.CARD_POOL_DATA.filter(card => card && card.name) : [];
 const CARD_POOL_COUNT = CARD_POOL.length;
-const JP_NAMES = {
-"Blue-Eyes White Dragon":"青眼の白龍","Dark Magician":"ブラック・マジシャン","Red-Eyes Black Dragon":"真紅眼の黒竜","Dark Magician Girl":"ブラック・マジシャン・ガール","Summoned Skull":"デーモンの召喚","Gaia The Fierce Knight":"暗黒騎士ガイア","Curse of Dragon":"カース・オブ・ドラゴン","Celtic Guardian":"エルフの剣士","Kuriboh":"クリボー","Jinzo":"人造人間－サイコ・ショッカー","Buster Blader":"バスター・ブレイダー","Black Luster Soldier":"カオス・ソルジャー","Exodia the Forbidden One":"封印されしエクゾディア","Left Arm of the Forbidden One":"封印されし者の左腕","Right Arm of the Forbidden One":"封印されし者の右腕","Left Leg of the Forbidden One":"封印されし者の左脚","Right Leg of the Forbidden One":"封印されし者の右脚","Relinquished":"サクリファイス","Dark Magician Girl the Dragon Knight":"竜騎士ブラック・マジシャン・ガール","Toon Dark Magician Girl":"トゥーン・ブラック・マジシャン・ガール","Slifer the Sky Dragon":"オシリスの天空竜","Obelisk the Tormentor":"オベリスクの巨神兵","The Winged Dragon of Ra":"ラーの翼神竜","Dark Magician of Chaos":"混沌の黒魔術師","Sangan":"クリッター","Witch of the Black Forest":"黒き森のウィッチ","Mystical Elf":"ホーリー・エルフ","Baby Dragon":"ベビードラゴン","Time Wizard":"時の魔術師","Red-Eyes Black Metal Dragon":"レッドアイズ・ブラックメタルドラゴン","Dark Paladin":"超魔導剣士－ブラック・パラディン","Chaos Emperor Dragon - Envoy of the End":"混沌帝龍 －終焉の使者－","Black Luster Soldier - Envoy of the Beginning":"カオス・ソルジャー －開闢の使者－","Marshmallon":"マシュマロン","Magician of Faith":"聖なる魔術師","Cyber Dragon":"サイバー・ドラゴン","Elemental HERO Neos":"E・HERO ネオス","Stardust Dragon":"スターダスト・ドラゴン","Black Rose Dragon":"ブラック・ローズ・ドラゴン","Number 39: Utopia":"No.39 希望皇ホープ","Accesscode Talker":"アクセスコード・トーカー","Borreload Dragon":"ヴァレルロード・ドラゴン","Decode Talker":"デコード・トーカー","Firewall Dragon":"ファイアウォール・ドラゴン","Apollousa, Bow of the Goddess":"召命の神弓－アポロウーサ","I:P Masquerena":"I：Pマスカレーナ","Knightmare Unicorn":"トロイメア・ユニコーン","Underworld Goddess of the Closed World":"閉ザサレシ世界ノ冥神","Mekk-Knight Crusadia Avramax":"双穹の騎士アストラム","Borrelsword Dragon":"ヴァレルソード・ドラゴン","Number 107: Galaxy-Eyes Tachyon Dragon":"No.107 銀河眼の時空竜","Divine Arsenal AA-ZEUS - Sky Thunder":"天霆號アーゼウス","Red Dragon Archfiend":"レッド・デーモン・ドラゴン","Shooting Star Dragon":"シューティング・スター・ドラゴン","Junk Warrior":"ジャンク・ウォリアー","Cyber End Dragon":"サイバー・エンド・ドラゴン","Elemental HERO Flame Wingman":"E・HERO フレイム・ウィングマン","Blue-Eyes Alternative White Dragon":"青眼の亜白龍","Galaxy-Eyes Photon Dragon":"銀河眼の光子竜","Dark Armed Dragon":"ダーク・アームド・ドラゴン"
-};
+const JP_NAMES = {"Blue-Eyes White Dragon":"青眼の白龍","Dark Magician":"ブラック・マジシャン","Red-Eyes Black Dragon":"真紅眼の黒竜","Dark Magician Girl":"ブラック・マジシャン・ガール","Summoned Skull":"デーモンの召喚","Gaia The Fierce Knight":"暗黒騎士ガイア","Curse of Dragon":"カース・オブ・ドラゴン","Celtic Guardian":"エルフの剣士","Kuriboh":"クリボー","Jinzo":"人造人間－サイコ・ショッカー","Buster Blader":"バスター・ブレイダー","Black Luster Soldier":"カオス・ソルジャー","Exodia the Forbidden One":"封印されしエクゾディア","Left Arm of the Forbidden One":"封印されし者の左腕","Right Arm of the Forbidden One":"封印されし者の右腕","Left Leg of the Forbidden One":"封印されし者の左脚","Right Leg of the Forbidden One":"封印されし者の右脚","Relinquished":"サクリファイス","Dark Magician Girl the Dragon Knight":"竜騎士ブラック・マジシャン・ガール","Toon Dark Magician Girl":"トゥーン・ブラック・マジシャン・ガール","Slifer the Sky Dragon":"オシリスの天空竜","Obelisk the Tormentor":"オベリスクの巨神兵","The Winged Dragon of Ra":"ラーの翼神竜","Dark Magician of Chaos":"混沌の黒魔術師","Sangan":"クリッター","Witch of the Black Forest":"黒き森のウィッチ","Mystical Elf":"ホーリー・エルフ","Baby Dragon":"ベビードラゴン","Time Wizard":"時の魔術師","Red-Eyes Black Metal Dragon":"レッドアイズ・ブラックメタルドラゴン","Dark Paladin":"超魔導剣士－ブラック・パラディン","Chaos Emperor Dragon - Envoy of the End":"混沌帝龍 －終焉の使者－","Black Luster Soldier - Envoy of the Beginning":"カオス・ソルジャー －開闢の使者－","Marshmallon":"マシュマロン","Magician of Faith":"聖なる魔術師","Cyber Dragon":"サイバー・ドラゴン","Elemental HERO Neos":"E・HERO ネオス","Stardust Dragon":"スターダスト・ドラゴン","Black Rose Dragon":"ブラック・ローズ・ドラゴン","Number 39: Utopia":"No.39 希望皇ホープ","Accesscode Talker":"アクセスコード・トーカー","Borreload Dragon":"ヴァレルロード・ドラゴン","Decode Talker":"デコード・トーカー","Firewall Dragon":"ファイアウォール・ドラゴン","Apollousa, Bow of the Goddess":"召命の神弓－アポロウーサ","I:P Masquerena":"I：Pマスカレーナ","Knightmare Unicorn":"トロイメア・ユニコーン","Underworld Goddess of the Closed World":"閉ザサレシ世界ノ冥神","Mekk-Knight Crusadia Avramax":"双穹の騎士アストラム","Borrelsword Dragon":"ヴァレルソード・ドラゴン","Number 107: Galaxy-Eyes Tachyon Dragon":"No.107 銀河眼の時空竜","Divine Arsenal AA-ZEUS - Sky Thunder":"天霆號アーゼウス","Red Dragon Archfiend":"レッド・デーモン・ドラゴン","Shooting Star Dragon":"シューティング・スター・ドラゴン","Junk Warrior":"ジャンク・ウォリアー","Cyber End Dragon":"サイバー・エンド・ドラゴン","Elemental HERO Flame Wingman":"E・HERO フレイム・ウィングマン","Blue-Eyes Alternative White Dragon":"青眼の亜白龍","Galaxy-Eyes Photon Dragon":"銀河眼の光子竜","Dark Armed Dragon":"ダーク・アームド・ドラゴン","Number C39: Utopia Ray":"CNo.39 希望皇ホープレイ","Odd-Eyes Pendulum Dragon":"オッドアイズ・ペンデュラム・ドラゴン","Clear Wing Synchro Dragon":"クリアウィング・シンクロ・ドラゴン","Dark Rebellion Xyz Dragon":"ダーク・リベリオン・エクシーズ・ドラゴン","Blue-Eyes Chaos MAX Dragon":"ブルーアイズ・カオス・MAX・ドラゴン","Harpie Lady":"ハーピィ・レディ","Destiny HERO - Plasma":"D-HERO Bloo-D","Blackwing - Gale the Whirlwind":"BF－疾風のゲイル","Salamangreat Gazelle":"転生炎獣ガゼル","Sky Striker Ace - Raye":"閃刀姫－レイ","Ash Blossom & Joyous Spring":"灰流うらら","Nibiru, the Primal Being":"原始生命態ニビル","Ancient Gear Golem":"古代の機械巨人","Blue-Eyes Ultimate Dragon":"青眼の究極竜","Cyber Twin Dragon":"サイバー・ツイン・ドラゴン","Elemental HERO Shining Flare Wingman":"E・HERO シャイニング・フレア・ウィングマン","Harpie Lady Sisters":"ハーピィ・レディ三姉妹","Harpie's Pet Dragon":"ハーピィズペット竜","Number 17: Leviathan Dragon":"No.17 リバイス・ドラゴン","Rainbow Dragon":"究極宝玉神 レインボー・ドラゴン","Red-Eyes Darkness Metal Dragon":"レッドアイズ・ダークネスメタルドラゴン","Shooting Quasar Dragon":"シューティング・クェーサー・ドラゴン","Thousand-Eyes Restrict":"サウザンド・アイズ・サクリファイス","Blue-Eyes Jet Dragon":"ブルーアイズ・ジェット・ドラゴン","Effect Veiler":"エフェクト・ヴェーラー","Droll & Lock Bird":"ドロール＆ロックバード","Blue-Eyes Spirit Dragon":"青眼の精霊龍","Red-Eyes Flare Metal Dragon":"真紅眼の鋼炎竜","Blue-Eyes Shining Dragon":"青眼の光龍","Red-Eyes Darkness Dragon":"真紅眼の闇竜","Dark Magician Knight":"ブラック・マジシャン・ナイト","Breaker the Magical Warrior":"魔導戦士 ブレイカー","Black Dragon's Chick":"黒竜の雛","Chaos Sorcerer":"カオス・ソーサラー","Dragon Spirit of White":"白き霊龍","Sage with Eyes of Blue":"青き眼の賢士","Maiden with Eyes of Blue":"青き眼の乙女","Red-Eyes Alternative Black Dragon":"真紅眼の亜黒竜","Blue-Eyes Solid Dragon":"ブルーアイズ・ソリッド・ドラゴン","Maxx \"C\"":"増殖するG"};
 function jpName(card){return JP_NAMES[card.name]||card.name;}
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));}
 function isEffectMonster(card){return /Effect|Flip/.test(String(card?.type||""));}
@@ -70,6 +68,7 @@ function typeJa(card){const t=String(card.type||"");if(t.includes("Spell"))retur
 function attributeJa(a){return ({LIGHT:"光",DARK:"闇",FIRE:"炎",WATER:"水",WIND:"風",EARTH:"地",DIVINE:"神"})[String(a||"").toUpperCase()]||"";}
 function raceJa(r){return ({Dragon:"ドラゴン族",Spellcaster:"魔法使い族",Warrior:"戦士族",Fiend:"悪魔族",Beast:"獣族","Beast-Warrior":"獣戦士族",Machine:"機械族",Fairy:"天使族",Aqua:"水族",Pyro:"炎族",Plant:"植物族",Rock:"岩石族",Zombie:"アンデット族",Thunder:"雷族","Winged-Beast":"鳥獣族",Dinosaur:"恐竜族","Sea-Serpent":"海竜族",Reptile:"爬虫類族",Psychic:"サイキック族",Wyrm:"幻竜族",Cyberse:"サイバース族"})[r]||r||"";}
 function cardInfo(card){const parts=[typeJa(card)],a=attributeJa(card.attribute),r=raceJa(card.race);if(a)parts.push(a+"属性");if(r)parts.push(r);if(String(card.type||"").includes("Link") && card.linkval!=null)parts.push("リンク"+card.linkval);else if(card.level!=null && card.level!=="")parts.push(/Xyz|XYZ/.test(String(card.type||""))?"ランク"+card.level:"レベル"+card.level);return parts.join(" / ");}
+function isKnownStat(v){if(v===-1||v==="-1"||v===null||v===undefined||v==="")return false;const n=Number(v);return Number.isFinite(n)&&n>=0;}
 function statDisplay(v,kind="atk"){if(v===-1||v==="-1")return kind==="def"?"－":"？";if(v===null||v===undefined||v==="")return "？";const n=Number(v);return Number.isFinite(n)?String(n):"？";}
 function cardStats(card){const hasAtk=card.atk!==undefined&&card.atk!==null&&card.atk!=="";const hasDef=card.def!==undefined&&card.def!==null&&card.def!=="";const atk=hasAtk?`ATK ${statDisplay(card.atk,"atk")}`:"",def=hasDef?`DEF ${statDisplay(card.def,"def")}`:"";return [atk,def].filter(Boolean).join(" / ");}
 function reverseGuessInfo(card){
@@ -81,7 +80,7 @@ function reverseGuessInfo(card){
   else if(card.level!=null&&card.level!=="") level=String(card.type||"").includes("XYZ")?`ランク${card.level}`:`レベル${card.level}`;
   return [type,attr?`${attr}属性`:"",race,level,cardStats(card)].filter(Boolean).join(" / ");
 }
-function cardDisplay(card){return `<div class="card-name-jp">${escapeHtml(jpName(card))}</div><div class="card-name-en">${escapeHtml(card.name)}</div><div class="card-info-ja">${escapeHtml(cardInfo(card))}</div>${cardStats(card)?`<div class="card-stats">${escapeHtml(cardStats(card))}</div>`:""}`;}
+function cardDisplay(card){return `<div class="card-name-jp">${escapeHtml(jpName(card))}</div><div class="card-info-ja">${escapeHtml(cardInfo(card))}</div>${cardStats(card)?`<div class="card-stats">${escapeHtml(cardStats(card))}</div>`:""}`;}
 const CPU_NAMES=["ミナト","スズ","トキ","アオイ","レン","コハク","ナギ"];
 const setupScreen=document.getElementById("setupScreen"),gameScreen=document.getElementById("gameScreen"),restartButton=document.getElementById("restartButton"),playersElement=document.getElementById("players"),yourCardElement=document.getElementById("yourCard"),actionPanel=document.getElementById("actionPanel"),phaseLabel=document.getElementById("phaseLabel"),phaseTitle=document.getElementById("phaseTitle"),talkLog=document.getElementById("talkLog"),logCount=document.getElementById("logCount"),rulesDialog=document.getElementById("rulesDialog"),poolDialog=document.getElementById("poolDialog"),poolGrid=document.getElementById("poolGrid"),poolCountElement=document.getElementById("poolCount");
 const speechCountSelect=document.getElementById("speechCount"),liePenaltyToggle=document.getElementById("liePenalty"),showLieCountToggle=document.getElementById("showLieCount");
@@ -179,9 +178,9 @@ function featureList(card){
     {id:"level-none",label:"レベルを持たないモンスターです。",test:c=>Number(c.level)===0},
     ...ATK_STAT_BUCKETS.map(bucket=>({id:`atk-${bucket.id}`,label:`攻撃力が${bucket.label}です`,test:c=>bucket.test(c.atk)})),
     ...DEF_STAT_BUCKETS.map(bucket=>({id:`def-${bucket.id}`,label:`守備力が${bucket.label}です`,test:c=>bucket.test(c.def)})),
-    {id:"high-atk",label:"攻撃力が2500以上です",test:c=>Number.isFinite(Number(c.atk))&&Number(c.atk)>=2500},
-    {id:"low-atk",label:"攻撃力が1500以下です",test:c=>Number.isFinite(Number(c.atk))&&Number(c.atk)<=1500},
-    {id:"high-def",label:"守備力が2500以上です",test:c=>Number.isFinite(Number(c.def))&&Number(c.def)>=2500},
+    {id:"high-atk",label:"攻撃力が2500以上です",test:c=>isKnownStat(c.atk)&&Number(c.atk)>=2500},
+    {id:"low-atk",label:"攻撃力が1500以下です",test:c=>isKnownStat(c.atk)&&Number(c.atk)<=1500},
+    {id:"high-def",label:"守備力が2500以上です",test:c=>isKnownStat(c.def)&&Number(c.def)>=2500},
     {id:"name-blue",label:"「青眼」に関係するカードです",test:c=>c.name.includes("Blue-Eyes")},
     {id:"name-dark",label:"「ブラック」または「ダーク」に関係する名前です",test:c=>c.name.includes("Dark")||c.name.includes("Black")},
     {id:"name-red",label:"「真紅眼」に関係するカードです",test:c=>c.name.includes("Red-Eyes")},
@@ -205,7 +204,7 @@ function randomPlayerName(){return randomItem(["ユウ","カイ","レン","ア�
 function getPlayerName(){const n=(playerNameInput?.value||"").trim();return n||randomPlayerName();}
 if(poolCountElement) poolCountElement.textContent=String(CARD_POOL_COUNT);
 function renderRecord(){if(winCountElement)winCountElement.textContent=matchRecord.wins;if(lossCountElement)lossCountElement.textContent=matchRecord.losses;if(gameWinCountElement)gameWinCountElement.textContent=matchRecord.wins;if(gameLossCountElement)gameLossCountElement.textContent=matchRecord.losses;}
-function buildOrder(round){return round===1?Array.from({length:selectedPlayerCount},(_,i)=>i):Array.from({length:selectedPlayerCount},(_,i)=>selectedPlayerCount-1-i);}
+function buildOrder(round){const forward=Array.from({length:selectedPlayerCount},(_,i)=>i);return Number(round)%2===0?forward.slice().reverse():forward;}
 function startGame(){
   clearTimeout(cpuTimer);
   syncPracticePlayerCount();
@@ -220,9 +219,9 @@ function startGame(){
 function renderGame(){renderPlayers();renderYourCard();renderLog();renderActionPanel();}
 function previousPlayer(){if(!game||game.orderIndex<=0)return null;return game.players[game.order[game.orderIndex-1]];}
 function currentPlayer(){return game.players[game.order[game.orderIndex]];}
-function renderPlayers(){playersElement.innerHTML=game.players.map(p=>{const current=game.phase==="clue"&&game.order[game.orderIndex]===p.id,reveal=game.phase==="result";const clues=p.clues||[];const clueHtml=clues.length?clues.map((c,i)=>`<p><b>${i+1}.</b> 「${escapeHtml(c.label)}」</p>`).join(""):(current?'<p class="muted thinking-text">発言を考えています…</p>':'<p class="muted">まだ発言していません</p>');return `<article class="player-seat ${p.isHuman?"is-you":""} ${current?"is-current":""} ${game.eliminatedId===p.id?"is-eliminated":""} ${reveal?"is-reveal":""}"><div class="avatar">${p.isHuman?"YOU":String(p.id).padStart(2,"0")}</div><div class="seat-copy"><div class="seat-name"><strong>${p.name}</strong>${p.isHuman?"<span>あなた</span>":"<span>CPU</span>"}</div><div class="player-clues">${clueHtml}</div></div>${game.settings&&game.settings.showLieCount&&p.lies?`<span class="lie-count">嘘 ${p.lies}</span>`:""}${reveal?`<span class="vote-badge">${game.tallies&&game.tallies[p.id]!=null?game.tallies[p.id]:0}票</span><div class="result-meta"><span class="role-reveal ${p.isWolf?"wolf":"citizen"}">${p.isWolf?"狼":"市民"} · ${cardShort(p.card)}</span></div>`:""}</article>`;}).join("");}
+function renderPlayers(){playersElement.innerHTML=game.players.map(p=>{const current=game.phase==="clue"&&game.order[game.orderIndex]===p.id,reveal=game.phase==="result";const clues=p.clues||[];const clueHtml=clues.length?clues.map((c,i)=>`<p><b>${i+1}.</b> 「${escapeHtml(c.label)}」</p>`).join(""):(current?'<p class="muted thinking-text">発言を考えています…</p>':'<p class="muted">まだ発言していません</p>');return `<article class="player-seat ${p.isHuman?"is-you":""} ${current?"is-current":""} ${game.eliminatedId===p.id?"is-eliminated":""} ${reveal?"is-reveal":""}"><div class="avatar">${p.isHuman?"YOU":String(p.id).padStart(2,"0")}</div><div class="seat-copy"><div class="seat-name"><strong>${escapeHtml(p.name)}</strong>${p.isHuman?"<span>あなた</span>":"<span>CPU</span>"}</div><div class="player-clues">${clueHtml}</div></div>${game.settings&&game.settings.showLieCount&&p.lies?`<span class="lie-count">嘘 ${p.lies}</span>`:""}${reveal?`<span class="vote-badge">${game.tallies&&game.tallies[p.id]!=null?game.tallies[p.id]:0}票</span><div class="result-meta"><span class="role-reveal ${p.isWolf?"wolf":"citizen"}">${p.isWolf?"狼":"市民"} · ${cardShort(p.card)}</span></div>`:""}</article>`;}).join("");}
 function renderYourCard(){const card=game.players[0].card;yourCardElement.className="playing-card ygo";yourCardElement.innerHTML=`<div class="ygo-card-face"><img src="${cardImage(card)}" alt="${escapeHtml(jpName(card))}"></div><div class="your-card-meta">${cardDisplay(card)}</div>`;}
-function renderLog(){logCount.textContent=`${game.logs.length} 件`;talkLog.innerHTML=game.logs.length?game.logs.map((e,i)=>`<article class="log-entry ${e.type||""}"><span>${String(i+1).padStart(2,"0")}</span><strong>${e.name}</strong><p>${e.text}</p></article>`).join(""):`<p class="empty-log">発言が始まると、ここに記録されます。</p>`;}
+function renderLog(){logCount.textContent=`${game.logs.length} 件`;talkLog.innerHTML=game.logs.length?game.logs.map((e,i)=>`<article class="log-entry ${e.type||""}"><span>${String(i+1).padStart(2,"0")}</span><strong>${escapeHtml(e.name)}</strong><p>${escapeHtml(e.text)}</p></article>`).join(""):`<p class="empty-log">発言が始まると、ここに記録されます。</p>`;}
 function renderActionPanel(){if(game.phase==="clue")renderCluePhase();else if(game.phase==="vote")renderVotePhase();else if(game.phase==="reverse")renderReversePhase();else renderResultPhase();}
 const CLUE_MENU_CATEGORIES=[
   {id:"basic",label:"基本の特徴"},
@@ -268,7 +267,7 @@ function clueCategoryOptions(category){
 }
 function findClueById(id){return [...featureList(game.players[game.order[game.orderIndex]].card),...AMBIGUOUS_CLUES].find(s=>s.id===id);}
 function renderCluePhase(){
- const current=currentPlayer(),roundLabel=game.round===1?"第1ラウンド":"第2ラウンド（逆順）";
+ const current=currentPlayer(),roundLabel=`第${game.round}ラウンド${game.round>1?`（${game.round%2===0?"逆順":"順番"}）`:""}`;
  phaseLabel.textContent=`PHASE ${game.round} / ${roundLabel}・特徴を話す`;
  phaseTitle.textContent=current.isHuman?"あなたの特徴を話そう":`${current.name}の発言を聞こう`;
  if(!current.isHuman){
@@ -298,7 +297,6 @@ function submitHumanClue(id){
  if(submitClue(current,statement))advanceClueTurn();else game.busy=false;
 }
 function submitClue(player,statement){if(!statement||game.usedClueIds.includes(statement.id))return false;const truthful=statement.ambiguous ? true : statement.test(player.card);player.clues.push(statement);game.usedClueIds.push(statement.id);if(!truthful)player.lies+=1;game.logs.push({name:player.name,text:`「${statement.label}」と発言しました。`});return true;}
-function submitHumanClue(id){if(game.busy||game.phase!=="clue")return;game.busy=true;const current=currentPlayer(),statement=game.currentOptions.find(s=>s.id===id);if(!statement||game.usedClueIds.includes(statement.id)){game.busy=false;renderCluePhase();return;}const buttons=actionPanel.querySelectorAll("[data-clue-id]");buttons.forEach(b=>b.disabled=true);if(submitClue(current,statement))advanceClueTurn();else game.busy=false;}
 function safeTest(statement, card){
   if(!statement || statement.ambiguous || typeof statement.test!=="function") return false;
   try{return Boolean(statement.test(card));}catch{return false;}
@@ -352,7 +350,7 @@ function advanceClueTurn(){
  if(game.orderIndex>=game.order.length){
    if(game.round<game.settings.speechRounds){
      game.round+=1;game.order=buildOrder(game.round);game.orderIndex=0;
-     game.logs.push({type:"system",name:"ラウンド切替",text:`第${game.round}ラウンド。発言順を逆にします。`});
+     game.logs.push({type:"system",name:"ラウンド切替",text:`第${game.round}ラウンド。発言順を${game.round%2===0?"逆":"元"}にします。`});
      renderGame();
      if(!currentPlayer().isHuman)cpuTimer=setTimeout(playNextCpuTurn,650);
      return;
@@ -362,15 +360,15 @@ function advanceClueTurn(){
  renderGame();
  if(!currentPlayer().isHuman)cpuTimer=setTimeout(playNextCpuTurn,650);
 }
-function renderVotePhase(){phaseLabel.textContent="PHASE / 狼に投票する";phaseTitle.textContent="違うカードの人は誰？";const candidates=game.players.filter(p=>!p.isHuman);actionPanel.innerHTML=`<div class="action-heading"><p>VOTING TIME</p><h2>狼だと思う人を選ぶ</h2><span>2ラウンドの発言を振り返って、ひとりに投票してください。</span></div><div class="vote-grid">${candidates.map(p=>`<button class="vote-button" type="button" data-vote-id="${p.id}"><span class="mini-avatar">${String(p.id).padStart(2,"0")}</span><span><strong>${p.name}</strong><small>${p.clues.map(c=>`「${c.label}」`).join(" / ")}</small></span></button>`).join("")}</div>`;actionPanel.querySelectorAll("[data-vote-id]").forEach(b=>b.addEventListener("click",()=>submitVotes(Number(b.dataset.voteId))));}
+function renderVotePhase(){phaseLabel.textContent="PHASE / 狼に投票する";phaseTitle.textContent="違うカードの人は誰？";const candidates=game.players.filter(p=>!p.isHuman),rounds=Number(game.settings?.speechRounds||2);actionPanel.innerHTML=`<div class="action-heading"><p>VOTING TIME</p><h2>狼だと思う人を選ぶ</h2><span>${rounds}ラウンドの発言を振り返って、ひとりに投票してください。</span></div><div class="vote-grid">${candidates.map(p=>`<button class="vote-button" type="button" data-vote-id="${p.id}"><span class="mini-avatar">${String(p.id).padStart(2,"0")}</span><span><strong>${escapeHtml(p.name)}</strong><small>${p.clues.map(c=>`「${escapeHtml(c.label)}」`).join(" / ")}</small></span></button>`).join("")}</div>`;actionPanel.querySelectorAll("[data-vote-id]").forEach(b=>b.addEventListener("click",()=>submitVotes(Number(b.dataset.voteId))));}
 function chooseCpuVote(voter){const candidates=game.players.filter(p=>p.id!==voter.id);return candidates.map(candidate=>{const contradictions=candidate.clues.filter(clue=>!clue.ambiguous && !safeTest(clue,voter.card)).length;const lies=candidate.lies;return{id:candidate.id,score:contradictions*2.2+lies*1.1+Math.random()*1.4};}).sort((a,b)=>b.score-a.score)[0].id;}
 function canWolfReverse(wolf){
   if(!wolf) return false;
+  if(!game?.settings?.liePenalty) return true;
   const clues=wolf.clues||[];
-  const madeAmbiguous=clues.some(c=>c && c.ambiguous);
+  const madeAmbiguous=clues.some(c=>c&&c.ambiguous);
   const madeLie=Number(wolf.lies||0)>=1;
-  if(clues.length>=2 && madeAmbiguous && madeLie) return false;
-  return true;
+  return !(Number(wolf.lies||0)>=2 || (madeAmbiguous&&madeLie));
 }
 function submitVotes(humanVoteId){game.players[0].vote=humanVoteId;game.players.slice(1).forEach(p=>p.vote=chooseCpuVote(p));const tallies=Object.fromEntries(game.players.map(p=>[p.id,0]));game.players.forEach(p=>{if(tallies[p.vote]!=null)tallies[p.vote]++;});game.tallies=tallies;const high=Math.max(...Object.values(tallies)),tied=game.players.filter(p=>tallies[p.id]===high);let eliminated;if(tied.length>1&&!game.settings.noRevote&&game.players.length>tied.length){const voters=game.players.filter(p=>!tied.includes(p));const rt=Object.fromEntries(tied.map(p=>[p.id,0]));voters.forEach(p=>{const pick=randomItem(tied);rt[pick.id]++;});game.tallies=Object.assign({},tallies,rt);const mh=Math.max(...Object.values(rt)),rtied=tied.filter(p=>rt[p.id]===mh);eliminated=randomItem(rtied);game.logs.push({type:"system",name:"再投票",text:`最多票が同数のため再投票。${eliminated.name}が選ばれました。`});}else eliminated=randomItem(tied);game.eliminatedId=eliminated.id;if(eliminated.isWolf){if(!canWolfReverse(game.players[game.wolfIndex])||(game.settings.liePenalty&&game.players[game.wolfIndex].lies>=2)){game.result="citizen";game.phase="result";}else game.phase="reverse";}else{game.result="wolf";game.phase="result";}renderGame();}
 function voteSummaryHtml(){
@@ -490,6 +488,50 @@ actionPanel.addEventListener("pointerdown", async (event)=>{
   }
 });
 
+// v105: online reverse-card selection is handled from stable document-level
+// capture listeners. Firebase may replace actionPanel.innerHTML while the user
+// is pressing a card, so transient button/parent listeners can miss the action.
+// pointerdown is the primary activation; click remains as a keyboard fallback.
+// No preventDefault() is used.
+let onlineReverseHandledActionKey="";
+function findOnlineReverseButton(event){
+  const path=typeof event.composedPath==="function"?event.composedPath():[];
+  for(const node of path){
+    if(node instanceof Element && node.matches?.("[data-online-guess]")) return node;
+  }
+  const target=event.target;
+  return target instanceof Element?target.closest?.("[data-online-guess]"):null;
+}
+async function handleOnlineReverseSelection(button){
+  if(!button || !actionPanel.contains(button)) return;
+  if(button.disabled || onlinePendingAction) return;
+  if(!onlineGame || onlineGame.phase!=="reverse") return;
+  // The eliminated player is the wolf in the reverse phase; this avoids
+  // exposing the host-only wolfUid to clients.
+  if(String(onlineGame.eliminatedId||"")!==String(firebaseUid)) return;
+  const guess=String(button.dataset.onlineGuess||"");
+  if(!guess) return;
+  const actionKey=`${onlineGame.matchId||""}|${onlineGame.round||0}|${guess}`;
+  if(onlineReverseHandledActionKey===actionKey) return;
+  onlineReverseHandledActionKey=actionKey;
+  button.disabled=true;
+  onlinePendingAction={type:"reverse",guess,round:Number(onlineGame.round),orderIndex:Number(onlineGame.orderIndex||0)};
+  const ok=await submitOnlineAction({type:"reverse",guess,round:onlineGame.round,orderIndex:onlineGame.orderIndex,at:Date.now()});
+  if(!ok){
+    onlinePendingAction=null;
+    onlineReverseHandledActionKey="";
+    renderOnlineReverse();
+  }
+}
+document.addEventListener("pointerdown", event=>{
+  const button=findOnlineReverseButton(event);
+  if(button && actionPanel.contains(button)) void handleOnlineReverseSelection(button);
+}, true);
+document.addEventListener("click", event=>{
+  const button=findOnlineReverseButton(event);
+  if(button && actionPanel.contains(button)) void handleOnlineReverseSelection(button);
+}, true);
+
 practicePlayerCountSelect?.addEventListener("change",syncPracticePlayerCount);
 restartButton.addEventListener("click",returnToSetup);document.getElementById("rulesButton").addEventListener("click",()=>rulesDialog.showModal());document.getElementById("closeRulesButton").addEventListener("click",()=>rulesDialog.close());document.getElementById("poolButton").addEventListener("click",openPool);document.getElementById("closePoolButton").addEventListener("click",()=>poolDialog.close());advancedSettingsButton.addEventListener("click",()=>settingsDialog.showModal());closeSettingsButton.addEventListener("click",()=>settingsDialog.close());closeSettingsButtonBottom.addEventListener("click",()=>settingsDialog.close());resetScoreButton.addEventListener("click",()=>{matchRecord={wins:0,losses:0};renderRecord();});rulesDialog.addEventListener("click",e=>{if(e.target===rulesDialog)rulesDialog.close();});poolDialog.addEventListener("click",e=>{if(e.target===poolDialog)poolDialog.close();});settingsDialog.addEventListener("click",e=>{if(e.target===settingsDialog)settingsDialog.close();});syncPracticePlayerCount();renderRecord();if(CARD_POOL.length===0)soloModeButton.disabled=true;
 
@@ -596,7 +638,7 @@ function syncOnlineLobbySettings(data){
   }
 }
 function onlinePublicPlayers(){
-  return (onlineGame?.players||[]).map(p=>({id:p.id,name:p.name,isHuman:Boolean(p.isHuman),clues:(p.clues||[]).map(c=>({id:c.id,label:c.label,ambiguous:Boolean(c.ambiguous)})),vote:p.vote??null}));
+  return (onlineGame?.players||[]).map(p=>({id:p.id,name:p.name,isHuman:Boolean(p.isHuman),clues:(p.clues||[]).map(c=>({id:c.id,label:c.label,ambiguous:Boolean(c.ambiguous)})),vote:p.vote??null,...(onlineGame?.settings?.showLieCount?{lies:Number(p.lies||0)}:{})}));
 }
 function onlineSnapshot(extra={}){
   // Firebase rejects undefined values. Replay can receive an older snapshot
@@ -793,10 +835,11 @@ function renderOnlinePlayers(){
     const voiceMode=Boolean(onlineGame.settings?.voiceMode);
     const clueHtml=clues.length?clues.map((c,i)=>`<p><b>${i+1}.</b> 「${escapeHtml(c.label)}」</p>`).join(""):(voiceMode?"":(current?'<p class="muted thinking-text">発言を考えています…</p>':'<p class="muted">まだ発言していません</p>'));
     const votes=reveal&&onlineGame.tallies?onlineGame.tallies[p.id]||0:0;
+    const lieBadge=onlineGame.settings?.showLieCount&&Number(p.lies||0)>0?`<span class="lie-count">嘘 ${Number(p.lies||0)}</span>`:"";
     const revealMeta=reveal?`<span class="role-reveal ${roles[p.id]==="wolf"?"wolf":"citizen"}">${roles[p.id]==="wolf"?"狼":"市民"} · ${escapeHtml(cards[p.id]?jpName(cards[p.id]):"")}</span>`:"";
     return `<article class="player-seat ${String(p.id)===String(firebaseUid)?"is-you":""} ${current?"is-current":""}">
       <div class="avatar">${String(p.id)===String(firebaseUid)?"YOU":"P"}</div>
-      <div class="seat-copy"><div class="seat-name"><strong>${escapeHtml(p.name)}</strong><span>${String(p.id)===String(firebaseUid)?"あなた":(p.isHuman?"プレイヤー":"CPU")}</span></div><div class="player-clues">${clueHtml}</div></div>
+      <div class="seat-copy"><div class="seat-name"><strong>${escapeHtml(p.name)}</strong><span>${String(p.id)===String(firebaseUid)?"あなた":(p.isHuman?"プレイヤー":"CPU")}</span></div><div class="player-clues">${clueHtml}</div></div>${lieBadge}
       ${reveal?`<span class="vote-badge">${votes}票</span><div class="result-meta">${revealMeta}</div>`:""}
     </article>`;
   }).join("");
@@ -949,7 +992,7 @@ function scheduleOnlineTurnReady(){
   },500);
 }
 function isOnlineTurnReady(){return onlineTurnReadyKey!=="" && onlineTurnReadyKey===onlineTurnKey();}
-// IMPORTANT v98: turn-readiness is visual feedback only. It must never be a
+// IMPORTANT v105: turn-readiness is visual feedback only. It must never be a
 // prerequisite for accepting a user click. A visible button can survive a
 // Firebase snapshot while the cosmetic 500ms readiness key is being rebuilt;
 // previously that made a perfectly valid click silently return. The host
@@ -965,7 +1008,7 @@ function renderOnlineClue(){
     const sameTurn=Number(onlinePendingAction.round)===Number(onlineGame.round) && Number(onlinePendingAction.orderIndex)===Number(onlineGame.orderIndex);
     if(!sameTurn || onlineGame.transition) onlinePendingAction=null;
   }
-  const current=onlinePlayerById(onlineCurrentId()), roundLabel=onlineGame.round===1?"第1ラウンド":"第2ラウンド（逆順）";
+  const current=onlinePlayerById(onlineCurrentId()), roundLabel=`第${onlineGame.round}ラウンド${onlineGame.round>1?`（${onlineGame.round%2===0?"逆順":"順番"}）`:""}`;
   // Once a clue was accepted for submission, keep this exact turn visually frozen.
   // Firebase echoes can otherwise render the next menu for a fraction of a second.
   if(onlinePendingAction?.type==="clue" && Number(onlinePendingAction.round)===Number(onlineGame.round) && Number(onlinePendingAction.orderIndex)===Number(onlineGame.orderIndex)){
@@ -1021,6 +1064,7 @@ function renderOnlineVote(){
 
 }
 function renderOnlineReverse(){
+  if(onlinePendingAction && onlinePendingAction.type!=="reverse") onlinePendingAction=null;
   const wolfId=onlineGame.reveal?.wolfId||onlineGame.wolfUid||onlineGame.eliminatedId;
   const wolf=onlinePlayerById(wolfId);
   phaseLabel.textContent="FINAL PHASE / 狼の逆転チャンス";phaseTitle.textContent=`${wolf?.name||"狼"}は狼だった！`;
@@ -1028,7 +1072,6 @@ function renderOnlineReverse(){
     actionPanel.innerHTML=`<div class="wolf-reveal"><span class="wolf-eye" aria-hidden="true">W</span><div><p>最終チャンス</p><h2>${escapeHtml(wolf?.name||"狼")}の逆転宣言を待っています</h2><span>狼が市民カードを推理します。</span></div></div>`;return;
   }
   actionPanel.innerHTML=`<div class="action-heading danger"><p>あなたは狼です</p><h2>市民カードを当てよう</h2><span>市民カードと同じカードを選べば逆転勝利です。</span></div><div class="guess-card-grid">${CARD_POOL.filter(c=>!onlineMyCard||c.name!==onlineMyCard.name).map(c=>`<button class="guess-card-button" data-online-guess="${escapeHtml(c.name)}"><img src="${cardImage(c)}" alt="${escapeHtml(jpName(c))}"><span>${escapeHtml(jpName(c))}</span><small>${escapeHtml(reverseGuessInfo(c))}</small></button>`).join("")}</div>`;
-  actionPanel.querySelectorAll("[data-online-guess]").forEach(b=>b.addEventListener("click",()=>submitOnlineAction({type:"reverse",guess:b.dataset.onlineGuess,at:Date.now()})));
 }
 function renderOnlineResult(){
   const wolfWon=onlineGame.result==="wolf"||onlineGame.result==="wolf-reversal";
@@ -1061,7 +1104,7 @@ async function submitOnlineActionOnce(action){
     onlineActionPromises.set(actionId,finish);
     try{
       onValue(resultRef,listener);
-      await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v98",createdAt:Date.now()});
+      await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v105",createdAt:Date.now()});
     }catch(e){console.error("online action write failed",e);finish(false);return;}
     timer=setTimeout(()=>{onlineDebug("action-timeout",{actionId,action});finish(false);},8000);
   });
@@ -1071,6 +1114,7 @@ function onlineActionAlreadyApplied(action){
   if(!onlineGame||!me)return false;
   if(action.type==="clue")return Array.isArray(me.clues)&&me.clues.some(c=>String(c.id)===String(action.clueId));
   if(action.type==="vote")return me.vote!==null&&me.vote!==undefined&&String(me.vote)!=="";
+  if(action.type==="reverse")return Boolean(onlineGame?.phase==="result");
   return false;
 }
 async function refreshOnlineGameBeforeActionRetry(){
@@ -1096,7 +1140,8 @@ async function submitOnlineAction(action){
   await refreshOnlineGameBeforeActionRetry();
   if(onlineActionAlreadyApplied(action))return true;
   const canRetry=(action.type==="clue"&&onlineGame.phase==="clue"&&String(onlineCurrentId())===String(firebaseUid))||
-                 (action.type==="vote"&&onlineGame.phase==="vote");
+                 (action.type==="vote"&&onlineGame.phase==="vote")||
+                 (action.type==="reverse"&&onlineGame.phase==="reverse"&&String(onlineGame.eliminatedId||"")===String(firebaseUid));
   if(canRetry){
     const retry={...action,matchId:onlineGame.matchId||onlineMatchId||"",round:Number(onlineGame.round),orderIndex:Number(onlineGame.orderIndex||0)};
     if(await submitOnlineActionOnce(retry))return true;
@@ -1142,6 +1187,7 @@ async function hostApplyClue(uid,clueId,action={}){
   if(st.ambiguous && (player.clues||[]).some(c=>c.ambiguous))return false;
   const truthful=st.ambiguous?true:Boolean(st.test(card));
   player.clues=[...(player.clues||[]),{id:st.id,label:st.label,ambiguous:Boolean(st.ambiguous)}];
+  if(onlineGame.settings?.showLieCount) player.lies=Number(onlineHostSecrets.lies[uid]||0)+(truthful?0:1);
   onlineGame.usedClueIds.push(st.id);onlineGame.logs.push({name:player.name,text:`「${st.label}」と発言しました。`});
   if(!truthful)onlineHostSecrets.lies[uid]=(onlineHostSecrets.lies[uid]||0)+1;
   await advanceOnlineClueHost();
@@ -1170,7 +1216,8 @@ async function advanceOnlineClueHost(){
     // When the same human speaks twice in succession, this is especially
     // important: the user should see a clear transition instead of a brief
     // blank/preparing state.
-    onlineGame.transition={type:"round",text:"第2ラウンドへ切り替えます"};
+    const nextRound=onlineGame.round+1;
+    onlineGame.transition={type:"round",text:`第${nextRound}ラウンドへ切り替えます`};
     await hostWriteGame();
     // The host ignores its own room snapshot while processing the action.
     // Render the transition locally immediately so the host sees the same
@@ -1181,7 +1228,7 @@ async function advanceOnlineClueHost(){
     onlineGame.order = nextOrder;
     onlineGame.orderIndex = 0;
     onlineGame.transition=null;
-    onlineGame.logs.push({type:"system",name:"ラウンド切替",text:`第${onlineGame.round}ラウンド。発言順を逆にします。`});
+    onlineGame.logs.push({type:"system",name:"ラウンド切替",text:`第${onlineGame.round}ラウンド。発言順を${onlineGame.round%2===0?"逆":"元"}にします。`});
     await hostWriteGame();
     hostMaybeCpuTurn();
     return;
@@ -1214,6 +1261,10 @@ async function hostMaybeCpuTurn(){
       if(st){
         await hostApplyClue(expectedId,st.id);
       }else{
+        const fallback={id:`cpu-fallback-${expectedId}-${onlineGame.round}-${onlineGame.orderIndex}`,label:"カードの特徴を慎重に考えています",ambiguous:true};
+        current.clues=[...(current.clues||[]),fallback];
+        onlineGame.usedClueIds.push(fallback.id);
+        onlineGame.logs.push({type:"system",name:current.name,text:"CPUの発言が選べなかったため、代替発言を行いました。"});
         await advanceOnlineClueHost();
       }
     }catch(e){
@@ -1248,7 +1299,7 @@ async function hostEvaluateVotes(){
   const wolfId=onlineHostSecrets.wolfUid;
   if(String(eliminated.id)===String(wolfId)){
     const wolfPlayer=onlinePlayerById(wolfId);
-    const blockedByAmbiguousLie=(wolfPlayer?.clues||[]).length>=2&&(wolfPlayer?.clues||[]).some(c=>c.ambiguous)&&(onlineHostSecrets.lies[wolfId]||0)>=1;
+    const blockedByAmbiguousLie=Boolean(onlineGame.settings.liePenalty)&&(wolfPlayer?.clues||[]).some(c=>c.ambiguous)&&(onlineHostSecrets.lies[wolfId]||0)>=1;
     if(blockedByAmbiguousLie){onlineGame.result="citizen";onlineGame.phase="result";onlineGame.logs.push({type:"system",name:"ペナルティ",text:"狼は曖昧発言と嘘発言を行ったため、逆転チャンスを失いました。"});await hostFinishResult(null);}
     else if(onlineGame.settings.liePenalty&&(onlineHostSecrets.lies[wolfId]||0)>=2){onlineGame.result="citizen";onlineGame.phase="result";onlineGame.logs.push({type:"system",name:"ペナルティ",text:"狼は2回以上の嘘をついたため、逆転チャンスを失いました。"});await hostFinishResult(null);}
     else {
@@ -1298,16 +1349,18 @@ async function hostProcessAction(action){
     accepted=await hostApplyClue(action.uid,action.clueId,action); reason=accepted?"accepted":"clue-rejected";
   }else if(action.type==="vote"&&onlineGame.phase==="vote"){
     const p=onlinePlayerById(action.uid);
-    if(!p||!p.isHuman)return false;
-    if(Number.isFinite(Number(action.round)) && Number(action.round)!==Number(onlineGame.round))return false;
-    if(p.vote!==null&&p.vote!==undefined&&String(p.vote)!=="")return false;
-    const voteId=String(action.voteId??"");
-    const validTarget=onlineGame.players.some(x=>String(x.id)===voteId);
-    if(validTarget&&voteId!==String(action.uid)){
-      p.vote=voteId;
-      accepted=true;reason="accepted";
-      await hostEvaluateVotes();
-      if(onlineGame.phase==="vote") await hostWriteGame();
+    if(!p||!p.isHuman){reason="invalid-voter";}
+    else if(Number.isFinite(Number(action.round)) && Number(action.round)!==Number(onlineGame.round)){reason="round-mismatch";}
+    else if(p.vote!==null&&p.vote!==undefined&&String(p.vote)!==""){reason="already-voted";}
+    else{
+      const voteId=String(action.voteId??"");
+      const validTarget=onlineGame.players.some(x=>String(x.id)===voteId);
+      if(!validTarget||voteId===String(action.uid)){reason="invalid-target";}
+      else{
+        p.vote=voteId; accepted=true; reason="accepted";
+        await hostEvaluateVotes();
+        if(onlineGame.phase==="vote") await hostWriteGame();
+      }
     }
   }else if(action.type==="reverse"&&onlineGame.phase==="reverse"&&String(action.uid)===String(onlineHostSecrets.wolfUid)){
     const guess=CARD_POOL.find(c=>c.name===action.guess);
@@ -1506,6 +1559,7 @@ onlineDialog.addEventListener("cancel",e=>{
 onlineStartButton.addEventListener("click",startOnlineHostGame);
 onlineCpuCount.addEventListener("change",()=>{if(onlineHost&&onlineRoomCodeValue){update(ref(firebaseDb,`rooms/${onlineRoomCodeValue}`),{cpuWanted:Number(onlineCpuCount.value||0)});}});
 for(const id of ["onlineVoiceMode","onlineDiscussionMinutes"]){document.getElementById(id)?.addEventListener("change",async()=>{if(onlineHost&&onlineRoomCodeValue){const settings=getOnlineLobbySettings();await update(ref(firebaseDb,`rooms/${onlineRoomCodeValue}`),{settings});}});}
+for(const id of ["speechCount","liePenalty","showLieCount"]){document.getElementById(id)?.addEventListener("change",async()=>{if(onlineHost&&onlineRoomCodeValue){const settings=getOnlineLobbySettings();await update(ref(firebaseDb,`rooms/${onlineRoomCodeValue}`),{settings});}});}
 
 
 // Initialize the mode only after the online state variables and listeners exist.

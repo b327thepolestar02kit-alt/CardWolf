@@ -1,16 +1,19 @@
-import json,re,zipfile,os,sys
-root=os.path.dirname(os.path.abspath(__file__))
-with open(os.path.join(root,"data","cards.js"),encoding="utf-8-sig") as f: txt=f.read().split("=",1)[1].strip().rstrip(";")
-cards=json.loads(txt)
-assert len(cards)==60, f"card count={len(cards)}"
-for c in cards: assert c.get("name") and c.get("image"), c.get("name")
-for rel in ["index.html","styles.css","app.js","version-check.js","version.json","BUILD_VERSION.txt","data/cards.js"]: assert os.path.exists(os.path.join(root,rel)), rel
-assert open(os.path.join(root,"BUILD_VERSION.txt")).read().strip()=="v97"
-assert json.load(open(os.path.join(root,"version.json")))['version']=="v97"
-html=open(os.path.join(root,"index.html"),encoding="utf-8").read()
-for ref in re.findall(r'(?:src|href)=["\']([^"\']+?)(?:\?[^"\']*)?["\']',html):
-    if ref.startswith(('http:','https:','#','data:','mailto:')): continue
-    if ref.lower().endswith(('.png','.jpg','.jpeg','.webp','.gif','.svg')): continue
-    p=os.path.join(root,ref.split('?',1)[0])
-    assert os.path.exists(p), f"missing asset {ref}"
-print("PASS: v97, 60 cards, local asset references valid")
+import json,re,os,sys
+root=os.path.dirname(__file__)
+def read(p): return open(os.path.join(root,p),encoding="utf-8").read()
+cards=json.loads(read("data/cards.js").split("=",1)[1].strip().rstrip(";"))
+assert len(cards)==100 and len({c["name"] for c in cards})==100
+assert all("Spell" not in c["type"] and "Trap" not in c["type"] for c in cards)
+assert all(c.get("image","").startswith("images/") and not str(c.get("image","")).startswith("http") for c in cards)
+app=read("app.js")
+m=re.search(r'const JP_NAMES = (\{.*?\});',app,re.S); assert m
+jp=json.loads(m.group(1)); assert all(c["name"] in jp and jp[c["name"]] for c in cards)
+assert app.count("function submitHumanClue") == 1
+assert "if(!game?.settings?.liePenalty) return true;" in app
+assert "Boolean(onlineGame.settings.liePenalty)" in app
+assert 'clientVersion:"v105"' in app
+assert "ゲームバージョン v105" in read("index.html")
+assert 'const expected = "v105"' in read("version-check.js")
+missing=[c["name"] for c in cards if not os.path.isfile(os.path.join(root,c["image"]))]
+if "--require-images" in sys.argv and missing: raise AssertionError("Missing images: "+", ".join(missing))
+print(f"PASS: v105 / 100 unique monsters / JP names=100 / missing images={len(missing)}")

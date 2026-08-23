@@ -1,4 +1,4 @@
-﻿$ErrorActionPreference = 'Stop'
+$ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $cardsFile = Join-Path $root 'data/cards.js'
 $imagesDir = Join-Path $root 'images'
@@ -34,7 +34,7 @@ if ($null -eq $cards -or @($cards).Count -eq 0) {
 
 $cards = @($cards)
 $headers = @{
-  'User-Agent' = 'CardWolf-v98-image-downloader'
+  'User-Agent' = 'CardWolf-v105-image-downloader'
   'Accept'     = 'application/json'
 }
 $count = 0
@@ -51,8 +51,13 @@ foreach ($card in $cards) {
   }
 
   # Keep the same filenames expected by the game.
+  # The game must always reference the local image generated from the card name.
+  # This is especially important for cards.js entries that may contain legacy
+  # YGOPRODeck URLs (including placeholder/custom IDs).
   $safe = ($name -replace '[^a-zA-Z0-9._-]', '_')
+  $localImage = 'images/' + $safe + '.jpg'
   $out = Join-Path $imagesDir ($safe + '.jpg')
+  $card.image = $localImage
 
   if (Test-Path $out) {
     Write-Host ("[{0}/{1}] Exists: {2}" -f $count, $cards.Count, $name)
@@ -112,6 +117,17 @@ foreach ($card in $cards) {
   }
 }
 
+# Persist local image references so the game never falls back to legacy remote URLs.
+if ($failed.Count -eq 0) {
+  try {
+    $jsonOut = $cards | ConvertTo-Json -Depth 10
+    Set-Content -Path $cardsFile -Value ("window.CARD_POOL_DATA = " + $jsonOut + ";") -Encoding UTF8
+  } catch {
+    Write-Host ("ERROR: Could not update data/cards.js with local image paths: {0}" -f $_.Exception.Message)
+    exit 1
+  }
+}
+
 if ($failed.Count -gt 0) {
   Write-Host ''
   Write-Host 'Failed cards:'
@@ -121,3 +137,10 @@ if ($failed.Count -gt 0) {
 
 Write-Host ''
 Write-Host ("Done. All {0} card images were prepared." -f $cards.Count)
+
+$failedPaths=@()
+foreach($card in @($cards)){ $safe=([string]$card.name -replace '[^a-zA-Z0-9._-]','_'); $out=Join-Path $imagesDir ($safe+'.jpg'); if(-not(Test-Path $out)){$failedPaths += [string]$card.name} }
+if($failedPaths.Count -gt 0){Write-Host ("ERROR: Missing image files: {0}" -f ($failedPaths -join ', ')); exit 1}
+$normalized=$cards|ConvertTo-Json -Depth 20
+Set-Content -Path $cardsFile -Value ("window.CARD_POOL_DATA = "+$normalized+";") -Encoding UTF8
+Write-Host ("PASS: downloaded and verified {0} card images." -f $cards.Count)
