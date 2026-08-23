@@ -51,3 +51,12 @@ v89 changes
 - Up to two ambiguous choices can appear at once.
 - Reverse declaration card details use dark text on a light detail strip for readability.
 - Mobile solo card display is compact and horizontal: card image on the left, details on the right.
+
+[カード画像の準備]
+初回は prepare_cards.cmd をダブルクリックしてください。
+PowerShellで100種類のカード画像を images フォルダへダウンロードします。
+
+v98 image downloader fix
+- Fixed prepare_cards.ps1 so card names are parsed as JSON instead of with a regex.
+- This fixes names containing escaped quotation marks, especially `Maxx "C"`, which was previously truncated to `Maxx \` and caused the API lookup to fail.
+- Added limited retry handling for transient API/network failures.
