@@ -1,8 +1,8 @@
-/* CardWolf build v105 */
+/* CardWolf build v106 */
 const firebaseConfig = window.FIREBASE_CONFIG || {};
-if (window.CARDWOLF_BUILD_VERSION !== "v105") { window.CARDWOLF_BUILD_VERSION = "v105"; }
+if (window.CARDWOLF_BUILD_VERSION !== "v106") { window.CARDWOLF_BUILD_VERSION = "v106"; }
 const versionEl = document.querySelector(".build-version");
-if (versionEl) { versionEl.textContent = "v105"; versionEl.setAttribute("aria-label", "ゲームバージョン v105"); }
+if (versionEl) { versionEl.textContent = "v106"; versionEl.setAttribute("aria-label", "ゲームバージョン v106"); }
 
 // Firebase is loaded lazily so a CDN/auth/database problem can never disable
 // the basic game UI. The solo/setup buttons must remain usable even when the
@@ -60,6 +60,8 @@ async function ensureFirebaseAuth(){
 
 const CARD_POOL = Array.isArray(window.CARD_POOL_DATA) ? window.CARD_POOL_DATA.filter(card => card && card.name) : [];
 const CARD_POOL_COUNT = CARD_POOL.length;
+function normalizeCardPoolSize(value){const n=Number(value||100);return Math.min(CARD_POOL_COUNT,Math.max(40,Math.floor(n/10)*10));}
+function getActiveCardPool(settings){return CARD_POOL.slice(0,normalizeCardPoolSize(settings?.cardPoolSize));}
 const JP_NAMES = {"Blue-Eyes White Dragon":"青眼の白龍","Dark Magician":"ブラック・マジシャン","Red-Eyes Black Dragon":"真紅眼の黒竜","Dark Magician Girl":"ブラック・マジシャン・ガール","Summoned Skull":"デーモンの召喚","Gaia The Fierce Knight":"暗黒騎士ガイア","Curse of Dragon":"カース・オブ・ドラゴン","Celtic Guardian":"エルフの剣士","Kuriboh":"クリボー","Jinzo":"人造人間－サイコ・ショッカー","Buster Blader":"バスター・ブレイダー","Black Luster Soldier":"カオス・ソルジャー","Exodia the Forbidden One":"封印されしエクゾディア","Left Arm of the Forbidden One":"封印されし者の左腕","Right Arm of the Forbidden One":"封印されし者の右腕","Left Leg of the Forbidden One":"封印されし者の左脚","Right Leg of the Forbidden One":"封印されし者の右脚","Relinquished":"サクリファイス","Dark Magician Girl the Dragon Knight":"竜騎士ブラック・マジシャン・ガール","Toon Dark Magician Girl":"トゥーン・ブラック・マジシャン・ガール","Slifer the Sky Dragon":"オシリスの天空竜","Obelisk the Tormentor":"オベリスクの巨神兵","The Winged Dragon of Ra":"ラーの翼神竜","Dark Magician of Chaos":"混沌の黒魔術師","Sangan":"クリッター","Witch of the Black Forest":"黒き森のウィッチ","Mystical Elf":"ホーリー・エルフ","Baby Dragon":"ベビードラゴン","Time Wizard":"時の魔術師","Red-Eyes Black Metal Dragon":"レッドアイズ・ブラックメタルドラゴン","Dark Paladin":"超魔導剣士－ブラック・パラディン","Chaos Emperor Dragon - Envoy of the End":"混沌帝龍 －終焉の使者－","Black Luster Soldier - Envoy of the Beginning":"カオス・ソルジャー －開闢の使者－","Marshmallon":"マシュマロン","Magician of Faith":"聖なる魔術師","Cyber Dragon":"サイバー・ドラゴン","Elemental HERO Neos":"E・HERO ネオス","Stardust Dragon":"スターダスト・ドラゴン","Black Rose Dragon":"ブラック・ローズ・ドラゴン","Number 39: Utopia":"No.39 希望皇ホープ","Accesscode Talker":"アクセスコード・トーカー","Borreload Dragon":"ヴァレルロード・ドラゴン","Decode Talker":"デコード・トーカー","Firewall Dragon":"ファイアウォール・ドラゴン","Apollousa, Bow of the Goddess":"召命の神弓－アポロウーサ","I:P Masquerena":"I：Pマスカレーナ","Knightmare Unicorn":"トロイメア・ユニコーン","Underworld Goddess of the Closed World":"閉ザサレシ世界ノ冥神","Mekk-Knight Crusadia Avramax":"双穹の騎士アストラム","Borrelsword Dragon":"ヴァレルソード・ドラゴン","Number 107: Galaxy-Eyes Tachyon Dragon":"No.107 銀河眼の時空竜","Divine Arsenal AA-ZEUS - Sky Thunder":"天霆號アーゼウス","Red Dragon Archfiend":"レッド・デーモン・ドラゴン","Shooting Star Dragon":"シューティング・スター・ドラゴン","Junk Warrior":"ジャンク・ウォリアー","Cyber End Dragon":"サイバー・エンド・ドラゴン","Elemental HERO Flame Wingman":"E・HERO フレイム・ウィングマン","Blue-Eyes Alternative White Dragon":"青眼の亜白龍","Galaxy-Eyes Photon Dragon":"銀河眼の光子竜","Dark Armed Dragon":"ダーク・アームド・ドラゴン","Number C39: Utopia Ray":"CNo.39 希望皇ホープレイ","Odd-Eyes Pendulum Dragon":"オッドアイズ・ペンデュラム・ドラゴン","Clear Wing Synchro Dragon":"クリアウィング・シンクロ・ドラゴン","Dark Rebellion Xyz Dragon":"ダーク・リベリオン・エクシーズ・ドラゴン","Blue-Eyes Chaos MAX Dragon":"ブルーアイズ・カオス・MAX・ドラゴン","Harpie Lady":"ハーピィ・レディ","Destiny HERO - Plasma":"D-HERO Bloo-D","Blackwing - Gale the Whirlwind":"BF－疾風のゲイル","Salamangreat Gazelle":"転生炎獣ガゼル","Sky Striker Ace - Raye":"閃刀姫－レイ","Ash Blossom & Joyous Spring":"灰流うらら","Nibiru, the Primal Being":"原始生命態ニビル","Ancient Gear Golem":"古代の機械巨人","Blue-Eyes Ultimate Dragon":"青眼の究極竜","Cyber Twin Dragon":"サイバー・ツイン・ドラゴン","Elemental HERO Shining Flare Wingman":"E・HERO シャイニング・フレア・ウィングマン","Harpie Lady Sisters":"ハーピィ・レディ三姉妹","Harpie's Pet Dragon":"ハーピィズペット竜","Number 17: Leviathan Dragon":"No.17 リバイス・ドラゴン","Rainbow Dragon":"究極宝玉神 レインボー・ドラゴン","Red-Eyes Darkness Metal Dragon":"レッドアイズ・ダークネスメタルドラゴン","Shooting Quasar Dragon":"シューティング・クェーサー・ドラゴン","Thousand-Eyes Restrict":"サウザンド・アイズ・サクリファイス","Blue-Eyes Jet Dragon":"ブルーアイズ・ジェット・ドラゴン","Effect Veiler":"エフェクト・ヴェーラー","Droll & Lock Bird":"ドロール＆ロックバード","Blue-Eyes Spirit Dragon":"青眼の精霊龍","Red-Eyes Flare Metal Dragon":"真紅眼の鋼炎竜","Blue-Eyes Shining Dragon":"青眼の光龍","Red-Eyes Darkness Dragon":"真紅眼の闇竜","Dark Magician Knight":"ブラック・マジシャン・ナイト","Breaker the Magical Warrior":"魔導戦士 ブレイカー","Black Dragon's Chick":"黒竜の雛","Chaos Sorcerer":"カオス・ソーサラー","Dragon Spirit of White":"白き霊龍","Sage with Eyes of Blue":"青き眼の賢士","Maiden with Eyes of Blue":"青き眼の乙女","Red-Eyes Alternative Black Dragon":"真紅眼の亜黒竜","Blue-Eyes Solid Dragon":"ブルーアイズ・ソリッド・ドラゴン","Maxx \"C\"":"増殖するG"};
 function jpName(card){return JP_NAMES[card.name]||card.name;}
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));}
@@ -87,7 +89,7 @@ const speechCountSelect=document.getElementById("speechCount"),liePenaltyToggle=
 if(liePenaltyToggle) liePenaltyToggle.checked=false;
 if(showLieCountToggle) showLieCountToggle.checked=false;
 const playerNameInput=document.getElementById("playerName"),winCountElement=document.getElementById("winCount"),lossCountElement=document.getElementById("lossCount"),gameWinCountElement=document.getElementById("gameWinCount"),gameLossCountElement=document.getElementById("gameLossCount");
-const settingsDialog=document.getElementById("settingsDialog"),advancedSettingsButton=document.getElementById("advancedSettingsButton"),closeSettingsButton=document.getElementById("closeSettingsButton"),closeSettingsButtonBottom=document.getElementById("closeSettingsButtonBottom"),resetScoreButton=document.getElementById("resetScoreButton"),practicePlayerCountSelect=document.getElementById("practicePlayerCount");
+const settingsDialog=document.getElementById("settingsDialog"),advancedSettingsButton=document.getElementById("advancedSettingsButton"),closeSettingsButton=document.getElementById("closeSettingsButton"),closeSettingsButtonBottom=document.getElementById("closeSettingsButtonBottom"),resetScoreButton=document.getElementById("resetScoreButton"),practicePlayerCountSelect=document.getElementById("practicePlayerCount"),cardPoolSizeSelect=document.getElementById("cardPoolSize");
 const soloModeButton=document.getElementById("soloModeButton"),onlineModeButton=document.getElementById("onlineModeButton");
 const onlineDialog=document.getElementById("onlineDialog"),closeOnlineButton=document.getElementById("closeOnlineButton"),createRoomButton=document.getElementById("createRoomButton"),joinRoomButton=document.getElementById("joinRoomButton"),roomCodeInput=document.getElementById("roomCodeInput"),onlineLobby=document.getElementById("onlineLobby"),onlineRoomCode=document.getElementById("onlineRoomCode"),onlinePlayerList=document.getElementById("onlinePlayerList"),onlineLobbyStatus=document.getElementById("onlineLobbyStatus"),onlineCpuCount=document.getElementById("onlineCpuCount"),onlineStartButton=document.getElementById("onlineStartButton"),leaveRoomButton=document.getElementById("leaveRoomButton");
 
@@ -193,24 +195,27 @@ function featureList(card){
 }
 function statementsFor(card){return featureList(card).filter(f=>{try{return f.test(card);}catch{return false;}});}
 function falseStatementsFor(card){return featureList(card).filter(f=>{try{return !f.test(card);}catch{return false;}});}
-function chooseCardPair(){const cards=shuffle(CARD_POOL);for(let i=0;i<500;i++){const citizen=randomItem(cards),cf=statementsFor(citizen).map(x=>x.id),candidates=cards.filter(c=>c.name!==citizen.name&&statementsFor(c).some(f=>cf.includes(f.id)));if(candidates.length)return[citizen,randomItem(candidates)];}return cards.slice(0,2);}
+function chooseCardPair(settings){const cards=shuffle(getActiveCardPool(settings));for(let i=0;i<500;i++){const citizen=randomItem(cards),cf=statementsFor(citizen).map(x=>x.id),candidates=cards.filter(c=>c.name!==citizen.name&&statementsFor(c).some(f=>cf.includes(f.id)));if(candidates.length)return[citizen,randomItem(candidates)];}return cards.slice(0,2);}
 function syncPracticePlayerCount(){
   const value=Number(practicePlayerCountSelect?.value||4);
   selectedPlayerCount=Math.min(8,Math.max(3,value));
   if(practicePlayerCountSelect) practicePlayerCountSelect.value=String(selectedPlayerCount);
 }
-function getSettings(){return{speechRounds:Number(speechCountSelect.value||2),liePenalty:Boolean(liePenaltyToggle.checked),showLieCount:Boolean(showLieCountToggle&& showLieCountToggle.checked)};}
+function getSettings(){return{speechRounds:Number(speechCountSelect.value||2),liePenalty:Boolean(liePenaltyToggle.checked),showLieCount:Boolean(showLieCountToggle&& showLieCountToggle.checked),cardPoolSize:normalizeCardPoolSize(cardPoolSizeSelect?.value||100)};}
 function randomPlayerName(){return randomItem(["ユウ","カイ","レン","アキラ","ナギ","ハヤト","ソラ","ミナ","リク","シン"]);}
 function getPlayerName(){const n=(playerNameInput?.value||"").trim();return n||randomPlayerName();}
-if(poolCountElement) poolCountElement.textContent=String(CARD_POOL_COUNT);
+function renderPoolCount(settings=getSettings()){if(poolCountElement){const n=normalizeCardPoolSize(settings?.cardPoolSize);poolCountElement.textContent=String(n);}}
+renderPoolCount();
 function renderRecord(){if(winCountElement)winCountElement.textContent=matchRecord.wins;if(lossCountElement)lossCountElement.textContent=matchRecord.losses;if(gameWinCountElement)gameWinCountElement.textContent=matchRecord.wins;if(gameLossCountElement)gameLossCountElement.textContent=matchRecord.losses;}
 function buildOrder(round){const forward=Array.from({length:selectedPlayerCount},(_,i)=>i);return Number(round)%2===0?forward.slice().reverse():forward;}
 function startGame(){
   clearTimeout(cpuTimer);
   syncPracticePlayerCount();
   if(CARD_POOL.length<2){alert("カードデータがありません。先にカード準備を完了してください。");return;}
-  const [citizenCard,wolfCard]=chooseCardPair(),wolfIndex=Math.floor(Math.random()*selectedPlayerCount),humanName=getPlayerName(),players=Array.from({length:selectedPlayerCount},(_,index)=>({id:index,name:index===0?humanName:CPU_NAMES[index-1],isHuman:index===0,isWolf:index===wolfIndex,card:index===wolfIndex?wolfCard:citizenCard,clues:[],lies:0,vote:null})),settings=getSettings();
-  game={citizenCard,wolfCard,wolfIndex,players,settings,round:1,order:buildOrder(1),orderIndex:0,phase:"clue",logs:[],usedClueIds:[],currentOptions:[],busy:false,tallies:null,eliminatedId:null,result:null,reverseGuess:null,recorded:false,clueMenu:"root"};
+  const settings=getSettings();
+  const activePool=getActiveCardPool(settings);
+  if(activePool.length<2){alert("カードプールの設定が不正です。");return;}
+  const [citizenCard,wolfCard]=chooseCardPair(settings),wolfIndex=Math.floor(Math.random()*selectedPlayerCount),humanName=getPlayerName(),players=Array.from({length:selectedPlayerCount},(_,index)=>({id:index,name:index===0?humanName:CPU_NAMES[index-1],isHuman:index===0,isWolf:index===wolfIndex,card:index===wolfIndex?wolfCard:citizenCard,clues:[],lies:0,vote:null})),game={citizenCard,wolfCard,wolfIndex,players,settings,round:1,order:buildOrder(1),orderIndex:0,phase:"clue",logs:[],usedClueIds:[],currentOptions:[],busy:false,tallies:null,eliminatedId:null,result:null,reverseGuess:null,recorded:false,clueMenu:"root"};
   setupScreen.hidden=true;
   gameScreen.hidden=false;
   renderGame();
@@ -376,12 +381,12 @@ function voteSummaryHtml(){
   const rows=game.players.map(p=>`<div class="vote-row"><span>${escapeHtml(p.name)}</span><strong>${game.tallies[p.id]||0}票</strong></div>`).join("");
   return `<section class="vote-summary-panel"><h3>投票結果</h3><p>誰が何票集めたかを確認できます。</p>${rows}</section>`;
 }
-function renderReversePhase(){phaseLabel.textContent="FINAL PHASE / 狼の逆転チャンス";const wolf=game.players[game.wolfIndex];phaseTitle.textContent=`${wolf.name}は狼だった！`;if(wolf.isHuman){actionPanel.innerHTML=`<div class="action-heading danger"><p>あなたは狼です</p><h2>市民カードを当てよう</h2><span>市民カードと同じカードを選べば逆転勝利です。</span></div><div class="vote-tally">${game.players.map(p=>`<span>${p.name}: ${game.tallies?.[p.id]||0}票</span>`).join("")}</div><input class="reverse-search" id="reverseSearch" placeholder="カード名を検索（日本語）"><div class="guess-card-grid">${CARD_POOL.filter(c=>c.name!==wolf.card.name).map(c=>`<button class="guess-card-button" data-guess="${escapeHtml(c.name)}"><img src="${cardImage(c)}" alt="${escapeHtml(jpName(c))}"><span>${escapeHtml(jpName(c))}</span><small>${escapeHtml(reverseGuessInfo(c))}</small></button>`).join("")}</div>`;document.getElementById("reverseSearch")?.addEventListener("input",e=>{const q=e.target.value;actionPanel.querySelectorAll("[data-guess]").forEach(b=>b.style.display=(b.textContent.includes(q)?"":"none"));});actionPanel.querySelectorAll("[data-guess]").forEach(b=>b.addEventListener("click",()=>finishReverseGuess(CARD_POOL.find(c=>c.name===b.dataset.guess))));return;}actionPanel.innerHTML=`<div class="wolf-reveal"><span class="wolf-eye" aria-hidden="true">W</span><div><p>最終チャンス</p><h2>${wolf.name}が市民カードを推理します</h2><span>当てられたら、狼の逆転勝利です。</span></div></div><button class="primary-button compact" id="cpuGuessButton" type="button"><span>逆転宣言を見る</span><span>→</span></button>`;document.getElementById("cpuGuessButton").addEventListener("click",submitCpuGuess);}
+function renderReversePhase(){phaseLabel.textContent="FINAL PHASE / 狼の逆転チャンス";const wolf=game.players[game.wolfIndex];phaseTitle.textContent=`${wolf.name}は狼だった！`;if(wolf.isHuman){actionPanel.innerHTML=`<div class="action-heading danger"><p>あなたは狼です</p><h2>市民カードを当てよう</h2><span>市民カードと同じカードを選べば逆転勝利です。</span></div><div class="vote-tally">${game.players.map(p=>`<span>${p.name}: ${game.tallies?.[p.id]||0}票</span>`).join("")}</div><input class="reverse-search" id="reverseSearch" placeholder="カード名を検索（日本語）"><div class="guess-card-grid">${getActiveCardPool(game.settings).filter(c=>c.name!==wolf.card.name).map(c=>`<button class="guess-card-button" data-guess="${escapeHtml(c.name)}"><img src="${cardImage(c)}" alt="${escapeHtml(jpName(c))}"><span>${escapeHtml(jpName(c))}</span><small>${escapeHtml(reverseGuessInfo(c))}</small></button>`).join("")}</div>`;document.getElementById("reverseSearch")?.addEventListener("input",e=>{const q=e.target.value;actionPanel.querySelectorAll("[data-guess]").forEach(b=>b.style.display=(b.textContent.includes(q)?"":"none"));});actionPanel.querySelectorAll("[data-guess]").forEach(b=>b.addEventListener("click",()=>finishReverseGuess(getActiveCardPool(game.settings).find(c=>c.name===b.dataset.guess))));return;}actionPanel.innerHTML=`<div class="wolf-reveal"><span class="wolf-eye" aria-hidden="true">W</span><div><p>最終チャンス</p><h2>${wolf.name}が市民カードを推理します</h2><span>当てられたら、狼の逆転勝利です。</span></div></div><button class="primary-button compact" id="cpuGuessButton" type="button"><span>逆転宣言を見る</span><span>→</span></button>`;document.getElementById("cpuGuessButton").addEventListener("click",submitCpuGuess);}
 function submitCpuGuess(){
   if(!game || game.phase!=="reverse") return;
   const wolf=game.players[game.wolfIndex];
   const clues=game.players.filter(p=>!p.isWolf).flatMap(p=>p.clues||[]);
-  const candidates=CARD_POOL
+  const candidates=getActiveCardPool(game.settings)
     .filter(c=>c.name!==wolf.card.name)
     .map(card=>{
       const score=clues.reduce((s,clue)=>{
@@ -453,7 +458,7 @@ async function returnToSetup(){
   logCount.textContent="0 messages";
   const mainScroller=document.querySelector("main"); if(mainScroller) mainScroller.scrollTop=0; else window.scrollTo({top:0,behavior:"auto"});
 }
-function openPool(){poolGrid.innerHTML=CARD_POOL.map(c=>`<div class="pool-card"><img src="${cardImage(c)}" alt="${escapeHtml(jpName(c))}">${cardDisplay(c)}</div>`).join("");poolDialog.showModal();}
+function openPool(){const activeSize=normalizeCardPoolSize((onlineMode&&onlineGame?.settings?.cardPoolSize)||getSettings().cardPoolSize);renderPoolCount({cardPoolSize:activeSize});poolGrid.innerHTML=CARD_POOL.map((c,i)=>{const active=i<activeSize;const statusLabel=active?"使用カード":"未使用カード";const unusedLabel=active?"":'<small class="pool-unused-label">今回のゲームでは不使用</small>';return `<div class="pool-card ${active?"is-active":"is-unused"}" aria-label="${statusLabel}"><img src="${cardImage(c)}" alt="${escapeHtml(jpName(c))}">${cardDisplay(c)}${unusedLabel}</div>`;}).join("");poolDialog.showModal();}
 // v91: Online action buttons are rendered from Firebase snapshots. A snapshot can
 // replace actionPanel.innerHTML between pointer-down and click, which makes the
 // old button's click handler disappear and feels like the button is unresponsive.
@@ -488,7 +493,7 @@ actionPanel.addEventListener("pointerdown", async (event)=>{
   }
 });
 
-// v105: online reverse-card selection is handled from stable document-level
+// v106: online reverse-card selection is handled from stable document-level
 // capture listeners. Firebase may replace actionPanel.innerHTML while the user
 // is pressing a card, so transient button/parent listeners can miss the action.
 // pointerdown is the primary activation; click remains as a keyboard fallback.
@@ -619,14 +624,16 @@ function onlineSettings(){return {...getSettings(),voiceMode:false,discussionSec
 function getOnlineLobbySettings(){
   const voice=Boolean(document.getElementById("onlineVoiceMode")?.checked);
   const seconds=Math.max(60,Number(document.getElementById("onlineDiscussionMinutes")?.value||120));
-  return {...onlineSettings(),voiceMode:voice,discussionSeconds:seconds};
+  return {...onlineSettings(),voiceMode:voice,discussionSeconds:seconds,cardPoolSize:normalizeCardPoolSize(document.getElementById("cardPoolSize")?.value||100)};
 }
 function syncOnlineLobbySettings(data){
   const s=data?.settings||onlineSettings();
-  const voiceEl=document.getElementById("onlineVoiceMode"), timeEl=document.getElementById("onlineDiscussionMinutes"), maxEl=document.getElementById("onlineMaxPlayers");
+  const voiceEl=document.getElementById("onlineVoiceMode"), timeEl=document.getElementById("onlineDiscussionMinutes"), maxEl=document.getElementById("onlineMaxPlayers"), poolEl=document.getElementById("cardPoolSize");
   if(voiceEl) voiceEl.checked=Boolean(s.voiceMode);
   if(timeEl) timeEl.value=String(Number(s.discussionSeconds||120));
   if(maxEl) maxEl.value=String(Math.min(8,Math.max(3,Number(data?.maxPlayers||4))));
+  if(poolEl) poolEl.value=String(normalizeCardPoolSize(s.cardPoolSize||100));
+  renderPoolCount(s);
   if(onlineHost){
     const row=document.getElementById("onlineVoiceSettingRow"); if(row) row.hidden=false;
     const cpu=document.getElementById("onlineCpuSettingRow"); if(cpu) cpu.hidden=false;
@@ -992,7 +999,7 @@ function scheduleOnlineTurnReady(){
   },500);
 }
 function isOnlineTurnReady(){return onlineTurnReadyKey!=="" && onlineTurnReadyKey===onlineTurnKey();}
-// IMPORTANT v105: turn-readiness is visual feedback only. It must never be a
+// IMPORTANT v106: turn-readiness is visual feedback only. It must never be a
 // prerequisite for accepting a user click. A visible button can survive a
 // Firebase snapshot while the cosmetic 500ms readiness key is being rebuilt;
 // previously that made a perfectly valid click silently return. The host
@@ -1071,13 +1078,13 @@ function renderOnlineReverse(){
   if(String(wolfId)!==String(firebaseUid)){
     actionPanel.innerHTML=`<div class="wolf-reveal"><span class="wolf-eye" aria-hidden="true">W</span><div><p>最終チャンス</p><h2>${escapeHtml(wolf?.name||"狼")}の逆転宣言を待っています</h2><span>狼が市民カードを推理します。</span></div></div>`;return;
   }
-  actionPanel.innerHTML=`<div class="action-heading danger"><p>あなたは狼です</p><h2>市民カードを当てよう</h2><span>市民カードと同じカードを選べば逆転勝利です。</span></div><div class="guess-card-grid">${CARD_POOL.filter(c=>!onlineMyCard||c.name!==onlineMyCard.name).map(c=>`<button class="guess-card-button" data-online-guess="${escapeHtml(c.name)}"><img src="${cardImage(c)}" alt="${escapeHtml(jpName(c))}"><span>${escapeHtml(jpName(c))}</span><small>${escapeHtml(reverseGuessInfo(c))}</small></button>`).join("")}</div>`;
+  actionPanel.innerHTML=`<div class="action-heading danger"><p>あなたは狼です</p><h2>市民カードを当てよう</h2><span>市民カードと同じカードを選べば逆転勝利です。</span></div><div class="guess-card-grid">${getActiveCardPool(onlineGame?.settings).filter(c=>!onlineMyCard||c.name!==onlineMyCard.name).map(c=>`<button class="guess-card-button" data-online-guess="${escapeHtml(c.name)}"><img src="${cardImage(c)}" alt="${escapeHtml(jpName(c))}"><span>${escapeHtml(jpName(c))}</span><small>${escapeHtml(reverseGuessInfo(c))}</small></button>`).join("")}</div>`;
 }
 function renderOnlineResult(){
   const wolfWon=onlineGame.result==="wolf"||onlineGame.result==="wolf-reversal";
   phaseLabel.textContent="GAME OVER / 答え合わせ";phaseTitle.textContent=wolfWon?"狼チームの勝利":"市民チームの勝利";
   const revName=typeof onlineGame.reveal?.reverseGuess==="string"?onlineGame.reveal.reverseGuess:(onlineGame.reveal?.reverseGuess?.name||null);
-  const rev=revName?CARD_POOL.find(c=>c.name===revName)||null:null;
+  const rev=revName?getActiveCardPool(onlineGame?.settings).find(c=>c.name===revName)||null:null;
   const citizen=onlineGame.reveal?.citizenCard,wolfCard=onlineGame.reveal?.wolfCard;
   const msg=onlineGame.result==="wolf"? "選ばれたプレイヤーは市民でした。狼は正体を隠し切りました。":onlineGame.result==="wolf-reversal"?`狼が市民カード「${jpName(citizen)}」を見事に当て、逆転しました。`:`狼の宣言は「${jpName(rev||{})}」。正解は「${jpName(citizen||{})}」でした。`;
   const replayButton=onlineHost?`<button class="primary-button compact" id="onlineReplayButton" type="button"><span>同じ部屋でもう一度遊ぶ</span><span>↻</span></button>`:`<div class="online-replay-wait">ホストがもう一度ゲームを開始するのを待っています。</div>`;
@@ -1104,7 +1111,7 @@ async function submitOnlineActionOnce(action){
     onlineActionPromises.set(actionId,finish);
     try{
       onValue(resultRef,listener);
-      await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v105",createdAt:Date.now()});
+      await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v106",createdAt:Date.now()});
     }catch(e){console.error("online action write failed",e);finish(false);return;}
     timer=setTimeout(()=>{onlineDebug("action-timeout",{actionId,action});finish(false);},8000);
   });
@@ -1310,7 +1317,7 @@ async function hostEvaluateVotes(){
         const wolf=onlinePlayerById(onlineHostSecrets.wolfUid);
         onlineCpuTimer=setTimeout(async()=>{
           const clues=onlineGame.players.filter(p=>String(p.id)!==String(onlineHostSecrets.wolfUid)).flatMap(p=>p.clues||[]);
-          const candidates=CARD_POOL.filter(c=>c.name!==onlineHostSecrets.wolfCard.name).map(card=>{
+          const candidates=getActiveCardPool(onlineGame?.settings).filter(c=>c.name!==onlineHostSecrets.wolfCard.name).map(card=>{
             const score=clues.reduce((s,cl)=>{
               if(cl.ambiguous)return s;
               const st=featureList(card).find(x=>x.id===cl.id);
@@ -1325,7 +1332,7 @@ async function hostEvaluateVotes(){
   }else{onlineGame.result="wolf";await hostFinishResult(null);}
 }
 async function hostFinishResult(reverseGuess){
-  onlineGame.reverseGuess=reverseGuess?CARD_POOL.find(c=>c.name===reverseGuess)||null:null;
+  onlineGame.reverseGuess=reverseGuess?getActiveCardPool(onlineGame?.settings).find(c=>c.name===reverseGuess)||null:null;
   if(reverseGuess){
     onlineGame.result=String(reverseGuess)===String(onlineHostSecrets.citizenCard?.name)?"wolf-reversal":"citizen";
   }
@@ -1363,7 +1370,7 @@ async function hostProcessAction(action){
       }
     }
   }else if(action.type==="reverse"&&onlineGame.phase==="reverse"&&String(action.uid)===String(onlineHostSecrets.wolfUid)){
-    const guess=CARD_POOL.find(c=>c.name===action.guess);
+    const guess=getActiveCardPool(onlineGame?.settings).find(c=>c.name===action.guess);
     if(guess){accepted=true;reason="accepted";await hostFinishResult(guess.name);}
   }
   if(action.actionId&&action.uid){
@@ -1426,7 +1433,10 @@ async function startOnlineHostGame(){
   const maxPlayers=Math.min(8,Math.max(3,Number(room.maxPlayers||4)));
   if(total<3||total>maxPlayers){alert(`オンラインは合計3〜${maxPlayers}人で開始します。`);onlineHostProcessing=false;return;}
 
-  const [citizenCard,wolfCard]=chooseCardPair();
+  const settings=room.settings||onlineSettings();
+  const activePool=getActiveCardPool(settings);
+  if(activePool.length<2){onlineHostProcessing=false;alert("カードプールの設定が不正です。");return;}
+  const [citizenCard,wolfCard]=chooseCardPair(settings);
   const ids=humans.map(p=>p.uid);
   for(let i=0;i<cpuNeeded;i++)ids.push(`cpu-${i}`);
   const wolfUid=randomItem(ids);
@@ -1453,7 +1463,6 @@ async function startOnlineHostGame(){
 
   const matchStartedAt=Date.now();
   const matchId=`${matchStartedAt}-${Math.random().toString(36).slice(2,10)}`;
-  const settings=room.settings||onlineSettings();
   const discussionSeconds=Math.max(60,Number(settings.discussionSeconds||120));
   const isVoice=Boolean(settings.voiceMode);
   const phase=isVoice?"discussion":"clue";
@@ -1559,7 +1568,7 @@ onlineDialog.addEventListener("cancel",e=>{
 onlineStartButton.addEventListener("click",startOnlineHostGame);
 onlineCpuCount.addEventListener("change",()=>{if(onlineHost&&onlineRoomCodeValue){update(ref(firebaseDb,`rooms/${onlineRoomCodeValue}`),{cpuWanted:Number(onlineCpuCount.value||0)});}});
 for(const id of ["onlineVoiceMode","onlineDiscussionMinutes"]){document.getElementById(id)?.addEventListener("change",async()=>{if(onlineHost&&onlineRoomCodeValue){const settings=getOnlineLobbySettings();await update(ref(firebaseDb,`rooms/${onlineRoomCodeValue}`),{settings});}});}
-for(const id of ["speechCount","liePenalty","showLieCount"]){document.getElementById(id)?.addEventListener("change",async()=>{if(onlineHost&&onlineRoomCodeValue){const settings=getOnlineLobbySettings();await update(ref(firebaseDb,`rooms/${onlineRoomCodeValue}`),{settings});}});}
+for(const id of ["speechCount","liePenalty","showLieCount","cardPoolSize"]){document.getElementById(id)?.addEventListener("change",async()=>{if(onlineHost&&onlineRoomCodeValue){const settings=getOnlineLobbySettings();await update(ref(firebaseDb,`rooms/${onlineRoomCodeValue}`),{settings});}});}
 
 
 // Initialize the mode only after the online state variables and listeners exist.

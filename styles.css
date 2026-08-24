@@ -2779,3 +2779,8 @@ section.setup-screen[hidden], section.game-screen[hidden]{display:none!important
 }
 
 .guess-card-grid{align-content:start}.reverse-search{width:100%;padding:12px;margin:10px 0;border-radius:10px}.vote-tally{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}.vote-tally span{padding:5px 9px;border-radius:999px;background:#222;color:#fff}
+
+/* v106: card pool selection / inactive cards */
+.pool-card.is-unused{filter:grayscale(1);opacity:.38;}
+.pool-card.is-unused img{filter:grayscale(1);}
+.pool-card .pool-unused-label{display:block;margin-top:5px;font-size:.62rem;color:#aeb7c4!important;}
