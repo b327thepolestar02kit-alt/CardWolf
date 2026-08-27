@@ -1,6 +1,7 @@
-CardWolf Yu-Gi-Oh v106
+CardWolf Yu-Gi-Oh v108
 
-v106: Japanese-only card names for all 100 monsters; lie-penalty toggle is authoritative in solo/online; unknown ATK (?) is not numeric; duplicate submitHumanClue removed; 1-3 rounds have dynamic labels/order; online settings sync after room creation; invalid online votes acknowledge immediately; online reverse selection uses pointerdown; CPU has fallback utterance; room code is 4 characters; solo names/logs are escaped; release checks validate local image references and versioned scripts.
-
-Run prepare_cards.cmd to download missing images, then verify-build.cmd.
-For a strict full-image check: python verify-build.py --require-images
+変更点:
+- プラクティスモードの発言候補生成を安全化し、候補生成・再描画で例外が起きても必ずフォールバック候補を表示。
+- カード画像が未配置でも、日本語カード名・種別・ATK/DEFをカード面に表示するフォールバックを追加。
+- v106のカードプール選択（40～100種、10種刻み）を維持。
+- release ZIPにはimagesフォルダを含めない。必要な画像はprepare_cards.cmdで生成可能。

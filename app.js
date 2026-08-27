@@ -1,8 +1,8 @@
-/* CardWolf build v106 */
+/* CardWolf build v108 */
 const firebaseConfig = window.FIREBASE_CONFIG || {};
-if (window.CARDWOLF_BUILD_VERSION !== "v106") { window.CARDWOLF_BUILD_VERSION = "v106"; }
+if (window.CARDWOLF_BUILD_VERSION !== "v108") { window.CARDWOLF_BUILD_VERSION = "v108"; }
 const versionEl = document.querySelector(".build-version");
-if (versionEl) { versionEl.textContent = "v106"; versionEl.setAttribute("aria-label", "ゲームバージョン v106"); }
+if (versionEl) { versionEl.textContent = "v108"; versionEl.setAttribute("aria-label", "ゲームバージョン v108"); }
 
 // Firebase is loaded lazily so a CDN/auth/database problem can never disable
 // the basic game UI. The solo/setup buttons must remain usable even when the
@@ -97,7 +97,8 @@ let selectedPlayerCount=4,game=null,cpuTimer=null;
 let matchRecord={wins:0,losses:0};
 function shuffle(items){const copy=[...items];for(let i=copy.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[copy[i],copy[j]]=[copy[j],copy[i]];}return copy;}
 function randomItem(items){return items[Math.floor(Math.random()*items.length)];}
-function cardImage(card){return card.image||"";}
+function cardImage(card){return String(card?.image||"");}
+function cardImageFallback(card){return `<div class="card-image-fallback"><strong>${escapeHtml(jpName(card))}</strong><span>${escapeHtml(cardInfo(card))}</span>${cardStats(card)?`<small>${escapeHtml(cardStats(card))}</small>`:""}</div>`;}
 function cardShort(card){return jpName(card);}
 const AMBIGUOUS_CLUES=[
 {id:"vague-cool",label:"かっこいいカードです",ambiguous:true},
@@ -212,20 +213,54 @@ function startGame(){
   clearTimeout(cpuTimer);
   syncPracticePlayerCount();
   if(CARD_POOL.length<2){alert("カードデータがありません。先にカード準備を完了してください。");return;}
-  const settings=getSettings();
-  const activePool=getActiveCardPool(settings);
+  const settings=getSettings(), activePool=getActiveCardPool(settings);
   if(activePool.length<2){alert("カードプールの設定が不正です。");return;}
-  const [citizenCard,wolfCard]=chooseCardPair(settings),wolfIndex=Math.floor(Math.random()*selectedPlayerCount),humanName=getPlayerName(),players=Array.from({length:selectedPlayerCount},(_,index)=>({id:index,name:index===0?humanName:CPU_NAMES[index-1],isHuman:index===0,isWolf:index===wolfIndex,card:index===wolfIndex?wolfCard:citizenCard,clues:[],lies:0,vote:null})),game={citizenCard,wolfCard,wolfIndex,players,settings,round:1,order:buildOrder(1),orderIndex:0,phase:"clue",logs:[],usedClueIds:[],currentOptions:[],busy:false,tallies:null,eliminatedId:null,result:null,reverseGuess:null,recorded:false,clueMenu:"root"};
-  setupScreen.hidden=true;
-  gameScreen.hidden=false;
-  renderGame();
+  const [citizenCard,wolfCard]=chooseCardPair(settings);
+  if(!citizenCard||!wolfCard){alert("カードの選出に失敗しました。カードプールを確認してください。");return;}
+  const wolfIndex=Math.floor(Math.random()*selectedPlayerCount), humanName=getPlayerName();
+  const players=Array.from({length:selectedPlayerCount},(_,index)=>({id:index,name:index===0?humanName:CPU_NAMES[index-1],isHuman:index===0,isWolf:index===wolfIndex,card:index===wolfIndex?wolfCard:citizenCard,clues:[],lies:0,vote:null}));
+  game={citizenCard,wolfCard,wolfIndex,players,settings,round:1,order:buildOrder(1),orderIndex:0,phase:"clue",logs:[],usedClueIds:[],currentOptions:[],busy:false,tallies:null,eliminatedId:null,result:null,reverseGuess:null,recorded:false,clueMenu:"root"};
+  try{
+    setupScreen.hidden=true;
+    gameScreen.hidden=false;
+    renderGame();
+    if(!actionPanel.innerHTML.trim()) throw new Error("Practice action panel was empty after render");
+  }catch(error){
+    console.error("Practice start failed",error);
+    game=null; setupScreen.hidden=false; gameScreen.hidden=true;
+    alert("プラクティスモードの初期化に失敗しました。カードデータを確認してください。");
+    return;
+  }
   const mainScroller=document.querySelector("main"); if(mainScroller) mainScroller.scrollTop=0; else window.scrollTo({top:0,behavior:"auto"});
 }
-function renderGame(){renderPlayers();renderYourCard();renderLog();renderActionPanel();}
+function renderGame(){
+  if(!game||!Array.isArray(game.players)||!game.players.length){console.error("Practice game render skipped: invalid game state",game);return;}
+  try{renderPlayers();}catch(e){console.error("Practice player render failed",e);playersElement.innerHTML="";}
+  try{renderYourCard();}catch(e){console.error("Practice card render failed",e);yourCardElement.className="playing-card ygo";yourCardElement.innerHTML=`<div class="ygo-card-face"><div class="card-image-fallback"><strong>カード表示エラー</strong><span>このカードはゲームを続けられます</span></div></div>`;}
+  try{renderLog();}catch(e){console.error("Practice log render failed",e);}
+  try{renderActionPanel();}catch(e){
+    console.error("Practice action render failed",e);
+    const current=currentPlayer(), fallback=safePracticeClues(current);
+    game.currentOptions=fallback;
+    actionPanel.innerHTML=`<div class="action-heading"><p>第${game.round}ラウンド</p><h2>何と発言しますか？</h2><span>発言候補を再表示しました。</span></div><div class="choice-list basic-clue-list">${fallback.map(s=>`<button class="choice-button" type="button" data-clue-id="${escapeHtml(String(s.id))}"><span>${escapeHtml(s.label)}</span><span>→</span></button>`).join("")}</div>`;
+    actionPanel.querySelectorAll("[data-clue-id]").forEach(b=>b.addEventListener("click",()=>submitHumanClue(b.dataset.clueId)));
+  }
+}
 function previousPlayer(){if(!game||game.orderIndex<=0)return null;return game.players[game.order[game.orderIndex-1]];}
 function currentPlayer(){return game.players[game.order[game.orderIndex]];}
 function renderPlayers(){playersElement.innerHTML=game.players.map(p=>{const current=game.phase==="clue"&&game.order[game.orderIndex]===p.id,reveal=game.phase==="result";const clues=p.clues||[];const clueHtml=clues.length?clues.map((c,i)=>`<p><b>${i+1}.</b> 「${escapeHtml(c.label)}」</p>`).join(""):(current?'<p class="muted thinking-text">発言を考えています…</p>':'<p class="muted">まだ発言していません</p>');return `<article class="player-seat ${p.isHuman?"is-you":""} ${current?"is-current":""} ${game.eliminatedId===p.id?"is-eliminated":""} ${reveal?"is-reveal":""}"><div class="avatar">${p.isHuman?"YOU":String(p.id).padStart(2,"0")}</div><div class="seat-copy"><div class="seat-name"><strong>${escapeHtml(p.name)}</strong>${p.isHuman?"<span>あなた</span>":"<span>CPU</span>"}</div><div class="player-clues">${clueHtml}</div></div>${game.settings&&game.settings.showLieCount&&p.lies?`<span class="lie-count">嘘 ${p.lies}</span>`:""}${reveal?`<span class="vote-badge">${game.tallies&&game.tallies[p.id]!=null?game.tallies[p.id]:0}票</span><div class="result-meta"><span class="role-reveal ${p.isWolf?"wolf":"citizen"}">${p.isWolf?"狼":"市民"} · ${cardShort(p.card)}</span></div>`:""}</article>`;}).join("");}
-function renderYourCard(){const card=game.players[0].card;yourCardElement.className="playing-card ygo";yourCardElement.innerHTML=`<div class="ygo-card-face"><img src="${cardImage(card)}" alt="${escapeHtml(jpName(card))}"></div><div class="your-card-meta">${cardDisplay(card)}</div>`;}
+function renderYourCard(){
+  yourCardElement.className="playing-card ygo";
+  const card=game?.players?.[0]?.card||game?.citizenCard||CARD_POOL[0]||null;
+  if(!card){
+    yourCardElement.innerHTML=`<div class="ygo-card-face"><div class="card-image-fallback"><strong>カードを準備できません</strong><span>カードデータを確認してください</span></div></div>`;
+    return;
+  }
+  const src=cardImage(card), name=jpName(card);
+  yourCardElement.innerHTML=`<div class="ygo-card-face">${src?`<img src="${escapeHtml(src)}" alt="${escapeHtml(name)}">`:cardImageFallback(card)}</div><div class="your-card-meta">${cardDisplay(card)}</div>`;
+  const img=yourCardElement.querySelector(".ygo-card-face img");
+  if(img) img.addEventListener("error",()=>{const face=img.closest(".ygo-card-face");if(face&&!face.querySelector(".card-image-fallback")){img.remove();face.insertAdjacentHTML("afterbegin",cardImageFallback(card));}}, {once:true});
+}
 function renderLog(){logCount.textContent=`${game.logs.length} 件`;talkLog.innerHTML=game.logs.length?game.logs.map((e,i)=>`<article class="log-entry ${e.type||""}"><span>${String(i+1).padStart(2,"0")}</span><strong>${escapeHtml(e.name)}</strong><p>${escapeHtml(e.text)}</p></article>`).join(""):`<p class="empty-log">発言が始まると、ここに記録されます。</p>`;}
 function renderActionPanel(){if(game.phase==="clue")renderCluePhase();else if(game.phase==="vote")renderVotePhase();else if(game.phase==="reverse")renderReversePhase();else renderResultPhase();}
 const CLUE_MENU_CATEGORIES=[
@@ -270,8 +305,27 @@ function clueCategoryOptions(category){
  if(category==="def") return DEF_STAT_BUCKETS.map(b=>({id:`def-${b.id}`,label:`守備力が${b.label}です`}));
  return [];
 }
-function findClueById(id){return [...featureList(game.players[game.order[game.orderIndex]].card),...AMBIGUOUS_CLUES].find(s=>s.id===id);}
+function findClueById(id){try{return [...featureList(game.players[game.order[game.orderIndex]].card),...AMBIGUOUS_CLUES].find(s=>String(s.id)===String(id))||null;}catch(error){console.error("Practice clue lookup failed",error);return null;}}
+function safePracticeClues(player){
+  try{
+    const opts=availableClues(player);
+    if(Array.isArray(opts)&&opts.length)return opts;
+  }catch(error){console.error("Practice clue generation failed; using fallback clues",error);}
+  const used=new Set(game?.usedClueIds||[]);
+  let fallback=[];
+  try{fallback=featureList(player.card).filter(s=>s&&!used.has(s.id)).slice(0,6);}catch(error){console.error("Practice clue fallback failed",error);}
+  if(!fallback.length){
+    fallback=[
+      {id:"monster",label:"モンスターカードです",test:c=>String(c?.type||"").includes("Monster")},
+      {id:"atk-unknown",label:"攻撃力が？（不明）です",test:c=>!isKnownStat(c?.atk)},
+      {id:"def-unknown",label:"守備力が？（不明）または－です",test:c=>!isKnownStat(c?.def)}
+    ].filter(s=>!used.has(s.id));
+  }
+  return fallback;
+}
+
 function renderCluePhase(){
+ try {
  const current=currentPlayer(),roundLabel=`第${game.round}ラウンド${game.round>1?`（${game.round%2===0?"逆順":"順番"}）`:""}`;
  phaseLabel.textContent=`PHASE ${game.round} / ${roundLabel}・特徴を話す`;
  phaseTitle.textContent=current.isHuman?"あなたの特徴を話そう":`${current.name}の発言を聞こう`;
@@ -280,7 +334,7 @@ function renderCluePhase(){
  }
  const root=game.clueMenu||"root";
  if(root==="root"){
-   const base=availableClues(current);
+   const base=safePracticeClues(current);
    game.currentOptions=base;
    actionPanel.innerHTML=`<div class="action-heading"><p>${roundLabel}</p><h2>何と発言しますか？</h2><span>左の一覧から詳しい条件を選ぶか、右の「すぐに選べる特徴」から選択できます。${game.settings.liePenalty?"狼が嘘発言を2回するか、曖昧発言と嘘発言をそれぞれ1回すると、逆転チャンスを失います。":"嘘の回数によるペナルティはありません。"}</span></div><div class="clue-choice-layout"><section class="clue-menu-column"><p class="clue-list-label">特徴一覧</p><div class="clue-category-grid">${CLUE_MENU_CATEGORIES.map(c=>`<button class="choice-button clue-category-button" type="button" data-clue-category="${c.id}"><span>${c.label}</span><span>→</span></button>`).join("")}</div></section><section class="quick-clue-column"><p class="clue-list-label">すぐに選べる特徴</p><div class="choice-list basic-clue-list">${base.map(s=>`<button class="choice-button ${clueChoiceClass(s,current.card)}" type="button" data-clue-id="${s.id}"><span>${s.label}</span><span>${s.ambiguous?"曖昧":"→"}</span></button>`).join("")}</div></section></div>`;
    actionPanel.querySelectorAll("[data-clue-category]").forEach(b=>b.addEventListener("click",()=>{game.clueMenu=b.dataset.clueCategory;renderCluePhase();}));
@@ -292,11 +346,20 @@ function renderCluePhase(){
    actionPanel.querySelector("#clueBackButton").addEventListener("click",()=>{game.clueMenu="root";renderCluePhase();});
  }
  actionPanel.querySelectorAll("[data-clue-id]").forEach(b=>b.addEventListener("click",()=>submitHumanClue(b.dataset.clueId)));
+} catch(error){
+   console.error("Practice clue render failed",error);
+   const current=currentPlayer();
+   const fallback=safePracticeClues(current);
+   game.currentOptions=fallback;
+   actionPanel.innerHTML=`<div class="action-heading"><p>第${game.round}ラウンド</p><h2>何と発言しますか？</h2><span>発言候補を安全な形式で再表示しました。</span></div><div class="choice-list basic-clue-list">${fallback.map(s=>`<button class="choice-button" type="button" data-clue-id="${escapeHtml(s.id)}"><span>${escapeHtml(s.label)}</span><span>→</span></button>`).join("")}</div>`;
+   actionPanel.querySelectorAll("[data-clue-id]").forEach(b=>b.addEventListener("click",()=>submitHumanClue(b.dataset.clueId)));
+ }
 }
 function submitHumanClue(id){
  if(game.busy||game.phase!=="clue")return;
  game.busy=true;
- const current=currentPlayer(),statement=findClueById(id)||game.currentOptions.find(s=>s?.id===id);
+ const current=currentPlayer();
+ const statement=findClueById(id)||game.currentOptions.find(s=>String(s?.id)===String(id))||safePracticeClues(current).find(s=>String(s?.id)===String(id));
  if(!statement||game.usedClueIds.includes(statement.id)){game.busy=false;renderCluePhase();return;}
  const buttons=actionPanel.querySelectorAll("[data-clue-id]");buttons.forEach(b=>b.disabled=true);
  if(submitClue(current,statement))advanceClueTurn();else game.busy=false;
@@ -493,7 +556,7 @@ actionPanel.addEventListener("pointerdown", async (event)=>{
   }
 });
 
-// v106: online reverse-card selection is handled from stable document-level
+// v108: online reverse-card selection is handled from stable document-level
 // capture listeners. Firebase may replace actionPanel.innerHTML while the user
 // is pressing a card, so transient button/parent listeners can miss the action.
 // pointerdown is the primary activation; click remains as a keyboard fallback.
@@ -999,7 +1062,7 @@ function scheduleOnlineTurnReady(){
   },500);
 }
 function isOnlineTurnReady(){return onlineTurnReadyKey!=="" && onlineTurnReadyKey===onlineTurnKey();}
-// IMPORTANT v106: turn-readiness is visual feedback only. It must never be a
+// IMPORTANT v108: turn-readiness is visual feedback only. It must never be a
 // prerequisite for accepting a user click. A visible button can survive a
 // Firebase snapshot while the cosmetic 500ms readiness key is being rebuilt;
 // previously that made a perfectly valid click silently return. The host
@@ -1111,7 +1174,7 @@ async function submitOnlineActionOnce(action){
     onlineActionPromises.set(actionId,finish);
     try{
       onValue(resultRef,listener);
-      await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v106",createdAt:Date.now()});
+      await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v108",createdAt:Date.now()});
     }catch(e){console.error("online action write failed",e);finish(false);return;}
     timer=setTimeout(()=>{onlineDebug("action-timeout",{actionId,action});finish(false);},8000);
   });

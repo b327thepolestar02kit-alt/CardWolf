@@ -2784,3 +2784,8 @@ section.setup-screen[hidden], section.game-screen[hidden]{display:none!important
 .pool-card.is-unused{filter:grayscale(1);opacity:.38;}
 .pool-card.is-unused img{filter:grayscale(1);}
 .pool-card .pool-unused-label{display:block;margin-top:5px;font-size:.62rem;color:#aeb7c4!important;}
+
+/* v108: graceful card rendering when images are intentionally absent from the release ZIP. */
+.card-image-fallback{width:100%;height:100%;min-height:180px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:14px;text-align:center;box-sizing:border-box;background:linear-gradient(145deg,#182233,#0b111b);color:#f5f7fa;}
+.card-image-fallback strong{font-size:1rem;line-height:1.35;}
+.card-image-fallback span,.card-image-fallback small{font-size:.72rem;color:#c7d0dc;line-height:1.4;}
