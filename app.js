@@ -1,8 +1,8 @@
-/* CardWolf build v108 */
+/* CardWolf build v109 */
 const firebaseConfig = window.FIREBASE_CONFIG || {};
-if (window.CARDWOLF_BUILD_VERSION !== "v108") { window.CARDWOLF_BUILD_VERSION = "v108"; }
+if (window.CARDWOLF_BUILD_VERSION !== "v109") { window.CARDWOLF_BUILD_VERSION = "v109"; }
 const versionEl = document.querySelector(".build-version");
-if (versionEl) { versionEl.textContent = "v108"; versionEl.setAttribute("aria-label", "ゲームバージョン v108"); }
+if (versionEl) { versionEl.textContent = "v109"; versionEl.setAttribute("aria-label", "ゲームバージョン v109"); }
 
 // Firebase is loaded lazily so a CDN/auth/database problem can never disable
 // the basic game UI. The solo/setup buttons must remain usable even when the
@@ -556,7 +556,7 @@ actionPanel.addEventListener("pointerdown", async (event)=>{
   }
 });
 
-// v108: online reverse-card selection is handled from stable document-level
+// v109: online reverse-card selection is handled from stable document-level
 // capture listeners. Firebase may replace actionPanel.innerHTML while the user
 // is pressing a card, so transient button/parent listeners can miss the action.
 // pointerdown is the primary activation; click remains as a keyboard fallback.
@@ -771,7 +771,7 @@ async function createOnlineRoom(){
   const maxPlayers=Math.min(8,Math.max(3,Number(document.getElementById("onlineMaxPlayers")?.value||4)));
   const room={hostUid:firebaseUid,status:"lobby",maxPlayers,createdAt:Date.now(),settings:getOnlineLobbySettings(),players:{[firebaseUid]:{uid:firebaseUid,name,host:true}}};
   await set(ref(firebaseDb,`rooms/${code}`),room);
-  await set(ref(firebaseDb,`rooms/${code}/privateCards/${firebaseUid}`),{cardName:null});
+  await set(ref(firebaseDb,`privateCards/${code}/${firebaseUid}`),{cardName:null});
   openOnlineLobby();
 }
 async function joinOnlineRoom(){
@@ -786,7 +786,7 @@ async function joinOnlineRoom(){
   onlineRoomCodeValue=code;onlineHost=false;
   const name=getPlayerName();
   await update(ref(firebaseDb,`rooms/${code}/players/${firebaseUid}`),{uid:firebaseUid,name,host:false});
-  await set(ref(firebaseDb,`rooms/${code}/privateCards/${firebaseUid}`),{cardName:null});
+  await set(ref(firebaseDb,`privateCards/${code}/${firebaseUid}`),{cardName:null});
   openOnlineLobby();
 }
 function openOnlineLobby(){
@@ -842,7 +842,7 @@ function openOnlineLobby(){
 }
 async function loadOnlineOwnCard(data){
   if(!firebaseUid||!onlineRoomCodeValue)return;
-  const snap=await get(ref(firebaseDb,`rooms/${onlineRoomCodeValue}/privateCards/${firebaseUid}`));
+  const snap=await get(ref(firebaseDb,`privateCards/${onlineRoomCodeValue}/${firebaseUid}`));
   const cardName=snap.val()?.cardName;
   onlineMyCard=CARD_POOL.find(c=>c.name===cardName)||null;
 }
@@ -862,11 +862,15 @@ async function leaveOnlineRoom(options={}){
     const data=snap.val();
     if(data){
       if(wasHost){
+        // Private cards live outside /rooms so the public room read cannot expose them.
+        // Remove the whole private-card bucket before deleting the room; after the
+        // room is deleted the hostUid can no longer authorize this cleanup.
+        await remove(ref(firebaseDb,`privateCards/${roomCode}`)).catch(e=>console.warn("private card cleanup skipped",e));
         // A host leaving must not leave an orphaned playing room behind.
         await remove(roomRef);
       }else if(firebaseUid){
         await remove(ref(firebaseDb,`rooms/${roomCode}/players/${firebaseUid}`));
-        await remove(ref(firebaseDb,`rooms/${roomCode}/privateCards/${firebaseUid}`)).catch(()=>{});
+        await remove(ref(firebaseDb,`privateCards/${roomCode}/${firebaseUid}`)).catch(()=>{});
       }
     }
   }catch(e){console.warn("online leave failed",e);}
@@ -1062,7 +1066,7 @@ function scheduleOnlineTurnReady(){
   },500);
 }
 function isOnlineTurnReady(){return onlineTurnReadyKey!=="" && onlineTurnReadyKey===onlineTurnKey();}
-// IMPORTANT v108: turn-readiness is visual feedback only. It must never be a
+// IMPORTANT v109: turn-readiness is visual feedback only. It must never be a
 // prerequisite for accepting a user click. A visible button can survive a
 // Firebase snapshot while the cosmetic 500ms readiness key is being rebuilt;
 // previously that made a perfectly valid click silently return. The host
@@ -1174,7 +1178,7 @@ async function submitOnlineActionOnce(action){
     onlineActionPromises.set(actionId,finish);
     try{
       onValue(resultRef,listener);
-      await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v108",createdAt:Date.now()});
+      await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v109",createdAt:Date.now()});
     }catch(e){console.error("online action write failed",e);finish(false);return;}
     timer=setTimeout(()=>{onlineDebug("action-timeout",{actionId,action});finish(false);},8000);
   });
@@ -1560,7 +1564,7 @@ async function startOnlineHostGame(){
   // screen and missing timer remained. The new match is now written first, and
   // cleanup is best-effort afterwards.
   try{
-    await Promise.all(humans.map(p=>set(ref(firebaseDb,`rooms/${onlineRoomCodeValue}/privateCards/${p.uid}`),{cardName:cards[p.uid].name})));
+    await Promise.all(humans.map(p=>set(ref(firebaseDb,`privateCards/${onlineRoomCodeValue}/${p.uid}`),{cardName:cards[p.uid].name})));
     await update(onlineRoomRef(),{status:"playing",game:onlineSnapshot()});
   }catch(e){
     console.error("online replay publish failed",e);

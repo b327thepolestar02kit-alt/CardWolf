@@ -17,12 +17,6 @@
             }
           }
         },
-        "privateCards": {
-          "$uid": {
-            ".read": "auth != null && auth.uid == $uid",
-            ".write": "auth != null && (auth.uid == $uid || auth.uid == root.child('rooms').child($roomId).child('hostUid').val())"
-          }
-        },
         "actionResults": {
           "$uid": {
             "$actionId": {
@@ -30,6 +24,15 @@
               ".read": "auth != null && (auth.uid == $uid || auth.uid == root.child('rooms').child($roomId).child('hostUid').val())"
             }
           }
+        }
+      }
+    },
+    "privateCards": {
+      "$roomId": {
+        "$uid": {
+          ".read": "auth != null && auth.uid == $uid",
+          ".write": "auth != null && (auth.uid == $uid || auth.uid == root.child('rooms').child($roomId).child('hostUid').val())",
+          ".validate": "auth.uid == root.child('rooms').child($roomId).child('hostUid').val() || newData.child('cardName').val() == null"
         }
       }
     }
