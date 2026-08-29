@@ -2785,7 +2785,14 @@ section.setup-screen[hidden], section.game-screen[hidden]{display:none!important
 .pool-card.is-unused img{filter:grayscale(1);}
 .pool-card .pool-unused-label{display:block;margin-top:5px;font-size:.62rem;color:#aeb7c4!important;}
 
-/* v109: graceful card rendering when images are intentionally absent from the release ZIP. */
+/* v113: graceful card rendering when images are intentionally absent from the release ZIP. */
 .card-image-fallback{width:100%;height:100%;min-height:180px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:14px;text-align:center;box-sizing:border-box;background:linear-gradient(145deg,#182233,#0b111b);color:#f5f7fa;}
 .card-image-fallback strong{font-size:1rem;line-height:1.35;}
 .card-image-fallback span,.card-image-fallback small{font-size:.72rem;color:#c7d0dc;line-height:1.4;}
+
+
+/* v113 debug mode */
+.debug-panel{position:fixed;right:16px;bottom:16px;z-index:9999;width:min(360px,calc(100vw - 32px));max-height:70vh;overflow:auto;padding:14px;border:1px solid rgba(255,255,255,.18);border-radius:14px;background:rgba(17,24,39,.96);color:#fff;box-shadow:0 14px 40px rgba(0,0,0,.35);font-family:"Zen Kaku Gothic New",sans-serif}.debug-panel-header{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:8px}.debug-panel-header strong{letter-spacing:.12em;font-size:.82rem}.debug-panel-header span{font-size:.75rem;opacity:.72}.debug-state{font-size:.78rem;opacity:.78;margin:6px 0 10px}.debug-player-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-top:1px solid rgba(255,255,255,.1)}.debug-player-row strong{display:block;font-size:.85rem}.debug-player-row small{opacity:.65;font-size:.7rem}.debug-vote-controls{display:flex;align-items:center;gap:4px}.debug-vote-controls button{width:30px;height:30px;border:1px solid rgba(255,255,255,.2);border-radius:6px;background:#263244;color:#fff;font-size:1rem;cursor:pointer}.debug-vote-controls input{width:52px;height:30px;border:1px solid rgba(255,255,255,.2);border-radius:6px;background:#0f172a;color:#fff;text-align:center}.debug-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:10px}.debug-actions button{border:1px solid rgba(255,255,255,.15);border-radius:7px;background:#263244;color:#fff;padding:7px 6px;font-size:.72rem;cursor:pointer}.debug-actions button:hover,.debug-vote-controls button:hover{background:#344258}.debug-message{min-height:1.2em;font-size:.72rem;opacity:.78;margin:9px 0 0}.debug-muted{font-size:.75rem;opacity:.65}html[data-debug-mode="true"] .build-version{background:#7f1d1d!important}
+/* v113: debug controls must always receive pointer input. */
+html[data-debug-mode="true"] .debug-panel{pointer-events:auto!important;user-select:none!important}
+html[data-debug-mode="true"] .debug-panel button{pointer-events:auto!important;cursor:pointer!important;position:relative;z-index:10000}

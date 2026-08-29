@@ -1,6 +1,7 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="ja" data-debug-mode="false">
 <head>
+    <script>document.documentElement.dataset.debugMode=new URLSearchParams(location.search).get("debug")==="1"?"true":"false";</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#111827">
@@ -9,7 +10,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Kaisei+Decol:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css?v=v109">
+    <link rel="stylesheet" href="styles.css?v=v114">
 </head>
 <body>
     <div class="grain" aria-hidden="true"></div>
@@ -43,7 +44,6 @@
                 <span class="corner corner-top">✦</span>
                 <span class="corner corner-bottom">✦</span>
                 <div class="setup-inner">
-                    <p class="step-label">DUEL SETUP</p>
                     <h2>ゲームを始める</h2>
                     <p>名前を決めて、カードウルフへ。</p>
 
@@ -58,6 +58,9 @@
                         </button>
                         <button class="mode-button online-mode-button" id="onlineModeButton" type="button" aria-label="オンラインモード（対人戦）">
                             <strong>オンラインモード（対人戦）</strong><span>ルームを作成・参加して友達と遊ぶ</span>
+                        </button>
+                        <button class="mode-button voice-mode-button" id="voiceModeButton" type="button" aria-label="カード提示のみモード（対人戦）">
+                            <strong>カード提示のみモード（対人戦）</strong><span>カードを提示し、ボイスチャットで自由に議論して遊ぶ</span>
                         </button>
                     </div>
 
@@ -76,9 +79,8 @@
                 <button class="reset-score-button" id="resetScoreButton" type="button">戦績をリセット</button>
             </div>
 
-            <span class="build-version" aria-label="ゲームバージョン v109">v109</span>
+            <span class="build-version" aria-label="ゲームバージョン v114">v114</span>
 
-            <div class="ygo-feature-strip"><span>MONSTER</span><span>ATTRIBUTE</span><span>RACE</span><span>ATK / DEF</span><span>LEVEL / RANK / LINK</span></div>
 
             <ol class="rule-strip" aria-label="ゲームの流れ">
                 <li><span>01</span><strong>カード確認</strong><small>自分の1枚だけを見る</small></li>
@@ -108,7 +110,7 @@
                     <section class="your-card-panel" aria-labelledby="yourCardTitle">
                         <div class="panel-heading">
                             <div>
-                                <p>YOUR DUEL CARD</p>
+                                <p>YOUR CARD</p>
                                 <h2 id="yourCardTitle">あなたのカード</h2>
                             </div>
                         </div>
@@ -144,8 +146,8 @@
     <dialog class="rules-dialog online-dialog" id="onlineDialog">
         <button class="dialog-close" id="closeOnlineButton" type="button" aria-label="閉じる">×</button>
         <p class="step-label">ONLINE DUEL</p>
-        <h2>オンラインモード</h2>
-        <p class="dialog-note">同じURLから参加し、ルームコードで同じゲームに入ります。最大8人。人間が3人未満ならCPUを自動追加します。</p>
+        <h2 id="onlineDialogTitle">オンラインモード</h2>
+        <p class="dialog-note" id="onlineDialogNote">同じURLから参加し、ルームコードで同じゲームに入ります。最大8人。人間が3人未満ならCPUを自動追加します。</p>
 
         <div class="online-actions">
             <button class="primary-button compact" id="createRoomButton" type="button"><span>新しい部屋を作る</span><span>＋</span></button>
@@ -186,9 +188,9 @@
                     <option value="3">3人</option>
                 </select>
             </div>
-            <div class="online-voice-setting" id="onlineVoiceSettingRow">
-                <label class="online-toggle-label"><input id="onlineVoiceMode" type="checkbox"><span><strong>ボイスチャットモード</strong><small>Discord等で話し、発言ボタンを使わずに遊びます。</small></span></label>
+            <div class="online-voice-setting" id="onlineVoiceSettingRow" hidden>
                 <label class="discussion-time-label" for="onlineDiscussionMinutes"><strong>議論時間</strong><select id="onlineDiscussionMinutes"><option value="60">1分</option><option value="120" selected>2分</option><option value="180">3分</option><option value="300">5分</option></select></label>
+                <small class="voice-mode-note">ボイスチャットで自由に議論し、発言ボタンを使わずに遊びます。</small>
             </div>
             <button class="primary-button compact" id="onlineStartButton" type="button"><span>ホストがゲームを開始</span><span>→</span></button>
             <button class="text-button online-leave-button" id="leaveRoomButton" type="button">部屋を退出</button>
@@ -269,8 +271,9 @@
         <div class="pool-grid" id="poolGrid"></div>
     </dialog>
     <script src="data/cards.js"></script>
-    <script src="firebase-config.js?v=v109"></script>
-    <script src="version-check.js?v=v109"></script>
-    <script src="app.js?v=v109"></script>
+    <script src="firebase-config.js?v=v114"></script>
+    <script src="version-check.js?v=v114"></script>
+    <script src="app.js?v=v114"></script>
+    <script src="debug.js?v=v114"></script>
 </body>
 </html>

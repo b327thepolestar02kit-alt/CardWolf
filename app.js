@@ -1,8 +1,8 @@
-/* CardWolf build v109 */
+/* CardWolf build v114 */
 const firebaseConfig = window.FIREBASE_CONFIG || {};
-if (window.CARDWOLF_BUILD_VERSION !== "v109") { window.CARDWOLF_BUILD_VERSION = "v109"; }
+if (window.CARDWOLF_BUILD_VERSION !== "v114") { window.CARDWOLF_BUILD_VERSION = "v114"; }
 const versionEl = document.querySelector(".build-version");
-if (versionEl) { versionEl.textContent = "v109"; versionEl.setAttribute("aria-label", "ゲームバージョン v109"); }
+if (versionEl) { versionEl.textContent = "v114"; versionEl.setAttribute("aria-label", "ゲームバージョン v114"); }
 
 // Firebase is loaded lazily so a CDN/auth/database problem can never disable
 // the basic game UI. The solo/setup buttons must remain usable even when the
@@ -90,14 +90,14 @@ if(liePenaltyToggle) liePenaltyToggle.checked=false;
 if(showLieCountToggle) showLieCountToggle.checked=false;
 const playerNameInput=document.getElementById("playerName"),winCountElement=document.getElementById("winCount"),lossCountElement=document.getElementById("lossCount"),gameWinCountElement=document.getElementById("gameWinCount"),gameLossCountElement=document.getElementById("gameLossCount");
 const settingsDialog=document.getElementById("settingsDialog"),advancedSettingsButton=document.getElementById("advancedSettingsButton"),closeSettingsButton=document.getElementById("closeSettingsButton"),closeSettingsButtonBottom=document.getElementById("closeSettingsButtonBottom"),resetScoreButton=document.getElementById("resetScoreButton"),practicePlayerCountSelect=document.getElementById("practicePlayerCount"),cardPoolSizeSelect=document.getElementById("cardPoolSize");
-const soloModeButton=document.getElementById("soloModeButton"),onlineModeButton=document.getElementById("onlineModeButton");
+const soloModeButton=document.getElementById("soloModeButton"),onlineModeButton=document.getElementById("onlineModeButton"),voiceModeButton=document.getElementById("voiceModeButton");
 const onlineDialog=document.getElementById("onlineDialog"),closeOnlineButton=document.getElementById("closeOnlineButton"),createRoomButton=document.getElementById("createRoomButton"),joinRoomButton=document.getElementById("joinRoomButton"),roomCodeInput=document.getElementById("roomCodeInput"),onlineLobby=document.getElementById("onlineLobby"),onlineRoomCode=document.getElementById("onlineRoomCode"),onlinePlayerList=document.getElementById("onlinePlayerList"),onlineLobbyStatus=document.getElementById("onlineLobbyStatus"),onlineCpuCount=document.getElementById("onlineCpuCount"),onlineStartButton=document.getElementById("onlineStartButton"),leaveRoomButton=document.getElementById("leaveRoomButton");
 
 let selectedPlayerCount=4,game=null,cpuTimer=null;
 let matchRecord={wins:0,losses:0};
 function shuffle(items){const copy=[...items];for(let i=copy.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[copy[i],copy[j]]=[copy[j],copy[i]];}return copy;}
 function randomItem(items){return items[Math.floor(Math.random()*items.length)];}
-function cardImage(card){return String(card?.image||"");}
+function cardImage(card){ if(document.documentElement.dataset.debugMode === "true" && location.protocol === "file:") return ""; return String(card?.image||""); }
 function cardImageFallback(card){return `<div class="card-image-fallback"><strong>${escapeHtml(jpName(card))}</strong><span>${escapeHtml(cardInfo(card))}</span>${cardStats(card)?`<small>${escapeHtml(cardStats(card))}</small>`:""}</div>`;}
 function cardShort(card){return jpName(card);}
 const AMBIGUOUS_CLUES=[
@@ -262,7 +262,7 @@ function renderYourCard(){
   if(img) img.addEventListener("error",()=>{const face=img.closest(".ygo-card-face");if(face&&!face.querySelector(".card-image-fallback")){img.remove();face.insertAdjacentHTML("afterbegin",cardImageFallback(card));}}, {once:true});
 }
 function renderLog(){logCount.textContent=`${game.logs.length} 件`;talkLog.innerHTML=game.logs.length?game.logs.map((e,i)=>`<article class="log-entry ${e.type||""}"><span>${String(i+1).padStart(2,"0")}</span><strong>${escapeHtml(e.name)}</strong><p>${escapeHtml(e.text)}</p></article>`).join(""):`<p class="empty-log">発言が始まると、ここに記録されます。</p>`;}
-function renderActionPanel(){if(game.phase==="clue")renderCluePhase();else if(game.phase==="vote")renderVotePhase();else if(game.phase==="reverse")renderReversePhase();else renderResultPhase();}
+function renderActionPanel(){if(game.phase==="clue")renderCluePhase();else if(game.phase==="vote")renderVotePhase();else if(game.phase==="revote")renderRevotePhase();else if(game.phase==="reverse")renderReversePhase();else renderResultPhase();}
 const CLUE_MENU_CATEGORIES=[
   {id:"basic",label:"基本の特徴"},
   {id:"level",label:"レベル／ランク／リンク"},
@@ -438,7 +438,10 @@ function canWolfReverse(wolf){
   const madeLie=Number(wolf.lies||0)>=1;
   return !(Number(wolf.lies||0)>=2 || (madeAmbiguous&&madeLie));
 }
-function submitVotes(humanVoteId){game.players[0].vote=humanVoteId;game.players.slice(1).forEach(p=>p.vote=chooseCpuVote(p));const tallies=Object.fromEntries(game.players.map(p=>[p.id,0]));game.players.forEach(p=>{if(tallies[p.vote]!=null)tallies[p.vote]++;});game.tallies=tallies;const high=Math.max(...Object.values(tallies)),tied=game.players.filter(p=>tallies[p.id]===high);let eliminated;if(tied.length>1&&!game.settings.noRevote&&game.players.length>tied.length){const voters=game.players.filter(p=>!tied.includes(p));const rt=Object.fromEntries(tied.map(p=>[p.id,0]));voters.forEach(p=>{const pick=randomItem(tied);rt[pick.id]++;});game.tallies=Object.assign({},tallies,rt);const mh=Math.max(...Object.values(rt)),rtied=tied.filter(p=>rt[p.id]===mh);eliminated=randomItem(rtied);game.logs.push({type:"system",name:"再投票",text:`最多票が同数のため再投票。${eliminated.name}が選ばれました。`});}else eliminated=randomItem(tied);game.eliminatedId=eliminated.id;if(eliminated.isWolf){if(!canWolfReverse(game.players[game.wolfIndex])||(game.settings.liePenalty&&game.players[game.wolfIndex].lies>=2)){game.result="citizen";game.phase="result";}else game.phase="reverse";}else{game.result="wolf";game.phase="result";}renderGame();}
+function resolveVoteWinner(eliminated){game.eliminatedId=eliminated.id;if(eliminated.isWolf){if(!canWolfReverse(game.players[game.wolfIndex])||(game.settings.liePenalty&&game.players[game.wolfIndex].lies>=2)){game.result="citizen";game.phase="result";}else game.phase="reverse";}else{game.result="wolf";game.phase="result";}renderGame();}
+function renderRevotePhase(){const candidates=game.revoteCandidates||[];phaseLabel.textContent="PHASE / 再投票";phaseTitle.textContent="同票のため再投票";actionPanel.innerHTML=`<div class="action-heading"><p>REVOTE</p><h2>同票だったプレイヤーから選ぶ</h2><span>もう一度、狼だと思うプレイヤーを選んでください。</span></div><div class="vote-grid">${candidates.map(p=>`<button class="vote-button" type="button" data-revote-id="${p.id}"><span class="mini-avatar">${String(p.id).padStart(2,"0")}</span><span><strong>${escapeHtml(p.name)}</strong><small>前回 ${game.tallies?.[p.id]||0}票</small></span></button>`).join("")}</div>`;actionPanel.querySelectorAll("[data-revote-id]").forEach(b=>b.addEventListener("click",()=>submitRevote(Number(b.dataset.revoteId))));}
+function submitRevote(humanVoteId, forcedVotes=null){if(!game||game.phase!=="revote")return;const candidates=game.revoteCandidates||[];if(!candidates.some(p=>p.id===Number(humanVoteId)))return;game.players.forEach(p=>p.vote=null);game.players[0].vote=Number(humanVoteId);if(forcedVotes){game.players.forEach(p=>{if(forcedVotes[p.id]!=null)p.vote=forcedVotes[p.id];});}else{game.players.slice(1).forEach(p=>p.vote=randomItem(candidates).id);}const tallies=Object.fromEntries(game.players.map(p=>[p.id,0]));game.players.forEach(p=>{if(tallies[p.vote]!=null)tallies[p.vote]++;});game.tallies=tallies;const high=Math.max(...candidates.map(p=>tallies[p.id]||0));const winners=candidates.filter(p=>(tallies[p.id]||0)===high);const eliminated=randomItem(winners);game.logs.push({type:"system",name:"再投票",text:`再投票の結果、${eliminated.name}が最多票になりました。`});game.revoteCandidates=null;resolveVoteWinner(eliminated);}
+function submitVotes(humanVoteId, forcedVotes=null){game.players[0].vote=humanVoteId;if(forcedVotes){game.players.forEach(p=>{if(forcedVotes[p.id]!=null)p.vote=forcedVotes[p.id];});}else{game.players.slice(1).forEach(p=>p.vote=chooseCpuVote(p));}const tallies=Object.fromEntries(game.players.map(p=>[p.id,0]));game.players.forEach(p=>{if(tallies[p.vote]!=null)tallies[p.vote]++;});game.tallies=tallies;const high=Math.max(...Object.values(tallies)),tied=game.players.filter(p=>tallies[p.id]===high);if(tied.length>1&&!game.settings.noRevote&&game.players.length>tied.length){game.revoteCandidates=tied;game.players.forEach(p=>p.vote=null);game.logs.push({type:"system",name:"再投票",text:`最多票が同数（${high}票）のため再投票を行います。`});game.phase="revote";renderGame();return;}resolveVoteWinner(randomItem(tied));}
 function voteSummaryHtml(){
   if(!game||!game.tallies) return "";
   const rows=game.players.map(p=>`<div class="vote-row"><span>${escapeHtml(p.name)}</span><strong>${game.tallies[p.id]||0}票</strong></div>`).join("");
@@ -511,8 +514,10 @@ async function returnToSetup(){
   window.cardWolfOnlineMode=false;
   soloModeButton.classList.remove("is-selected");
   onlineModeButton.classList.remove("is-selected");
+  voiceModeButton.classList.remove("is-selected");
   soloModeButton.setAttribute("aria-pressed","false");
   onlineModeButton.setAttribute("aria-pressed","false");
+  voiceModeButton.setAttribute("aria-pressed","false");
   game=null;
   setupScreen.hidden=false;
   gameScreen.hidden=true;
@@ -556,7 +561,7 @@ actionPanel.addEventListener("pointerdown", async (event)=>{
   }
 });
 
-// v109: online reverse-card selection is handled from stable document-level
+// v114: online reverse-card selection is handled from stable document-level
 // capture listeners. Firebase may replace actionPanel.innerHTML while the user
 // is pressing a card, so transient button/parent listeners can miss the action.
 // pointerdown is the primary activation; click remains as a keyboard fallback.
@@ -615,6 +620,7 @@ restartButton.addEventListener("click",returnToSetup);document.getElementById("r
    card is also written to a per-user private node protected by Firebase rules.
 */
 let onlineMode=false;
+let onlineVoicePreset=false;
 let onlineRoomCodeValue="";
 let onlineRoomUnsubscribe=null;
 let onlineActionUnsubscribe=null;
@@ -642,16 +648,34 @@ let onlineLoadedGameMatchId="";
 // Monotonic session token: callbacks from a room that was already left must never redraw the UI.
 let onlineSessionEpoch=0;
 
-function setMode(isOnline){
+function setMode(mode){
+  const isOnline = mode===true || mode==="online" || mode==="voice";
   onlineMode=Boolean(isOnline);
+  onlineVoicePreset=(mode==="voice");
   window.cardWolfOnlineMode=onlineMode;
   soloModeButton.classList.remove("is-selected");
   onlineModeButton.classList.remove("is-selected");
+  voiceModeButton.classList.remove("is-selected");
   soloModeButton.setAttribute("aria-pressed","false");
   onlineModeButton.setAttribute("aria-pressed","false");
+  voiceModeButton.setAttribute("aria-pressed","false");
+  const title=document.getElementById("onlineDialogTitle");
+  const note=document.getElementById("onlineDialogNote");
+  const voiceRow=document.getElementById("onlineVoiceSettingRow");
   if(onlineMode){
-    // Returning to Online after "最初から" must always start from a clean room chooser.
-    // Never reuse a stale room code or lobby DOM left by an older Firebase callback.
+    if(onlineVoicePreset){
+      voiceModeButton.classList.add("is-selected");
+      voiceModeButton.setAttribute("aria-pressed","true");
+      if(title) title.textContent="カード提示のみモード";
+      if(note) note.textContent="ルームを作成・参加して、カードを提示しながらボイスチャットで自由に議論します。最大8人。人間が3人未満ならCPUを自動追加します。";
+      if(voiceRow) voiceRow.hidden=false;
+    }else{
+      onlineModeButton.classList.add("is-selected");
+      onlineModeButton.setAttribute("aria-pressed","true");
+      if(title) title.textContent="オンラインモード";
+      if(note) note.textContent="同じURLから参加し、ルームコードで同じゲームに入ります。最大8人。人間が3人未満ならCPUを自動追加します。";
+      if(voiceRow) voiceRow.hidden=true;
+    }
     if(!onlineRoomCodeValue){
       onlineSessionEpoch++;
       onlineRoomSnapshotSeq++;
@@ -662,8 +686,6 @@ function setMode(isOnline){
       onlineStartButton.hidden=true; onlineStartButton.disabled=true;
       roomCodeInput.value="";
     }
-    // Open the lobby immediately. Use a non-modal fallback as a safety net
-    // so the button never appears to do nothing on a browser/runtime issue.
     try{
       if(!onlineDialog.open) onlineDialog.showModal();
     }catch(e){
@@ -671,34 +693,37 @@ function setMode(isOnline){
       onlineDialog.setAttribute("open","");
     }
   } else {
+    if(title) title.textContent="オンラインモード";
+    if(note) note.textContent="同じURLから参加し、ルームコードで同じゲームに入ります。最大8人。人間が3人未満ならCPUを自動追加します。";
+    if(voiceRow) voiceRow.hidden=true;
     try{onlineDialog.close();}catch{}
     onlineDialog.removeAttribute("open");
   }
 }
 
-// Keep the mode buttons wired near their definition so a later optional UI
-// failure cannot prevent the online button from receiving its click handler.
-// The data attributes also make the controls usable with keyboard/touch input.
+// Keep the mode buttons wired near their definition.
 soloModeButton.addEventListener("click",()=>{ setMode(false); startGame(); });
-onlineModeButton.addEventListener("click",()=>setMode(true));
+onlineModeButton.addEventListener("click",()=>setMode("online"));
+voiceModeButton.addEventListener("click",()=>setMode("voice"));
 function onlineRoomRef(){return ref(firebaseDb,`rooms/${onlineRoomCodeValue}`);}
 function makeRoomCode(){const chars="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";let s="";for(let i=0;i<4;i++)s+=chars[Math.floor(Math.random()*chars.length)];return s;}
 function onlineSettings(){return {...getSettings(),voiceMode:false,discussionSeconds:120};}
 function getOnlineLobbySettings(){
-  const voice=Boolean(document.getElementById("onlineVoiceMode")?.checked);
+  const voice=Boolean(onlineVoicePreset);
   const seconds=Math.max(60,Number(document.getElementById("onlineDiscussionMinutes")?.value||120));
   return {...onlineSettings(),voiceMode:voice,discussionSeconds:seconds,cardPoolSize:normalizeCardPoolSize(document.getElementById("cardPoolSize")?.value||100)};
 }
 function syncOnlineLobbySettings(data){
   const s=data?.settings||onlineSettings();
-  const voiceEl=document.getElementById("onlineVoiceMode"), timeEl=document.getElementById("onlineDiscussionMinutes"), maxEl=document.getElementById("onlineMaxPlayers"), poolEl=document.getElementById("cardPoolSize");
-  if(voiceEl) voiceEl.checked=Boolean(s.voiceMode);
+  const timeEl=document.getElementById("onlineDiscussionMinutes"), maxEl=document.getElementById("onlineMaxPlayers"), poolEl=document.getElementById("cardPoolSize");
+  const roomIsVoice=Boolean(s.voiceMode);
+  const voiceRow=document.getElementById("onlineVoiceSettingRow");
+  if(voiceRow) voiceRow.hidden=!roomIsVoice;
   if(timeEl) timeEl.value=String(Number(s.discussionSeconds||120));
   if(maxEl) maxEl.value=String(Math.min(8,Math.max(3,Number(data?.maxPlayers||4))));
   if(poolEl) poolEl.value=String(normalizeCardPoolSize(s.cardPoolSize||100));
   renderPoolCount(s);
   if(onlineHost){
-    const row=document.getElementById("onlineVoiceSettingRow"); if(row) row.hidden=false;
     const cpu=document.getElementById("onlineCpuSettingRow"); if(cpu) cpu.hidden=false;
     if(maxEl) maxEl.disabled=false;
   } else {
@@ -1066,7 +1091,7 @@ function scheduleOnlineTurnReady(){
   },500);
 }
 function isOnlineTurnReady(){return onlineTurnReadyKey!=="" && onlineTurnReadyKey===onlineTurnKey();}
-// IMPORTANT v109: turn-readiness is visual feedback only. It must never be a
+// IMPORTANT v114: turn-readiness is visual feedback only. It must never be a
 // prerequisite for accepting a user click. A visible button can survive a
 // Firebase snapshot while the cosmetic 500ms readiness key is being rebuilt;
 // previously that made a perfectly valid click silently return. The host
@@ -1178,7 +1203,7 @@ async function submitOnlineActionOnce(action){
     onlineActionPromises.set(actionId,finish);
     try{
       onValue(resultRef,listener);
-      await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v109",createdAt:Date.now()});
+      await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v114",createdAt:Date.now()});
     }catch(e){console.error("online action write failed",e);finish(false);return;}
     timer=setTimeout(()=>{onlineDebug("action-timeout",{actionId,action});finish(false);},8000);
   });
@@ -1634,7 +1659,7 @@ onlineDialog.addEventListener("cancel",e=>{
 });
 onlineStartButton.addEventListener("click",startOnlineHostGame);
 onlineCpuCount.addEventListener("change",()=>{if(onlineHost&&onlineRoomCodeValue){update(ref(firebaseDb,`rooms/${onlineRoomCodeValue}`),{cpuWanted:Number(onlineCpuCount.value||0)});}});
-for(const id of ["onlineVoiceMode","onlineDiscussionMinutes"]){document.getElementById(id)?.addEventListener("change",async()=>{if(onlineHost&&onlineRoomCodeValue){const settings=getOnlineLobbySettings();await update(ref(firebaseDb,`rooms/${onlineRoomCodeValue}`),{settings});}});}
+document.getElementById("onlineDiscussionMinutes")?.addEventListener("change",async()=>{if(onlineHost&&onlineRoomCodeValue&&onlineVoicePreset){const settings=getOnlineLobbySettings();await update(ref(firebaseDb,`rooms/${onlineRoomCodeValue}`),{settings});}});
 for(const id of ["speechCount","liePenalty","showLieCount","cardPoolSize"]){document.getElementById(id)?.addEventListener("change",async()=>{if(onlineHost&&onlineRoomCodeValue){const settings=getOnlineLobbySettings();await update(ref(firebaseDb,`rooms/${onlineRoomCodeValue}`),{settings});}});}
 
 
@@ -1654,3 +1679,47 @@ window.addEventListener("error", function(e){
 });
 
 /* v42: acknowledge every online action and prevent stale vote/clue requests from hanging clients. */
+
+/* v114 debug bridge: local-file-safe and connected to the real practice state. */
+if (document.documentElement.dataset.debugMode === "true") {
+  const debugApi = {
+    getState(){ return game; },
+    refresh(){ if(game) renderGame(); },
+    triggerRevote(){
+      if(!game || !Array.isArray(game.players) || game.players.length < 4) return false;
+      const others=game.players.filter(p=>!p.isHuman);
+      if(others.length<2) return false;
+      const a=others[0], b=others[1], c=others[2];
+      game.settings={...game.settings,noRevote:false};
+      const forcedVotes={};
+      forcedVotes[game.players[0].id]=a.id;
+      forcedVotes[a.id]=b.id;
+      forcedVotes[b.id]=a.id;
+      forcedVotes[c.id]=b.id;
+      game.players.slice(3).forEach((p,i)=>{forcedVotes[p.id]=i%2===0?a.id:b.id;});
+      const tallies=Object.fromEntries(game.players.map(p=>[p.id,0]));
+      game.players.forEach(p=>{if(tallies[forcedVotes[p.id]]!=null)tallies[forcedVotes[p.id]]++;});
+      // Guarantee the first two non-human players are tied at the highest count.
+      game.players.forEach(p=>p.vote=null);
+      game.players[0].vote=a.id; a.vote=b.id; b.vote=a.id; c.vote=b.id;
+      game.tallies=tallies; game.revoteCandidates=[a,b]; game.phase="revote"; game.eliminatedId=null; game.result=null; game.reverseGuess=null; game.busy=false;
+      game.logs=game.logs||[]; game.logs.push({type:"system",name:"デバッグ",text:`再投票テスト：${a.name}と${b.name}に${tallies[a.id]}票ずつ入れ、再投票画面を表示しました。`});
+      renderGame(); window.dispatchEvent(new Event("cardwolf:debug-state")); return true;
+    },
+    triggerReverse(){
+      if(!game || !Array.isArray(game.players) || game.players.length<2) return false;
+      const citizen=getActiveCardPool(game.settings).find(c=>c.name!==game.players[0].card?.name)||getActiveCardPool(game.settings)[0];
+      const wolfCard=getActiveCardPool(game.settings).find(c=>c.name!==citizen.name)||citizen;
+      game.citizenCard=citizen; game.wolfCard=wolfCard; game.wolfIndex=0;
+      game.players.forEach((p,i)=>{p.isWolf=i===0;p.card=i===0?wolfCard:citizen;p.vote=null;});
+      game.eliminatedId=0; game.tallies=Object.fromEntries(game.players.map(p=>[p.id,0])); game.phase="reverse"; game.result=null; game.reverseGuess=null; game.busy=false;
+      game.logs=game.logs||[]; game.logs.push({type:"system",name:"デバッグ",text:"逆転宣言テスト：あなたを狼にして逆転宣言画面を表示しました。"});
+      renderGame(); window.dispatchEvent(new Event("cardwolf:debug-state")); return true;
+    },
+    triggerResult(){
+      if(!game) return false; game.phase="result"; game.result="citizen"; game.reverseGuess=null; game.eliminatedId=game.wolfIndex; game.tallies=game.tallies||Object.fromEntries(game.players.map(p=>[p.id,0])); renderGame(); window.dispatchEvent(new Event("cardwolf:debug-state")); return true;
+    }
+  };
+  window.CARDWOLF_DEBUG_API=debugApi;
+  window.dispatchEvent(new Event("cardwolf:debug-state"));
+}
