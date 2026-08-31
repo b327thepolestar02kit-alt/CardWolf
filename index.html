@@ -10,7 +10,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Kaisei+Decol:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css?v=v114">
+    <link rel="stylesheet" href="styles.css?v=v117">
 </head>
 <body>
     <div class="grain" aria-hidden="true"></div>
@@ -56,11 +56,14 @@
                         <button class="mode-button practice-mode-button" id="soloModeButton" type="button" aria-label="プラクティスモード（CPU戦）">
                             <strong>プラクティスモード（CPU戦）</strong><span>名前・人数を決めて、そのままゲーム開始</span>
                         </button>
-                        <button class="mode-button online-mode-button" id="onlineModeButton" type="button" aria-label="オンラインモード（対人戦）">
-                            <strong>オンラインモード（対人戦）</strong><span>ルームを作成・参加して友達と遊ぶ</span>
+                        <button class="mode-button online-mode-button" id="onlineModeButton" type="button" aria-label="ルーム対戦（対人戦）">
+                            <strong>ルーム対戦（対人戦）</strong><span>ルームを作成・参加して友達と遊ぶ</span>
                         </button>
-                        <button class="mode-button voice-mode-button" id="voiceModeButton" type="button" aria-label="カード提示のみモード（対人戦）">
-                            <strong>カード提示のみモード（対人戦）</strong><span>カードを提示し、ボイスチャットで自由に議論して遊ぶ</span>
+                        <button class="mode-button voice-mode-button" id="voiceModeButton" type="button" aria-label="カード提示のみルーム対戦（対人戦）">
+                            <strong>カード提示のみルーム対戦（対人戦）</strong><span>カードを提示し、ボイスチャットで自由に議論して遊ぶ</span>
+                        </button>
+                        <button class="mode-button free-match-mode-button" id="freeMatchButton" type="button" aria-label="フリーマッチング（対人戦）">
+                            <strong>フリーマッチング（対人戦）</strong><span>最大30秒待って、参加者と自動でマッチします</span>
                         </button>
                     </div>
 
@@ -79,7 +82,7 @@
                 <button class="reset-score-button" id="resetScoreButton" type="button">戦績をリセット</button>
             </div>
 
-            <span class="build-version" aria-label="ゲームバージョン v114">v114</span>
+            <span class="build-version" aria-label="ゲームバージョン v117">v117</span>
 
 
             <ol class="rule-strip" aria-label="ゲームの流れ">
@@ -145,7 +148,7 @@
 
     <dialog class="rules-dialog online-dialog" id="onlineDialog">
         <button class="dialog-close" id="closeOnlineButton" type="button" aria-label="閉じる">×</button>
-        <p class="step-label">ONLINE DUEL</p>
+        <p class="step-label">ONLINE</p>
         <h2 id="onlineDialogTitle">オンラインモード</h2>
         <p class="dialog-note" id="onlineDialogNote">同じURLから参加し、ルームコードで同じゲームに入ります。最大8人。人間が3人未満ならCPUを自動追加します。</p>
 
@@ -271,9 +274,9 @@
         <div class="pool-grid" id="poolGrid"></div>
     </dialog>
     <script src="data/cards.js"></script>
-    <script src="firebase-config.js?v=v114"></script>
-    <script src="version-check.js?v=v114"></script>
-    <script src="app.js?v=v114"></script>
-    <script src="debug.js?v=v114"></script>
+    <script src="firebase-config.js?v=v117"></script>
+    <script src="version-check.js?v=v117"></script>
+    <script src="app.js?v=v117"></script>
+    <script src="debug.js?v=v117"></script>
 </body>
 </html>

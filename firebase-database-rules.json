@@ -35,6 +35,17 @@
           ".validate": "auth.uid == root.child('rooms').child($roomId).child('hostUid').val() || newData.child('cardName').val() == null"
         }
       }
+    },
+    "freeMatchQueue": {
+      ".read": "auth != null",
+      "$mode": {
+        ".read": "auth != null",
+        "$uid": {
+          ".read": "auth != null",
+          ".write": "auth != null && auth.uid == $uid",
+          ".validate": "newData.hasChildren([\"uid\",\"name\",\"joinedAt\",\"mode\"]) && newData.child(\"uid\").val() == auth.uid && newData.child(\"mode\").val() == $mode && newData.child(\"joinedAt\").isNumber() && newData.child(\"name\").isString() && newData.child(\"name\").val().length <= 12"
+        }
+      }
     }
   }
 }

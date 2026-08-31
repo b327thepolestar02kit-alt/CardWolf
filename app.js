@@ -1,8 +1,8 @@
-/* CardWolf build v114 */
+/* CardWolf build v117 */
 const firebaseConfig = window.FIREBASE_CONFIG || {};
-if (window.CARDWOLF_BUILD_VERSION !== "v114") { window.CARDWOLF_BUILD_VERSION = "v114"; }
+if (window.CARDWOLF_BUILD_VERSION !== "v117") { window.CARDWOLF_BUILD_VERSION = "v117"; }
 const versionEl = document.querySelector(".build-version");
-if (versionEl) { versionEl.textContent = "v114"; versionEl.setAttribute("aria-label", "ゲームバージョン v114"); }
+if (versionEl) { versionEl.textContent = "v117"; versionEl.setAttribute("aria-label", "ゲームバージョン v117"); }
 
 // Firebase is loaded lazily so a CDN/auth/database problem can never disable
 // the basic game UI. The solo/setup buttons must remain usable even when the
@@ -94,7 +94,8 @@ const soloModeButton=document.getElementById("soloModeButton"),onlineModeButton=
 const onlineDialog=document.getElementById("onlineDialog"),closeOnlineButton=document.getElementById("closeOnlineButton"),createRoomButton=document.getElementById("createRoomButton"),joinRoomButton=document.getElementById("joinRoomButton"),roomCodeInput=document.getElementById("roomCodeInput"),onlineLobby=document.getElementById("onlineLobby"),onlineRoomCode=document.getElementById("onlineRoomCode"),onlinePlayerList=document.getElementById("onlinePlayerList"),onlineLobbyStatus=document.getElementById("onlineLobbyStatus"),onlineCpuCount=document.getElementById("onlineCpuCount"),onlineStartButton=document.getElementById("onlineStartButton"),leaveRoomButton=document.getElementById("leaveRoomButton");
 
 let selectedPlayerCount=4,game=null,cpuTimer=null;
-let matchRecord={wins:0,losses:0};
+let matchRecord=(()=>{try{const v=JSON.parse(localStorage.getItem("cardwolf.matchRecord")||"null");return {wins:Number(v?.wins)||0,losses:Number(v?.losses)||0};}catch{return {wins:0,losses:0};}})();
+function saveMatchRecord(){try{localStorage.setItem("cardwolf.matchRecord",JSON.stringify(matchRecord));}catch{}}
 function shuffle(items){const copy=[...items];for(let i=copy.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[copy[i],copy[j]]=[copy[j],copy[i]];}return copy;}
 function randomItem(items){return items[Math.floor(Math.random()*items.length)];}
 function cardImage(card){ if(document.documentElement.dataset.debugMode === "true" && location.protocol === "file:") return ""; return String(card?.image||""); }
@@ -205,9 +206,12 @@ function syncPracticePlayerCount(){
 function getSettings(){return{speechRounds:Number(speechCountSelect.value||2),liePenalty:Boolean(liePenaltyToggle.checked),showLieCount:Boolean(showLieCountToggle&& showLieCountToggle.checked),cardPoolSize:normalizeCardPoolSize(cardPoolSizeSelect?.value||100)};}
 function randomPlayerName(){return randomItem(["ユウ","カイ","レン","アキラ","ナギ","ハヤト","ソラ","ミナ","リク","シン"]);}
 function getPlayerName(){const n=(playerNameInput?.value||"").trim();return n||randomPlayerName();}
+function loadPersistentProfile(){try{const n=localStorage.getItem("cardwolf.playerName");if(n&&playerNameInput&&!playerNameInput.value)playerNameInput.value=n;}catch{}}
+playerNameInput?.addEventListener("input",()=>{try{localStorage.setItem("cardwolf.playerName",playerNameInput.value);}catch{}});
+loadPersistentProfile();
 function renderPoolCount(settings=getSettings()){if(poolCountElement){const n=normalizeCardPoolSize(settings?.cardPoolSize);poolCountElement.textContent=String(n);}}
 renderPoolCount();
-function renderRecord(){if(winCountElement)winCountElement.textContent=matchRecord.wins;if(lossCountElement)lossCountElement.textContent=matchRecord.losses;if(gameWinCountElement)gameWinCountElement.textContent=matchRecord.wins;if(gameLossCountElement)gameLossCountElement.textContent=matchRecord.losses;}
+function renderRecord(){saveMatchRecord();if(winCountElement)winCountElement.textContent=matchRecord.wins;if(lossCountElement)lossCountElement.textContent=matchRecord.losses;if(gameWinCountElement)gameWinCountElement.textContent=matchRecord.wins;if(gameLossCountElement)gameLossCountElement.textContent=matchRecord.losses;}
 function buildOrder(round){const forward=Array.from({length:selectedPlayerCount},(_,i)=>i);return Number(round)%2===0?forward.slice().reverse():forward;}
 function startGame(){
   clearTimeout(cpuTimer);
@@ -470,6 +474,7 @@ function finishReverseGuess(guess){game.reverseGuess=guess;const correct=guess&&
 function recordFinishedGame(){if(!game||game.recorded)return;const wolfWon=game.result==="wolf"||game.result==="wolf-reversal";if(game.players[0].isWolf===wolfWon)matchRecord.wins++;else matchRecord.losses++;game.recorded=true;renderRecord();}
 function renderResultPhase(){recordFinishedGame();phaseLabel.textContent="GAME OVER / 答え合わせ";const wolfWon=game.result==="wolf"||game.result==="wolf-reversal";phaseTitle.textContent=wolfWon?"狼チームの勝利":"市民チームの勝利";const msg={wolf:"選ばれたプレイヤーは市民でした。狼は正体を隠し切りました。","wolf-reversal":`狼が市民カード「${jpName(game.citizenCard)}」を見事に当て、逆転しました。`,citizen:`狼の宣言は「${game.reverseGuess?jpName(game.reverseGuess):"不明"}」。正解は「${jpName(game.citizenCard)}」でした。`}[game.result];actionPanel.innerHTML=`<div class="result-banner ${wolfWon?"wolf-win":"citizen-win"}"><p>${wolfWon?"狼チームの勝利":"市民チームの勝利"}</p><h2>${wolfWon?"狼の勝利":"市民の勝利"}</h2><span>${msg}</span></div><div class="answer-cards"><div><small>市民カード</small><img class="ygo-thumb" src="${cardImage(game.citizenCard)}"><strong>${jpName(game.citizenCard)}</strong><em>${cardInfo(game.citizenCard)}${cardStats(game.citizenCard)?" · "+cardStats(game.citizenCard):""}</em></div><div><small>狼カード</small><img class="ygo-thumb" src="${cardImage(game.wolfCard)}"><strong>${jpName(game.wolfCard)}</strong><em>${cardInfo(game.wolfCard)}${cardStats(game.wolfCard)?" · "+cardStats(game.wolfCard):""}</em></div></div><button class="primary-button compact" id="playAgainButton" type="button"><span>もう一度遊ぶ</span><span>↻</span></button>`;document.getElementById("playAgainButton").addEventListener("click",startGame);}
 async function returnToSetup(){
+  stopFreeMatch();
   clearTimeout(cpuTimer);
   clearTimeout(onlineCpuTimer);
   // Detach Firebase listeners immediately; cleanup is best-effort and never
@@ -515,9 +520,11 @@ async function returnToSetup(){
   soloModeButton.classList.remove("is-selected");
   onlineModeButton.classList.remove("is-selected");
   voiceModeButton.classList.remove("is-selected");
+  document.getElementById("freeMatchButton")?.classList.remove("is-selected");
   soloModeButton.setAttribute("aria-pressed","false");
   onlineModeButton.setAttribute("aria-pressed","false");
   voiceModeButton.setAttribute("aria-pressed","false");
+  document.getElementById("freeMatchButton")?.setAttribute("aria-pressed","false");
   game=null;
   setupScreen.hidden=false;
   gameScreen.hidden=true;
@@ -561,7 +568,7 @@ actionPanel.addEventListener("pointerdown", async (event)=>{
   }
 });
 
-// v114: online reverse-card selection is handled from stable document-level
+// v115: online reverse-card selection is handled from stable document-level
 // capture listeners. Firebase may replace actionPanel.innerHTML while the user
 // is pressing a card, so transient button/parent listeners can miss the action.
 // pointerdown is the primary activation; click remains as a keyboard fallback.
@@ -621,6 +628,10 @@ restartButton.addEventListener("click",returnToSetup);document.getElementById("r
 */
 let onlineMode=false;
 let onlineVoicePreset=false;
+let freeMatchMode=false;
+let freeMatchQueueUnsubscribe=null;
+let freeMatchStartedAt=0;
+let freeMatchTimer=null;
 let onlineRoomCodeValue="";
 let onlineRoomUnsubscribe=null;
 let onlineActionUnsubscribe=null;
@@ -649,9 +660,10 @@ let onlineLoadedGameMatchId="";
 let onlineSessionEpoch=0;
 
 function setMode(mode){
-  const isOnline = mode===true || mode==="online" || mode==="voice";
+  const isOnline = mode===true || mode==="online" || mode==="voice" || mode==="free";
   onlineMode=Boolean(isOnline);
   onlineVoicePreset=(mode==="voice");
+  freeMatchMode=(mode==="free");
   window.cardWolfOnlineMode=onlineMode;
   soloModeButton.classList.remove("is-selected");
   onlineModeButton.classList.remove("is-selected");
@@ -663,6 +675,14 @@ function setMode(mode){
   const note=document.getElementById("onlineDialogNote");
   const voiceRow=document.getElementById("onlineVoiceSettingRow");
   if(onlineMode){
+    if(freeMatchMode){
+      const b=document.getElementById("freeMatchButton"); if(b){b.classList.add("is-selected");b.setAttribute("aria-pressed","true");}
+      if(title) title.textContent="フリーマッチング（対人戦）";
+      if(note) note.textContent="最大30秒、同じフリーマッチングに参加したプレイヤーと自動でマッチします。4人部屋で、2〜3人ならCPUが参加します。";
+      if(voiceRow) voiceRow.hidden=true;
+      startFreeMatch();
+      return;
+    }
     if(onlineVoicePreset){
       voiceModeButton.classList.add("is-selected");
       voiceModeButton.setAttribute("aria-pressed","true");
@@ -705,6 +725,83 @@ function setMode(mode){
 soloModeButton.addEventListener("click",()=>{ setMode(false); startGame(); });
 onlineModeButton.addEventListener("click",()=>setMode("online"));
 voiceModeButton.addEventListener("click",()=>setMode("voice"));
+document.getElementById("freeMatchButton")?.addEventListener("click",()=>setMode("free"));
+function freeMatchQueueRef(){return ref(firebaseDb,"freeMatchQueue");}
+function freeMatchModeKey(){return "standard";}
+function freeMatchRoomCode(uids){const text=[...uids].sort().join("|");let h=2166136261;for(let i=0;i<text.length;i++){h^=text.charCodeAt(i);h=Math.imul(h,16777619);}const chars="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";let out="";for(let i=0;i<6;i++){out+=chars[(h>>>((i%4)*5))%chars.length];h=Math.imul(h^i,16777619);}return out;}
+function stopFreeMatch(){if(freeMatchQueueUnsubscribe){freeMatchQueueUnsubscribe();freeMatchQueueUnsubscribe=null;}if(freeMatchTimer){clearInterval(freeMatchTimer);freeMatchTimer=null;}freeMatchStartedAt=0;}
+async function startFreeMatch(){
+  stopFreeMatch();
+  // Open the matching UI and start the local 30-second deadline immediately.
+  // The countdown must not depend on Firebase SDK loading or a successful queue write.
+  freeMatchStartedAt=Date.now();
+  onlineMode=true;onlineVoicePreset=false;onlineHost=false;onlineRoomCodeValue="";
+  createRoomButton.hidden=true;joinRoomButton.hidden=true;roomCodeInput.hidden=true;
+  onlineLobby.hidden=false;onlineLobbyStatus.textContent="マッチング中… 残り30秒";onlinePlayerList.innerHTML="<div class=\"muted\">対戦相手を探しています…</div>";
+  document.getElementById("onlinePlayerLimitSettingRow")?.setAttribute("hidden","");document.getElementById("onlineCpuSettingRow")?.setAttribute("hidden","");document.getElementById("onlineVoiceSettingRow")?.setAttribute("hidden","");onlineStartButton.hidden=true;
+  if(!onlineDialog.open){try{onlineDialog.showModal();}catch{onlineDialog.setAttribute("open","");}}
+  const deadline=freeMatchStartedAt+30000;
+  freeMatchTimer=setInterval(async()=>{
+    const left=Math.max(0,Math.ceil((deadline-Date.now())/1000));
+    if(left>0){onlineLobbyStatus.textContent=`マッチング中… 残り${left}秒`;return;}
+    if(freeMatchTimer){clearInterval(freeMatchTimer);freeMatchTimer=null;}
+    if(freeMatchStartedAt!==0){
+      const currentStart=freeMatchStartedAt;
+      freeMatchStartedAt=0;
+      if(freeMatchQueueUnsubscribe){try{freeMatchQueueUnsubscribe();}catch{}freeMatchQueueUnsubscribe=null;}
+      try{if(firebaseDb&&firebaseUid) await remove(ref(firebaseDb,`freeMatchQueue/${freeMatchModeKey()}/${firebaseUid}`));}catch{}
+      onlineLobbyStatus.textContent="マッチングに失敗しました";
+      alert("30秒以内に対戦相手が見つからなかったため、マッチングを終了しました。");
+      returnToSetup();
+    }
+  },250);
+  try{await ensureFirebase();}catch(e){
+    if(freeMatchStartedAt){
+      stopFreeMatch();
+      alert(firebaseAuthErrorText(e));
+      returnToSetup();
+    }
+    return;
+  }
+  if(!freeMatchStartedAt) return;
+  const uid=firebaseUid,name=getPlayerName();
+  const entryRef=ref(firebaseDb,`freeMatchQueue/${freeMatchModeKey()}/${uid}`);
+  try{await set(entryRef,{uid,name,joinedAt:freeMatchStartedAt,mode:freeMatchModeKey()});}
+  catch(e){
+    stopFreeMatch();
+    const code=String(e?.code||e?.message||"");
+    const msg=code.includes("permission_denied")
+      ? "フリーマッチングの利用権限がFirebase側で許可されていません。管理者は firebase-database-rules.json をRealtime Databaseへデプロイしてください。"
+      : "マッチングサーバーへの接続に失敗しました。時間をおいて再度お試しください。";
+    alert(msg);
+    returnToSetup();
+    return;
+  }
+  freeMatchQueueUnsubscribe=onValue(freeMatchQueueRef(),async snap=>{
+    const all=Object.values(snap.val()?.[freeMatchModeKey()]||{}).filter(x=>x&&x.uid&&Number(x.joinedAt)>Date.now()-30000).sort((a,b)=>Number(a.joinedAt)-Number(b.joinedAt));
+    const now=Date.now();
+    if(!freeMatchStartedAt || now-freeMatchStartedAt>=30000)return;
+    const candidates=all.slice(0,4);
+    if(candidates.length<2 || !candidates.some(x=>String(x.uid)===String(uid)))return;
+    const ids=candidates.map(x=>String(x.uid)).sort();
+    const roomCode=freeMatchRoomCode(ids);const hostUid=ids[0];
+    await update(entryRef,{roomCode,hostUid}).catch(()=>{});
+    if(String(uid)===String(hostUid)){
+      const roomSnap=await get(ref(firebaseDb,`rooms/${roomCode}`));
+      if(!roomSnap.exists()){
+        const players={};candidates.forEach(x=>players[x.uid]={uid:x.uid,name:x.name,host:String(x.uid)===String(hostUid)});
+        const settings={...getSettings(),voiceMode:false,discussionSeconds:120};
+        await set(ref(firebaseDb,`rooms/${roomCode}`),{hostUid,status:"lobby",maxPlayers:4,createdAt:Date.now(),freeMatch:true,settings,players});
+        for(const x of candidates) await set(ref(firebaseDb,`privateCards/${roomCode}/${x.uid}`),{cardName:null});
+      }
+    }
+    stopFreeMatch();await remove(entryRef).catch(()=>{});
+    onlineRoomCodeValue=roomCode;onlineHost=String(uid)===String(hostUid);freeMatchMode=false;onlineVoicePreset=false;
+    openOnlineLobby();
+    if(onlineHost){setTimeout(()=>startOnlineHostGame(),500);}
+  });
+}
+
 function onlineRoomRef(){return ref(firebaseDb,`rooms/${onlineRoomCodeValue}`);}
 function makeRoomCode(){const chars="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";let s="";for(let i=0;i<4;i++)s+=chars[Math.floor(Math.random()*chars.length)];return s;}
 function onlineSettings(){return {...getSettings(),voiceMode:false,discussionSeconds:120};}
@@ -872,6 +969,7 @@ async function loadOnlineOwnCard(data){
   onlineMyCard=CARD_POOL.find(c=>c.name===cardName)||null;
 }
 async function leaveOnlineRoom(options={}){
+  stopFreeMatch();
   if(!onlineRoomCodeValue)return;
   // Invalidate callbacks before awaiting any network operation.
   onlineSessionEpoch++;
@@ -1091,7 +1189,7 @@ function scheduleOnlineTurnReady(){
   },500);
 }
 function isOnlineTurnReady(){return onlineTurnReadyKey!=="" && onlineTurnReadyKey===onlineTurnKey();}
-// IMPORTANT v114: turn-readiness is visual feedback only. It must never be a
+// IMPORTANT v115: turn-readiness is visual feedback only. It must never be a
 // prerequisite for accepting a user click. A visible button can survive a
 // Firebase snapshot while the cosmetic 500ms readiness key is being rebuilt;
 // previously that made a perfectly valid click silently return. The host
@@ -1203,7 +1301,7 @@ async function submitOnlineActionOnce(action){
     onlineActionPromises.set(actionId,finish);
     try{
       onValue(resultRef,listener);
-      await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v114",createdAt:Date.now()});
+      await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v117",createdAt:Date.now()});
     }catch(e){console.error("online action write failed",e);finish(false);return;}
     timer=setTimeout(()=>{onlineDebug("action-timeout",{actionId,action});finish(false);},8000);
   });
@@ -1520,10 +1618,10 @@ async function startOnlineHostGame(){
   const snap=await get(onlineRoomRef()),room=snap.val();if(!room){onlineHostProcessing=false;return;}
   const humans=lobbyPlayersFromValue(room);
   const wantedCpu=Math.max(0,Math.min(Number(onlineCpuCount.value||0),8-humans.length));
-  const cpuNeeded=Math.max(wantedCpu,3-humans.length);
+  const cpuNeeded=room.freeMatch?Math.max(0,4-humans.length):Math.max(wantedCpu,3-humans.length);
   const total=humans.length+cpuNeeded;
-  const maxPlayers=Math.min(8,Math.max(3,Number(room.maxPlayers||4)));
-  if(total<3||total>maxPlayers){alert(`オンラインは合計3〜${maxPlayers}人で開始します。`);onlineHostProcessing=false;return;}
+  const maxPlayers=room.freeMatch?4:Math.min(8,Math.max(3,Number(room.maxPlayers||4)));
+  if((room.freeMatch && humans.length<2) || total<3 || total>maxPlayers){alert(room.freeMatch?"フリーマッチングはプレイヤー2人以上で開始します。":"オンラインは合計3〜"+maxPlayers+"人で開始します。");onlineHostProcessing=false;return;}
 
   const settings=room.settings||onlineSettings();
   const activePool=getActiveCardPool(settings);
@@ -1680,7 +1778,7 @@ window.addEventListener("error", function(e){
 
 /* v42: acknowledge every online action and prevent stale vote/clue requests from hanging clients. */
 
-/* v114 debug bridge: local-file-safe and connected to the real practice state. */
+/* v115 debug bridge: local-file-safe and connected to the real practice state. */
 if (document.documentElement.dataset.debugMode === "true") {
   const debugApi = {
     getState(){ return game; },
