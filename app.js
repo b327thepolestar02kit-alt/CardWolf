@@ -1,8 +1,8 @@
-/* CardWolf build v131 */
+/* CardWolf build v132 */
 const firebaseConfig = window.FIREBASE_CONFIG || {};
-if (window.CARDWOLF_BUILD_VERSION !== "v131") { window.CARDWOLF_BUILD_VERSION = "v131"; }
+if (window.CARDWOLF_BUILD_VERSION !== "v132") { window.CARDWOLF_BUILD_VERSION = "v132"; }
 const versionEl = document.querySelector(".build-version");
-if (versionEl) { versionEl.textContent = "v131"; versionEl.setAttribute("aria-label", "ゲームバージョン v131"); }
+if (versionEl) { versionEl.textContent = "v132"; versionEl.setAttribute("aria-label", "ゲームバージョン v132"); }
 
 // Firebase is loaded lazily so a CDN/auth/database problem can never disable
 // the basic game UI. The solo/setup buttons must remain usable even when the
@@ -124,13 +124,15 @@ const RACE_OPTIONS=[
 ];
 const LEVEL_LINK_OPTIONS=Array.from({length:7},(_,i)=>i);
 const LEVEL_ONLY_OPTIONS=Array.from({length:7},(_,i)=>i+7);
+// v132: ATK/DEF statements use 500-point ranges instead of cumulative
+// thresholds. Unknown values and 2501+ remain standalone statements.
 const ATK_STAT_BUCKETS=[
   {id:"unknown",label:"？（不明）",test:v=>v===-1||v===null||v===undefined||v===""},
   {id:"le500",label:"500以下",test:v=>Number.isFinite(Number(v))&&Number(v)>=0&&Number(v)<=500},
-  {id:"le1000",label:"1000以下",test:v=>Number.isFinite(Number(v))&&Number(v)>=0&&Number(v)<=1000},
-  {id:"le1500",label:"1500以下",test:v=>Number.isFinite(Number(v))&&Number(v)>=0&&Number(v)<=1500},
-  {id:"le2000",label:"2000以下",test:v=>Number.isFinite(Number(v))&&Number(v)>=0&&Number(v)<=2000},
-  {id:"le2500",label:"2500以下",test:v=>Number.isFinite(Number(v))&&Number(v)>=0&&Number(v)<=2500},
+  {id:"range5011000",label:"501～1000",test:v=>Number.isFinite(Number(v))&&Number(v)>=501&&Number(v)<=1000},
+  {id:"range10011500",label:"1001～1500",test:v=>Number.isFinite(Number(v))&&Number(v)>=1001&&Number(v)<=1500},
+  {id:"range15012000",label:"1501～2000",test:v=>Number.isFinite(Number(v))&&Number(v)>=1501&&Number(v)<=2000},
+  {id:"range20012500",label:"2001～2500",test:v=>Number.isFinite(Number(v))&&Number(v)>=2001&&Number(v)<=2500},
   {id:"ge2501",label:"2501以上",test:v=>Number.isFinite(Number(v))&&Number(v)>=2501}
 ];
 const DEF_STAT_BUCKETS=[
@@ -199,9 +201,6 @@ function featureList(card){
     {id:"level-none",label:"レベルを持たないモンスターです。",test:c=>Number(c.level)===0},
     ...ATK_STAT_BUCKETS.map(bucket=>({id:`atk-${bucket.id}`,label:`攻撃力が${bucket.label}です`,test:c=>bucket.test(c.atk)})),
     ...DEF_STAT_BUCKETS.map(bucket=>({id:`def-${bucket.id}`,label:`守備力が${bucket.label}です`,test:c=>bucket.test(c.def)})),
-    {id:"high-atk",label:"攻撃力が2500以上です",test:c=>isKnownStat(c.atk)&&Number(c.atk)>=2500},
-    {id:"low-atk",label:"攻撃力が1500以下です",test:c=>isKnownStat(c.atk)&&Number(c.atk)<=1500},
-    {id:"high-def",label:"守備力が2500以上です",test:c=>isKnownStat(c.def)&&Number(c.def)>=2500},
     {id:"name-blue",label:"「青眼」に関係するカードです",test:c=>c.name.includes("Blue-Eyes")},
     {id:"name-dark",label:"「ブラック」または「ダーク」に関係する名前です",test:c=>c.name.includes("Dark")||c.name.includes("Black")},
     {id:"name-red",label:"「真紅眼」に関係するカードです",test:c=>c.name.includes("Red-Eyes")},
@@ -566,14 +565,14 @@ async function returnToSetup(){
   const mainScroller=document.querySelector("main"); if(mainScroller) mainScroller.scrollTop=0; else window.scrollTo({top:0,behavior:"auto"});
 }
 function openPool(){const activeSize=normalizeCardPoolSize((onlineMode&&onlineGame?.settings?.cardPoolSize)||getSettings().cardPoolSize);renderPoolCount({cardPoolSize:activeSize});poolGrid.innerHTML=CARD_POOL.map((c,i)=>{const active=i<activeSize;const statusLabel=active?"使用カード":"未使用カード";const unusedLabel=active?"":'<small class="pool-unused-label">今回のゲームでは不使用</small>';return `<div class="pool-card ${active?"is-active":"is-unused"}" aria-label="${statusLabel}"><img src="${cardImage(c)}" alt="${escapeHtml(jpName(c))}">${cardDisplay(c)}${unusedLabel}</div>`;}).join("");poolDialog.showModal();}
-// v131: Mobile touch scrolling must not activate a clue/vote button when the finger moved.
+// v132: Mobile touch scrolling must not activate a clue/vote button when the finger moved.
 let cwTouchStart=null;
 actionPanel.addEventListener("pointerdown",e=>{if(e.pointerType!=="touch")return;const b=e.target.closest?.("button");cwTouchStart=b?{button:b,x:e.clientX,y:e.clientY,moved:false}:null;},{capture:true});
 actionPanel.addEventListener("pointermove",e=>{if(!cwTouchStart||e.pointerType!=="touch")return;if(Math.hypot(e.clientX-cwTouchStart.x,e.clientY-cwTouchStart.y)>10)cwTouchStart.moved=true;},{capture:true});
 actionPanel.addEventListener("click",e=>{if(!cwTouchStart)return;if(cwTouchStart.moved&&e.target.closest?.("button")===cwTouchStart.button){e.preventDefault();e.stopImmediatePropagation();}cwTouchStart=null;},{capture:true});
 actionPanel.addEventListener("pointercancel",()=>{cwTouchStart=null;},{capture:true});
 
-// v131: Keep practice clue-menu toggles on a stable parent so re-renders cannot drop the handler.
+// v132: Keep practice clue-menu toggles on a stable parent so re-renders cannot drop the handler.
 actionPanel.addEventListener("pointerdown",(event)=>{
   const neg=event.target.closest?.("[data-clue-negative-category]");
   const pos=event.target.closest?.("[data-clue-positive-category]");
@@ -632,7 +631,7 @@ actionPanel.addEventListener("pointerdown", async (event)=>{
   }
 });
 
-// v131: Reverse-card selection must distinguish a tap from a scroll gesture.
+// v132: Reverse-card selection must distinguish a tap from a scroll gesture.
 // On touch devices, activating on pointerdown makes the first touch of a card
 // select it before the user has had a chance to start scrolling. We therefore
 // remember the touched card and activate only on pointerup when the finger
@@ -1529,7 +1528,7 @@ async function submitOnlineActionOnce(action){
     onlineActionPromises.set(actionId,finish);
     try{
       onValue(resultRef,listener);
-      await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v131",createdAt:Date.now()});
+      await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v132",createdAt:Date.now()});
     }catch(e){console.error("online action write failed",e);finish(false);return;}
     timer=setTimeout(()=>{onlineDebug("action-timeout",{actionId,action});finish(false);},8000);
   });
