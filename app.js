@@ -1,8 +1,8 @@
-/* CardWolf build v128 */
+/* CardWolf build v129 */
 const firebaseConfig = window.FIREBASE_CONFIG || {};
-if (window.CARDWOLF_BUILD_VERSION !== "v128") { window.CARDWOLF_BUILD_VERSION = "v128"; }
+if (window.CARDWOLF_BUILD_VERSION !== "v129") { window.CARDWOLF_BUILD_VERSION = "v129"; }
 const versionEl = document.querySelector(".build-version");
-if (versionEl) { versionEl.textContent = "v128"; versionEl.setAttribute("aria-label", "ゲームバージョン v128"); }
+if (versionEl) { versionEl.textContent = "v129"; versionEl.setAttribute("aria-label", "ゲームバージョン v129"); }
 
 // Firebase is loaded lazily so a CDN/auth/database problem can never disable
 // the basic game UI. The solo/setup buttons must remain usable even when the
@@ -481,7 +481,7 @@ function voteSummaryHtml(){
   const rows=game.players.map(p=>`<div class="vote-row"><span>${escapeHtml(p.name)}</span><strong>${game.tallies[p.id]||0}票</strong></div>`).join("");
   return `<section class="vote-summary-panel"><h3>投票結果</h3><p>誰が何票集めたかを確認できます。</p>${rows}</section>`;
 }
-function renderReversePhase(){phaseLabel.textContent="FINAL PHASE / 狼の逆転チャンス";const wolf=game.players[game.wolfIndex];phaseTitle.textContent=`${wolf.name}は狼だった！`;if(wolf.isHuman){actionPanel.innerHTML=`<div class="action-heading danger"><p>あなたは狼です</p><h2>市民カードを当てよう</h2><span>市民カードと同じカードを選べば逆転勝利です。</span></div><div class="vote-tally">${game.players.map(p=>`<span>${p.name}: ${game.tallies?.[p.id]||0}票</span>`).join("")}</div><input class="reverse-search" id="reverseSearch" placeholder="カード名を検索（日本語）"><div class="guess-card-grid">${getActiveCardPool(game.settings).filter(c=>c.name!==wolf.card.name).map(c=>`<button class="guess-card-button" data-guess="${escapeHtml(c.name)}"><img src="${cardImage(c)}" alt="${escapeHtml(jpName(c))}"><span>${escapeHtml(jpName(c))}</span><small>${escapeHtml(reverseGuessInfo(c))}</small></button>`).join("")}</div>`;document.getElementById("reverseSearch")?.addEventListener("input",e=>{const q=e.target.value;actionPanel.querySelectorAll("[data-guess]").forEach(b=>b.style.display=(b.textContent.includes(q)?"":"none"));});actionPanel.querySelectorAll("[data-guess]").forEach(b=>b.addEventListener("click",()=>finishReverseGuess(getActiveCardPool(game.settings).find(c=>c.name===b.dataset.guess))));return;}actionPanel.innerHTML=`<div class="wolf-reveal"><span class="wolf-eye" aria-hidden="true">W</span><div><p>最終チャンス</p><h2>${wolf.name}が市民カードを推理します</h2><span>当てられたら、狼の逆転勝利です。</span></div></div><button class="primary-button compact" id="cpuGuessButton" type="button"><span>逆転宣言を見る</span><span>→</span></button>`;document.getElementById("cpuGuessButton").addEventListener("click",submitCpuGuess);}
+function renderReversePhase(){phaseLabel.textContent="FINAL PHASE / 狼の逆転チャンス";const wolf=game.players[game.wolfIndex];phaseTitle.textContent=`${wolf.name}は狼だった！`;if(wolf.isHuman){actionPanel.innerHTML=`<div class="action-heading danger"><p>あなたは狼です</p><h2>市民カードを当てよう</h2><span>市民カードと同じカードを選べば逆転勝利です。</span></div><div class="vote-tally">${game.players.map(p=>`<span>${p.name}: ${game.tallies?.[p.id]||0}票</span>`).join("")}</div><input class="reverse-search" id="reverseSearch" placeholder="カード名を検索（日本語）"><div class="guess-card-grid">${getActiveCardPool(game.settings).filter(c=>c.name!==wolf.card.name).map(c=>`<button class="guess-card-button" data-guess="${escapeHtml(c.name)}"><img src="${cardImage(c)}" alt="${escapeHtml(jpName(c))}"><span>${escapeHtml(jpName(c))}</span><small>${escapeHtml(reverseGuessInfo(c))}</small></button>`).join("")}</div>`;document.getElementById("reverseSearch")?.addEventListener("input",e=>{const q=e.target.value;actionPanel.querySelectorAll("[data-guess]").forEach(b=>b.style.display=(b.textContent.includes(q)?"":"none"));});return;}actionPanel.innerHTML=`<div class="wolf-reveal"><span class="wolf-eye" aria-hidden="true">W</span><div><p>最終チャンス</p><h2>${wolf.name}が市民カードを推理します</h2><span>当てられたら、狼の逆転勝利です。</span></div></div><button class="primary-button compact" id="cpuGuessButton" type="button"><span>逆転宣言を見る</span><span>→</span></button>`;document.getElementById("cpuGuessButton").addEventListener("click",submitCpuGuess);}
 function submitCpuGuess(){
   if(!game || game.phase!=="reverse") return;
   const wolf=game.players[game.wolfIndex];
@@ -566,14 +566,14 @@ async function returnToSetup(){
   const mainScroller=document.querySelector("main"); if(mainScroller) mainScroller.scrollTop=0; else window.scrollTo({top:0,behavior:"auto"});
 }
 function openPool(){const activeSize=normalizeCardPoolSize((onlineMode&&onlineGame?.settings?.cardPoolSize)||getSettings().cardPoolSize);renderPoolCount({cardPoolSize:activeSize});poolGrid.innerHTML=CARD_POOL.map((c,i)=>{const active=i<activeSize;const statusLabel=active?"使用カード":"未使用カード";const unusedLabel=active?"":'<small class="pool-unused-label">今回のゲームでは不使用</small>';return `<div class="pool-card ${active?"is-active":"is-unused"}" aria-label="${statusLabel}"><img src="${cardImage(c)}" alt="${escapeHtml(jpName(c))}">${cardDisplay(c)}${unusedLabel}</div>`;}).join("");poolDialog.showModal();}
-// v128: Mobile touch scrolling must not activate a clue/vote button when the finger moved.
+// v129: Mobile touch scrolling must not activate a clue/vote button when the finger moved.
 let cwTouchStart=null;
 actionPanel.addEventListener("pointerdown",e=>{if(e.pointerType!=="touch")return;const b=e.target.closest?.("button");cwTouchStart=b?{button:b,x:e.clientX,y:e.clientY,moved:false}:null;},{capture:true});
 actionPanel.addEventListener("pointermove",e=>{if(!cwTouchStart||e.pointerType!=="touch")return;if(Math.hypot(e.clientX-cwTouchStart.x,e.clientY-cwTouchStart.y)>10)cwTouchStart.moved=true;},{capture:true});
 actionPanel.addEventListener("click",e=>{if(!cwTouchStart)return;if(cwTouchStart.moved&&e.target.closest?.("button")===cwTouchStart.button){e.preventDefault();e.stopImmediatePropagation();}cwTouchStart=null;},{capture:true});
 actionPanel.addEventListener("pointercancel",()=>{cwTouchStart=null;},{capture:true});
 
-// v128: Keep practice clue-menu toggles on a stable parent so re-renders cannot drop the handler.
+// v129: Keep practice clue-menu toggles on a stable parent so re-renders cannot drop the handler.
 actionPanel.addEventListener("pointerdown",(event)=>{
   const neg=event.target.closest?.("[data-clue-negative-category]");
   const pos=event.target.closest?.("[data-clue-positive-category]");
@@ -632,26 +632,26 @@ actionPanel.addEventListener("pointerdown", async (event)=>{
   }
 });
 
-// v115: online reverse-card selection is handled from stable document-level
-// capture listeners. Firebase may replace actionPanel.innerHTML while the user
-// is pressing a card, so transient button/parent listeners can miss the action.
-// pointerdown is the primary activation; click remains as a keyboard fallback.
-// No preventDefault() is used.
+// v129: Reverse-card selection must distinguish a tap from a scroll gesture.
+// On touch devices, activating on pointerdown makes the first touch of a card
+// select it before the user has had a chance to start scrolling. We therefore
+// remember the touched card and activate only on pointerup when the finger
+// stayed within a small movement threshold. Desktop click remains supported.
 let onlineReverseHandledActionKey="";
-function findOnlineReverseButton(event){
+let reverseTouchStart=null;
+let reverseTouchSuppressClick=false;
+function findReverseButton(event){
   const path=typeof event.composedPath==="function"?event.composedPath():[];
   for(const node of path){
-    if(node instanceof Element && node.matches?.("[data-online-guess]")) return node;
+    if(node instanceof Element && node.matches?.("[data-online-guess], [data-guess]")) return node;
   }
   const target=event.target;
-  return target instanceof Element?target.closest?.("[data-online-guess]"):null;
+  return target instanceof Element?target.closest?.("[data-online-guess], [data-guess]"):null;
 }
 async function handleOnlineReverseSelection(button){
   if(!button || !actionPanel.contains(button)) return;
   if(button.disabled || onlinePendingAction) return;
   if(!onlineGame || onlineGame.phase!=="reverse") return;
-  // The eliminated player is the wolf in the reverse phase; this avoids
-  // exposing the host-only wolfUid to clients.
   if(String(onlineGame.eliminatedId||"")!==String(firebaseUid)) return;
   const guess=String(button.dataset.onlineGuess||"");
   if(!guess) return;
@@ -667,13 +667,46 @@ async function handleOnlineReverseSelection(button){
     renderOnlineReverse();
   }
 }
+function handleSoloReverseSelection(button){
+  if(!button || !actionPanel.contains(button) || button.disabled || game?.phase!=="reverse") return;
+  const guessName=String(button.dataset.guess||"");
+  if(!guessName) return;
+  const guess=getActiveCardPool(game.settings).find(c=>c.name===guessName);
+  if(guess) finishReverseGuess(guess);
+}
 document.addEventListener("pointerdown", event=>{
-  const button=findOnlineReverseButton(event);
-  if(button && actionPanel.contains(button)) void handleOnlineReverseSelection(button);
+  const button=findReverseButton(event);
+  if(!button || !actionPanel.contains(button) || event.pointerType!=="touch") return;
+  reverseTouchStart={button,x:event.clientX,y:event.clientY,moved:false};
+  reverseTouchSuppressClick=false;
 }, true);
+document.addEventListener("pointermove", event=>{
+  if(!reverseTouchStart || event.pointerType!=="touch") return;
+  if(Math.hypot(event.clientX-reverseTouchStart.x,event.clientY-reverseTouchStart.y)>12) reverseTouchStart.moved=true;
+}, true);
+document.addEventListener("pointerup", event=>{
+  if(!reverseTouchStart || event.pointerType!=="touch") return;
+  const state=reverseTouchStart;
+  reverseTouchStart=null;
+  if(state.moved){ reverseTouchSuppressClick=true; return; }
+  const button=state.button;
+  if(!button || !actionPanel.contains(button)) return;
+  reverseTouchSuppressClick=true;
+  if(button.matches?.("[data-online-guess]")) void handleOnlineReverseSelection(button);
+  else if(button.matches?.("[data-guess]")) handleSoloReverseSelection(button);
+}, true);
+document.addEventListener("pointercancel", ()=>{reverseTouchStart=null;reverseTouchSuppressClick=true;}, true);
 document.addEventListener("click", event=>{
-  const button=findOnlineReverseButton(event);
-  if(button && actionPanel.contains(button)) void handleOnlineReverseSelection(button);
+  const button=findReverseButton(event);
+  if(!button || !actionPanel.contains(button)) return;
+  if(reverseTouchSuppressClick){
+    reverseTouchSuppressClick=false;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    return;
+  }
+  if(button.matches?.("[data-online-guess]")) void handleOnlineReverseSelection(button);
+  else if(button.matches?.("[data-guess]")) handleSoloReverseSelection(button);
 }, true);
 
 practicePlayerCountSelect?.addEventListener("change",syncPracticePlayerCount);
@@ -1496,7 +1529,7 @@ async function submitOnlineActionOnce(action){
     onlineActionPromises.set(actionId,finish);
     try{
       onValue(resultRef,listener);
-      await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v128",createdAt:Date.now()});
+      await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v129",createdAt:Date.now()});
     }catch(e){console.error("online action write failed",e);finish(false);return;}
     timer=setTimeout(()=>{onlineDebug("action-timeout",{actionId,action});finish(false);},8000);
   });
