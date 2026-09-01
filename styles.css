@@ -2803,12 +2803,12 @@ html[data-debug-mode="true"] .debug-panel button{pointer-events:auto!important;c
 .clue-choice-layout .clue-menu-column{order:2;}
 @media(max-width:760px){.clue-choice-layout .quick-clue-column{order:1;}.clue-choice-layout .clue-menu-column{order:2;}.clue-choice-layout button{touch-action:pan-y;}}
 
-/* v127: Free matching is a fixed 4-player mode; never show the room max-player setting while waiting. */
+/* v128: Free matching is a fixed 4-player mode; never show the room max-player setting while waiting. */
 #onlineDialog.free-match-waiting #onlinePlayerLimitSettingRow,
 #onlineDialog.free-match-waiting #onlinePlayerLimitSettingRow * { display: none !important; }
 
 
-/* v127: mobile viewport compacting. Keep the whole game comfortably inside narrow phone screens. */
+/* v128: mobile viewport compacting. Keep the whole game comfortably inside narrow phone screens. */
 @media (max-width:760px){
   .site-header{min-height:54px!important;padding:8px 12px!important;}
   .brand-copy strong{font-size:.82rem!important;}
@@ -2855,7 +2855,7 @@ html[data-debug-mode="true"] .debug-panel button{pointer-events:auto!important;c
 }
 
 
-/* v127: compact mobile layout. Earlier mobile rules were additive and some
+/* v128: compact mobile layout. Earlier mobile rules were additive and some
    late overrides restored desktop-sized cards, headings, and panel spacing.
    Keep the document within the phone viewport while preserving normal scroll. */
 @media (max-width: 600px){
@@ -2946,7 +2946,7 @@ html[data-debug-mode="true"] .debug-panel button{pointer-events:auto!important;c
   .online-dialog .online-leave-button{padding:5px 8px!important;font-size:.55rem!important;}
 }
 
-/* v127: restore reliable document scrolling and remove the oversized mobile
+/* v128: restore reliable document scrolling and remove the oversized mobile
    overrides introduced by the recent viewport experiments. The document is
    the only vertical scroller on phones; no fixed-height main container. */
 @media (max-width: 760px){
@@ -3022,11 +3022,11 @@ html[data-debug-mode="true"] .debug-panel button{pointer-events:auto!important;c
   .mode-button{min-height:46px!important;}
 }
 
-/* v127: a free-match room never displays its generated internal room code. */
+/* v128: a free-match room never displays its generated internal room code. */
 #onlineDialog.free-match-waiting .room-code-card,
 html[data-free-matched-room="true"] #onlineDialog .room-code-card{display:none!important;}
 
-/* v127: definitive mobile layout/scroll restoration.
+/* v128: definitive mobile layout/scroll restoration.
    Earlier revisions accumulated several contradictory mobile rules, including
    a fixed-height <main> scroll container. On iOS that made the page feel
    stuck and also enlarged the setup screen through nested viewport sizing.
@@ -3141,7 +3141,7 @@ html[data-free-matched-room="true"] #onlineDialog .room-code-card{display:none!i
   .mode-button span{font-size:.46rem!important;}
 }
 
-/* v127: mobile viewport/scroll stabilization.
+/* v128: mobile viewport/scroll stabilization.
    The previous mobile rules accumulated conflicting sizes and, more
    importantly, kept the hero text in nowrap/overflow-hidden containers.
    On iOS that made the page feel wider than the viewport and could make a
@@ -3365,4 +3365,46 @@ html[data-free-matched-room="true"] #onlineDialog .room-code-card{display:none!i
   .mode-button strong{font-size:.59rem!important;}
   .mode-button span{font-size:.47rem!important;}
   .rule-strip{grid-template-columns:1fr!important;}
+}
+
+
+/* v128: mobile setup width, settings placement, and decorative-corner cleanup */
+.corner{display:none!important;}
+@media (max-width:760px){
+  .site-header,
+  .setup-screen,
+  .game-screen{
+    width:calc(100% - 28px)!important;
+    max-width:380px!important;
+    margin-left:auto!important;
+    margin-right:auto!important;
+    box-sizing:border-box!important;
+  }
+  .setup-screen{padding-top:18px!important;padding-bottom:80px!important;}
+  .hero-copy{width:100%!important;max-width:100%!important;margin-bottom:16px!important;overflow:visible!important;}
+  .hero-copy h1{font-size:clamp(2rem,9.4vw,3.25rem)!important;line-height:1.0!important;}
+  .hero-copy .hero-lead{font-size:.72rem!important;line-height:1.65!important;margin-top:10px!important;}
+  .setup-card{width:100%!important;max-width:100%!important;box-sizing:border-box!important;margin:0!important;padding:5px!important;}
+  .setup-inner{position:relative!important;padding:42px 12px 16px!important;box-sizing:border-box!important;}
+  .setup-inner h2{font-size:1.2rem!important;}
+  .setup-inner>p:not(.step-label){font-size:.66rem!important;}
+  .setup-actions{position:absolute!important;top:10px!important;right:12px!important;left:auto!important;display:flex!important;flex-direction:row!important;justify-content:flex-end!important;margin:0!important;z-index:20!important;}
+  .settings-gear-button{width:42px!important;height:42px!important;min-width:42px!important;min-height:42px!important;padding:0!important;margin:0!important;border-radius:50%!important;font-size:0!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;}
+  .settings-gear-button span:first-child{font-size:1.15rem!important;}
+  .settings-gear-button span:last-child{display:none!important;}
+  .mode-select{margin-top:8px!important;gap:5px!important;}
+  .mode-button{min-height:46px!important;padding:6px 9px!important;}
+}
+@media (max-width:440px){
+  .site-header,.setup-screen,.game-screen{width:calc(100% - 30px)!important;max-width:360px!important;}
+  .site-header{padding:8px 0!important;}
+  .hero-copy h1{font-size:clamp(1.9rem,9.1vw,2.9rem)!important;}
+  .hero-copy .hero-lead{font-size:.68rem!important;line-height:1.55!important;}
+  .setup-inner{padding:40px 10px 14px!important;}
+  .setup-actions{top:9px!important;right:10px!important;}
+  .settings-gear-button{width:38px!important;height:38px!important;min-width:38px!important;min-height:38px!important;}
+  .settings-gear-button span:first-child{font-size:1.05rem!important;}
+  .mode-button{min-height:44px!important;padding:5px 8px!important;}
+  .mode-button strong{font-size:.60rem!important;}
+  .mode-button span{font-size:.47rem!important;}
 }
