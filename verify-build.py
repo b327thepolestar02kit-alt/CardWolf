@@ -20,9 +20,9 @@ jp=json.loads(m.group(1)); assert all(c["name"] in jp and jp[c["name"]] for c in
 assert app.count("function submitHumanClue") == 1
 assert "if(!game?.settings?.liePenalty) return true;" in app
 assert "Boolean(onlineGame.settings.liePenalty)" in app
-assert 'clientVersion:"v124"' in app
-assert "ゲームバージョン v124" in read("index.html")
-assert 'const expected = "v124"' in read("version-check.js")
+assert 'clientVersion:"v125"' in app
+assert "ゲームバージョン v125" in read("index.html")
+assert 'const expected = "v125"' in read("version-check.js")
 missing=[c["name"] for c in cards if not os.path.isfile(os.path.join(root,c["image"]))]
 if "--require-images" in sys.argv and missing: raise AssertionError("Missing images: "+", ".join(missing))
-print(f"PASS: v124 / 100 unique monsters / JP names=100 / missing images={len(missing)}")
+print(f"PASS: v125 / 100 unique monsters / JP names=100 / missing images={len(missing)}")

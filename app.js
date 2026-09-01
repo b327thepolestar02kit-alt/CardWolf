@@ -1,8 +1,8 @@
-/* CardWolf build v124 */
+/* CardWolf build v125 */
 const firebaseConfig = window.FIREBASE_CONFIG || {};
-if (window.CARDWOLF_BUILD_VERSION !== "v124") { window.CARDWOLF_BUILD_VERSION = "v124"; }
+if (window.CARDWOLF_BUILD_VERSION !== "v125") { window.CARDWOLF_BUILD_VERSION = "v125"; }
 const versionEl = document.querySelector(".build-version");
-if (versionEl) { versionEl.textContent = "v124"; versionEl.setAttribute("aria-label", "ゲームバージョン v124"); }
+if (versionEl) { versionEl.textContent = "v125"; versionEl.setAttribute("aria-label", "ゲームバージョン v125"); }
 
 // Firebase is loaded lazily so a CDN/auth/database problem can never disable
 // the basic game UI. The solo/setup buttons must remain usable even when the
@@ -566,14 +566,14 @@ async function returnToSetup(){
   const mainScroller=document.querySelector("main"); if(mainScroller) mainScroller.scrollTop=0; else window.scrollTo({top:0,behavior:"auto"});
 }
 function openPool(){const activeSize=normalizeCardPoolSize((onlineMode&&onlineGame?.settings?.cardPoolSize)||getSettings().cardPoolSize);renderPoolCount({cardPoolSize:activeSize});poolGrid.innerHTML=CARD_POOL.map((c,i)=>{const active=i<activeSize;const statusLabel=active?"使用カード":"未使用カード";const unusedLabel=active?"":'<small class="pool-unused-label">今回のゲームでは不使用</small>';return `<div class="pool-card ${active?"is-active":"is-unused"}" aria-label="${statusLabel}"><img src="${cardImage(c)}" alt="${escapeHtml(jpName(c))}">${cardDisplay(c)}${unusedLabel}</div>`;}).join("");poolDialog.showModal();}
-// v124: Mobile touch scrolling must not activate a clue/vote button when the finger moved.
+// v125: Mobile touch scrolling must not activate a clue/vote button when the finger moved.
 let cwTouchStart=null;
 actionPanel.addEventListener("pointerdown",e=>{if(e.pointerType!=="touch")return;const b=e.target.closest?.("button");cwTouchStart=b?{button:b,x:e.clientX,y:e.clientY,moved:false}:null;},{capture:true});
 actionPanel.addEventListener("pointermove",e=>{if(!cwTouchStart||e.pointerType!=="touch")return;if(Math.hypot(e.clientX-cwTouchStart.x,e.clientY-cwTouchStart.y)>10)cwTouchStart.moved=true;},{capture:true});
 actionPanel.addEventListener("click",e=>{if(!cwTouchStart)return;if(cwTouchStart.moved&&e.target.closest?.("button")===cwTouchStart.button){e.preventDefault();e.stopImmediatePropagation();}cwTouchStart=null;},{capture:true});
 actionPanel.addEventListener("pointercancel",()=>{cwTouchStart=null;},{capture:true});
 
-// v124: Keep practice clue-menu toggles on a stable parent so re-renders cannot drop the handler.
+// v125: Keep practice clue-menu toggles on a stable parent so re-renders cannot drop the handler.
 actionPanel.addEventListener("pointerdown",(event)=>{
   const neg=event.target.closest?.("[data-clue-negative-category]");
   const pos=event.target.closest?.("[data-clue-positive-category]");
@@ -696,6 +696,8 @@ let freeMatchMode=false;
 let freeMatchQueueUnsubscribe=null;
 let freeMatchStartedAt=0;
 let freeMatchTimer=null;
+let freeMatchCreationInFlight=false;
+let onlineFreeMatchedRoom=false;
 let onlineRoomCodeValue="";
 let onlineRoomUnsubscribe=null;
 let onlineActionUnsubscribe=null;
@@ -794,7 +796,7 @@ document.getElementById("freeMatchButton")?.addEventListener("click",()=>setMode
 function freeMatchQueueRef(){return ref(firebaseDb,"freeMatchQueue");}
 function freeMatchModeKey(){return "standard";}
 function freeMatchRoomCode(uids){const text=[...uids].sort().join("|");let h=2166136261;for(let i=0;i<text.length;i++){h^=text.charCodeAt(i);h=Math.imul(h,16777619);}const chars="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";let out="";for(let i=0;i<6;i++){out+=chars[(h>>>((i%4)*5))%chars.length];h=Math.imul(h^i,16777619);}return out;}
-function stopFreeMatch(){if(freeMatchQueueUnsubscribe){freeMatchQueueUnsubscribe();freeMatchQueueUnsubscribe=null;}if(freeMatchTimer){clearInterval(freeMatchTimer);freeMatchTimer=null;}freeMatchStartedAt=0;}
+function stopFreeMatch(){if(freeMatchQueueUnsubscribe){freeMatchQueueUnsubscribe();freeMatchQueueUnsubscribe=null;}if(freeMatchTimer){clearInterval(freeMatchTimer);freeMatchTimer=null;}freeMatchStartedAt=0;freeMatchCreationInFlight=false;}
 function renderFreeMatchQueuePlayers(players){
   if(!onlinePlayerList)return;
   const list=(players||[]).slice(0,4);
@@ -878,6 +880,7 @@ async function finishFreeMatchWait(success){
   document.querySelector(".room-code-card")?.removeAttribute("hidden");
   const limitRow=document.getElementById("onlinePlayerLimitSettingRow"); if(limitRow){ limitRow.hidden=false; limitRow.style.display=""; }
   onlineDialog.classList.remove("free-match-waiting");
+  onlineFreeMatchedRoom=false;
   const cpuRow=document.getElementById("onlineCpuSettingRow"); if(cpuRow) cpuRow.hidden=false;
   const voiceRow=document.getElementById("onlineVoiceSettingRow"); if(voiceRow) voiceRow.hidden=!onlineVoicePreset;
   document.getElementById("freeMatchButton")?.classList.remove("is-selected");
@@ -895,39 +898,56 @@ async function enterFreeMatchedRoom(roomCode){
   await remove(ref(firebaseDb,`freeMatchQueue/${freeMatchModeKey()}/${firebaseUid}`)).catch(()=>{});
   onlineRoomCodeValue=roomCode;
   onlineHost=String(firebaseUid)===String(data.hostUid);
-  freeMatchMode=false;onlineVoicePreset=false;
+  freeMatchMode=false;onlineVoicePreset=false;onlineFreeMatchedRoom=true;
   onlineDialog.classList.remove("free-match-waiting");
   openOnlineLobby();
 }
 async function createFreeMatchRoom(candidates,forceStart=false){
-  if(!freeMatchStartedAt||candidates.length<2)return;
-  const ids=candidates.map(x=>String(x.uid)).sort();
-  const roomCode=freeMatchRoomCode(ids),hostUid=ids[0];
-  const uid=firebaseUid,entryRef=ref(firebaseDb,`freeMatchQueue/${freeMatchModeKey()}/${uid}`);
-  await update(entryRef,{roomCode,hostUid}).catch(()=>{});
-  if(String(uid)===String(hostUid)){
-    const roomSnap=await get(ref(firebaseDb,`rooms/${roomCode}`));
+  if(!freeMatchStartedAt||candidates.length<2||freeMatchCreationInFlight)return;
+  const ordered=[...candidates].filter(x=>x&&x.uid).sort((a,b)=>Number(a.joinedAt)-Number(b.joinedAt)||String(a.uid).localeCompare(String(b.uid))).slice(0,4);
+  const ids=ordered.map(x=>String(x.uid)).sort();
+  const roomCode=freeMatchRoomCode(ids),hostUid=String(ordered[0].uid);
+  // Exactly one client is allowed to create the deterministic free-match room:
+  // the player who has been waiting the longest. Previously every client could
+  // race into createFreeMatchRoom at the 30-second boundary, which could leave
+  // one client in a transient lobby and another client returning to the title.
+  if(String(firebaseUid)!==hostUid)return;
+  freeMatchCreationInFlight=true;
+  try{
+    const uid=firebaseUid,entryRef=ref(firebaseDb,`freeMatchQueue/${freeMatchModeKey()}/${uid}`);
+    await update(entryRef,{roomCode,hostUid}).catch(e=>{throw e;});
+    let roomSnap=await get(ref(firebaseDb,`rooms/${roomCode}`));
     if(!roomSnap.exists()){
-      const players={};candidates.forEach(x=>players[x.uid]={uid:x.uid,name:x.name,host:String(x.uid)===String(hostUid)});
+      const players={};ordered.forEach(x=>players[x.uid]={uid:x.uid,name:x.name,host:String(x.uid)===hostUid});
       const settings={...getSettings(),voiceMode:false,discussionSeconds:120};
       await set(ref(firebaseDb,`rooms/${roomCode}`),{hostUid,status:"lobby",maxPlayers:4,createdAt:Date.now(),freeMatch:true,settings,players});
-      for(const x of candidates) await set(ref(firebaseDb,`privateCards/${roomCode}/${x.uid}`),{cardName:null});
+      for(const x of ordered) await set(ref(firebaseDb,`privateCards/${roomCode}/${x.uid}`),{cardName:null});
+      roomSnap=await get(ref(firebaseDb,`rooms/${roomCode}`));
     }
+    if(!roomSnap.exists())throw new Error("free-match-room-create-failed");
+    // The free-match UI never exposes a room code. Keep the lobby visually in
+    // the fixed-4-player matching state even during the tiny handoff to play.
+    stopFreeMatch();
+    document.querySelector(".room-code-card")?.setAttribute("hidden","");
+    onlineRoomCodeValue=roomCode;onlineHost=true;freeMatchMode=false;onlineVoicePreset=false;onlineFreeMatchedRoom=true;
+    onlineDialog.classList.add("free-match-waiting");
+    onlineDialog.classList.remove("free-match-waiting");
+    onlineRoomCode.textContent="----";
+    openOnlineLobby();
+    onlineRoomCode.textContent="----";
+    // The room is now authoritative. Start only after the room listener has a
+    // chance to attach; the game itself will fill 2-3 human players with CPU.
+    if(forceStart || ordered.length>=4){
+      setTimeout(()=>startOnlineHostGame().catch(e=>console.error("free-match start failed:",e)),250);
+    }
+    setTimeout(()=>remove(entryRef).catch(()=>{}),10000);
+  }catch(e){
+    console.error("free-match room creation failed:",e);
+    if(freeMatchStartedAt) await finishFreeMatchWait(false);
+    else returnToSetup();
+  }finally{
+    freeMatchCreationInFlight=false;
   }
-  // Keep the queue entry until the room is confirmed. This prevents a race where
-  // another waiting client misses the host's roomCode update because the host
-  // removed its queue entry immediately after creating the room.
-  stopFreeMatch();
-  document.querySelector(".room-code-card")?.removeAttribute("hidden");
-  onlineRoomCodeValue=roomCode;onlineHost=String(uid)===String(hostUid);freeMatchMode=false;onlineVoicePreset=false;
-  onlineDialog.classList.remove("free-match-waiting");
-  openOnlineLobby();
-  // Clean up this player's queue entry only after the room is known to exist.
-  await get(ref(firebaseDb,`rooms/${roomCode}`)).catch(()=>null);
-  setTimeout(()=>remove(entryRef).catch(()=>{}),10000);
-  // A full four-human match may start immediately. A 2-3 human match is only
-  // started when forceStart=true, which is supplied at the 30-second deadline.
-  if(onlineHost && (candidates.length>=4 || forceStart)){setTimeout(()=>startOnlineHostGame(),350);}
 }
 
 function onlineRoomRef(){return ref(firebaseDb,`rooms/${onlineRoomCodeValue}`);}
@@ -1013,7 +1033,7 @@ function renderOnlineLobby(data){
   if(limitRow){ limitRow.hidden=isFree; limitRow.style.display=isFree?"none":""; }
   if(cpuRow) cpuRow.hidden=isFree;
   if(voiceRow) voiceRow.hidden=isFree || !Boolean(data?.settings?.voiceMode);
-  onlineRoomCode.textContent=isFree?"----":(onlineRoomCodeValue||"----");
+  onlineRoomCode.textContent=(isFree||onlineFreeMatchedRoom)?"----":(onlineRoomCodeValue||"----");
   onlinePlayerList.innerHTML=players.map(p=>`<div class="online-player-row"><span class="mini-avatar">${p.host?"H":"P"}</span><strong>${escapeHtml(p.name)}</strong><small>${p.host?"ホスト":"参加中"}</small></div>`).join("");
   const max=Math.min(8,Math.max(3,Number(data?.maxPlayers||4)));
   const humanCount=players.length;
@@ -1033,7 +1053,7 @@ async function createOnlineRoom(){
   let code=null;
   for(let i=0;i<12;i++){const c=makeRoomCode();const snap=await get(ref(firebaseDb,`rooms/${c}`));if(!snap.exists()){code=c;break;}}
   if(!code){alert("ルームコードを作成できませんでした。もう一度お試しください。");return;}
-  onlineRoomCodeValue=code;onlineHost=true;
+  onlineRoomCodeValue=code;onlineHost=true;onlineFreeMatchedRoom=false;
   const name=getPlayerName();
   const maxPlayers=Math.min(8,Math.max(3,Number(document.getElementById("onlineMaxPlayers")?.value||4)));
   const room={hostUid:firebaseUid,status:"lobby",maxPlayers,createdAt:Date.now(),settings:getOnlineLobbySettings(),players:{[firebaseUid]:{uid:firebaseUid,name,host:true}}};
@@ -1050,7 +1070,7 @@ async function joinOnlineRoom(){
   const data=snap.val(), players=lobbyPlayersFromValue(data);
   if(data.status!=="lobby"){alert("そのルームはすでにゲーム中です。");return;}
   if(players.length>=Math.min(8,Math.max(3,Number(data.maxPlayers||4)))){alert("このルームは満員です。");return;}
-  onlineRoomCodeValue=code;onlineHost=false;
+  onlineRoomCodeValue=code;onlineHost=false;onlineFreeMatchedRoom=false;
   const name=getPlayerName();
   await update(ref(firebaseDb,`rooms/${code}/players/${firebaseUid}`),{uid:firebaseUid,name,host:false});
   await set(ref(firebaseDb,`privateCards/${code}/${firebaseUid}`),{cardName:null});
@@ -1059,7 +1079,7 @@ async function joinOnlineRoom(){
 function openOnlineLobby(){
   const listenerEpoch=onlineSessionEpoch;
   const listenerRoom=onlineRoomCodeValue;
-  onlineLobby.hidden=false;onlineRoomCode.textContent=onlineRoomCodeValue;createRoomButton.hidden=true;joinRoomButton.hidden=true;roomCodeInput.hidden=true;
+  onlineLobby.hidden=false;onlineRoomCode.textContent=onlineFreeMatchedRoom?"----":onlineRoomCodeValue;createRoomButton.hidden=true;joinRoomButton.hidden=true;roomCodeInput.hidden=true;
   if(onlineRoomUnsubscribe)onlineRoomUnsubscribe();
   onlineRoomUnsubscribe=onValue(onlineRoomRef(),snap=>{
     // Firebase can deliver an already queued snapshot after off()/unsubscribe().
@@ -1142,7 +1162,7 @@ async function leaveOnlineRoom(options={}){
       }
     }
   }catch(e){console.warn("online leave failed",e);}
-  onlineRoomCodeValue="";onlineHost=false;onlineGame=null;onlineTurnReadyKey="";onlineTurnReadyPendingKey="";onlineLoadedGameMatchId="";if(onlineTurnReadyTimer){clearTimeout(onlineTurnReadyTimer);onlineTurnReadyTimer=null;}onlineMyCard=null;onlineClueMenu="root";onlineHostSecrets=null;onlineLastActionId=null;onlinePendingAction=null;
+  onlineRoomCodeValue="";onlineHost=false;onlineFreeMatchedRoom=false;onlineGame=null;onlineTurnReadyKey="";onlineTurnReadyPendingKey="";onlineLoadedGameMatchId="";if(onlineTurnReadyTimer){clearTimeout(onlineTurnReadyTimer);onlineTurnReadyTimer=null;}onlineMyCard=null;onlineClueMenu="root";onlineHostSecrets=null;onlineLastActionId=null;onlinePendingAction=null;
   onlineLobby.hidden=true;createRoomButton.hidden=false;joinRoomButton.hidden=false;roomCodeInput.hidden=false;
   try{onlineDialog.close();}catch{};onlineDialog.removeAttribute("open");
   if(options.returnToSetup) returnToSetup();
@@ -1455,7 +1475,7 @@ async function submitOnlineActionOnce(action){
     onlineActionPromises.set(actionId,finish);
     try{
       onValue(resultRef,listener);
-      await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v124",createdAt:Date.now()});
+      await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v125",createdAt:Date.now()});
     }catch(e){console.error("online action write failed",e);finish(false);return;}
     timer=setTimeout(()=>{onlineDebug("action-timeout",{actionId,action});finish(false);},8000);
   });
