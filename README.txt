@@ -1,4 +1,4 @@
-CardWolf v129
+CardWolf v130
 
 変更点:
 - トップ画面の「カード提示のみモード」を「カード提示のみモード（対人戦）」へ変更。
@@ -12,4 +12,4 @@ CardWolf v129
 - 公開URLは index.html を使用してください。
 - debug.html は開発・テスト用です。Firebaseの権限を迂回する機能ではありません。
 
-v129 debug mode: debug.html includes a single 「再投票テスト」 button. It forces a controlled tie and runs the real solo vote-resolution path so the automatic revote behavior can be verified.
+v130 debug mode: debug.html includes a single 「再投票テスト」 button. It forces a controlled tie and runs the real solo vote-resolution path so the automatic revote behavior can be verified.
