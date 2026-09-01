@@ -1,4 +1,4 @@
-CardWolf v132
+CardWolf v133
 
 
 変更点:
@@ -13,7 +13,7 @@ CardWolf v132
 - 公開URLは index.html を使用してください。
 - debug.html は開発・テスト用です。Firebaseの権限を迂回する機能ではありません。
 
-v132 debug mode: debug.html includes a single 「再投票テスト」 button. It forces a controlled tie and runs the real solo vote-resolution path so the automatic revote behavior can be verified.
+v133 debug mode: debug.html includes a single 「再投票テスト」 button. It forces a controlled tie and runs the real solo vote-resolution path so the automatic revote behavior can be verified.
 
 
-v132: ATK/DEF clue choices use 500-point ranges (500以下, 501～1000, 1001～1500, 1501～2000, 2001～2500, 2501以上) while unknown values remain separate. Mobile TABLE TALK uses more horizontal space.
+v133: ATK/DEF clue choices use 500-point ranges (500以下, 501～1000, 1001～1500, 1501～2000, 2001～2500, 2501以上) while unknown values remain separate. Mobile TABLE TALK uses more horizontal space.

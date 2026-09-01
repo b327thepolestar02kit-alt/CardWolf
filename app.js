@@ -1,8 +1,8 @@
-/* CardWolf build v132 */
+/* CardWolf build v133 */
 const firebaseConfig = window.FIREBASE_CONFIG || {};
-if (window.CARDWOLF_BUILD_VERSION !== "v132") { window.CARDWOLF_BUILD_VERSION = "v132"; }
+if (window.CARDWOLF_BUILD_VERSION !== "v133") { window.CARDWOLF_BUILD_VERSION = "v133"; }
 const versionEl = document.querySelector(".build-version");
-if (versionEl) { versionEl.textContent = "v132"; versionEl.setAttribute("aria-label", "ゲームバージョン v132"); }
+if (versionEl) { versionEl.textContent = "v133"; versionEl.setAttribute("aria-label", "ゲームバージョン v133"); }
 
 // Firebase is loaded lazily so a CDN/auth/database problem can never disable
 // the basic game UI. The solo/setup buttons must remain usable even when the
@@ -124,7 +124,7 @@ const RACE_OPTIONS=[
 ];
 const LEVEL_LINK_OPTIONS=Array.from({length:7},(_,i)=>i);
 const LEVEL_ONLY_OPTIONS=Array.from({length:7},(_,i)=>i+7);
-// v132: ATK/DEF statements use 500-point ranges instead of cumulative
+// v133: ATK/DEF statements use 500-point ranges instead of cumulative
 // thresholds. Unknown values and 2501+ remain standalone statements.
 const ATK_STAT_BUCKETS=[
   {id:"unknown",label:"？（不明）",test:v=>v===-1||v===null||v===undefined||v===""},
@@ -565,14 +565,14 @@ async function returnToSetup(){
   const mainScroller=document.querySelector("main"); if(mainScroller) mainScroller.scrollTop=0; else window.scrollTo({top:0,behavior:"auto"});
 }
 function openPool(){const activeSize=normalizeCardPoolSize((onlineMode&&onlineGame?.settings?.cardPoolSize)||getSettings().cardPoolSize);renderPoolCount({cardPoolSize:activeSize});poolGrid.innerHTML=CARD_POOL.map((c,i)=>{const active=i<activeSize;const statusLabel=active?"使用カード":"未使用カード";const unusedLabel=active?"":'<small class="pool-unused-label">今回のゲームでは不使用</small>';return `<div class="pool-card ${active?"is-active":"is-unused"}" aria-label="${statusLabel}"><img src="${cardImage(c)}" alt="${escapeHtml(jpName(c))}">${cardDisplay(c)}${unusedLabel}</div>`;}).join("");poolDialog.showModal();}
-// v132: Mobile touch scrolling must not activate a clue/vote button when the finger moved.
+// v133: Mobile touch scrolling must not activate a clue/vote button when the finger moved.
 let cwTouchStart=null;
 actionPanel.addEventListener("pointerdown",e=>{if(e.pointerType!=="touch")return;const b=e.target.closest?.("button");cwTouchStart=b?{button:b,x:e.clientX,y:e.clientY,moved:false}:null;},{capture:true});
 actionPanel.addEventListener("pointermove",e=>{if(!cwTouchStart||e.pointerType!=="touch")return;if(Math.hypot(e.clientX-cwTouchStart.x,e.clientY-cwTouchStart.y)>10)cwTouchStart.moved=true;},{capture:true});
 actionPanel.addEventListener("click",e=>{if(!cwTouchStart)return;if(cwTouchStart.moved&&e.target.closest?.("button")===cwTouchStart.button){e.preventDefault();e.stopImmediatePropagation();}cwTouchStart=null;},{capture:true});
 actionPanel.addEventListener("pointercancel",()=>{cwTouchStart=null;},{capture:true});
 
-// v132: Keep practice clue-menu toggles on a stable parent so re-renders cannot drop the handler.
+// v133: Keep practice clue-menu toggles on a stable parent so re-renders cannot drop the handler.
 actionPanel.addEventListener("pointerdown",(event)=>{
   const neg=event.target.closest?.("[data-clue-negative-category]");
   const pos=event.target.closest?.("[data-clue-positive-category]");
@@ -631,7 +631,7 @@ actionPanel.addEventListener("pointerdown", async (event)=>{
   }
 });
 
-// v132: Reverse-card selection must distinguish a tap from a scroll gesture.
+// v133: Reverse-card selection must distinguish a tap from a scroll gesture.
 // On touch devices, activating on pointerdown makes the first touch of a card
 // select it before the user has had a chance to start scrolling. We therefore
 // remember the touched card and activate only on pointerup when the finger
@@ -1528,7 +1528,7 @@ async function submitOnlineActionOnce(action){
     onlineActionPromises.set(actionId,finish);
     try{
       onValue(resultRef,listener);
-      await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v132",createdAt:Date.now()});
+      await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v133",createdAt:Date.now()});
     }catch(e){console.error("online action write failed",e);finish(false);return;}
     timer=setTimeout(()=>{onlineDebug("action-timeout",{actionId,action});finish(false);},8000);
   });
