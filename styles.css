@@ -2736,7 +2736,7 @@ section.setup-screen[hidden], section.game-screen[hidden]{display:none!important
 
 
 /* v76: clue layout, expanded statements, readable reverse declaration, compact mobile card */
-.clue-choice-layout{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(220px,.9fr);gap:18px;align-items:start;margin-top:12px;}
+.clue-choice-layout{display:grid;grid-template-columns:minmax(220px,.9fr) minmax(0,1.1fr);gap:18px;align-items:start;margin-top:12px;}
 .clue-menu-column,.quick-clue-column{min-width:0;padding:12px;border:1px solid rgba(255,255,255,.10);border-radius:12px;background:rgba(5,10,18,.28);}
 .clue-menu-column .clue-list-label,.quick-clue-column .clue-list-label{margin:0 0 9px;font-size:.78rem;font-weight:800;color:#dce5f2;}
 .clue-menu-column .clue-category-grid{margin:0;grid-template-columns:1fr;gap:8px;}
@@ -2796,9 +2796,3 @@ section.setup-screen[hidden], section.game-screen[hidden]{display:none!important
 /* v113: debug controls must always receive pointer input. */
 html[data-debug-mode="true"] .debug-panel{pointer-events:auto!important;user-select:none!important}
 html[data-debug-mode="true"] .debug-panel button{pointer-events:auto!important;cursor:pointer!important;position:relative;z-index:10000}
-
-/* v118: explicit negative-clue and mobile scroll affordances */
-.clue-negative-button{border-color:rgba(239,210,122,.42)!important;}
-.clue-choice-layout .quick-clue-column{order:1;}
-.clue-choice-layout .clue-menu-column{order:2;}
-@media(max-width:760px){.clue-choice-layout .quick-clue-column{order:1;}.clue-choice-layout .clue-menu-column{order:2;}.clue-choice-layout button{touch-action:pan-y;}}
