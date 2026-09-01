@@ -2853,3 +2853,95 @@ html[data-debug-mode="true"] .debug-panel button{pointer-events:auto!important;c
   .mode-button span{font-size:.59rem!important;}
   .rule-strip{grid-template-columns:1fr!important;}
 }
+
+
+/* v124: compact mobile layout. Earlier mobile rules were additive and some
+   late overrides restored desktop-sized cards, headings, and panel spacing.
+   Keep the document within the phone viewport while preserving normal scroll. */
+@media (max-width: 600px){
+  html,body{font-size:15px!important;}
+  .site-header{min-height:46px!important;height:46px!important;padding:6px 9px!important;}
+  .site-header .brand{gap:6px!important;}
+  .site-header .brand-mark{width:30px!important;height:30px!important;}
+  .site-header .brand-copy strong{font-size:.68rem!important;line-height:1.1!important;}
+  .site-header .text-button{font-size:.58rem!important;padding:5px 3px!important;}
+  main{height:calc(100dvh - 46px)!important;max-height:calc(100dvh - 46px)!important;}
+  .setup-screen,.game-screen{width:calc(100% - 8px)!important;margin:0 auto!important;}
+  .setup-screen{padding:12px 0 80px!important;gap:12px!important;}
+  .hero-copy{margin:0 0 8px!important;padding:0!important;}
+  .hero-kicker{font-size:.56rem!important;margin-bottom:4px!important;}
+  .hero-copy h1{font-size:clamp(1.45rem,8vw,2.2rem)!important;line-height:1!important;margin:0 0 6px!important;}
+  .hero-copy .hero-lead{font-size:.62rem!important;line-height:1.45!important;margin-top:6px!important;}
+  .hero-wolf-art{display:none!important;}
+  .setup-card{width:100%!important;max-width:none!important;border-radius:12px!important;}
+  .setup-inner{padding:10px 10px 12px!important;}
+  .setup-inner h2{font-size:1rem!important;margin:0 0 4px!important;}
+  .setup-inner>p:not(.step-label){font-size:.58rem!important;margin:0 0 6px!important;}
+  .name-field{margin:5px 0 7px!important;}
+  .name-field label strong{font-size:.62rem!important;}
+  .name-field label span{font-size:.52rem!important;}
+  .name-field input{height:34px!important;font-size:.78rem!important;padding:5px 8px!important;}
+  .mode-select{gap:5px!important;}
+  .mode-button{min-height:45px!important;padding:6px 8px!important;border-radius:8px!important;}
+  .mode-button strong{font-size:.62rem!important;line-height:1.2!important;}
+  .mode-button span{font-size:.51rem!important;line-height:1.25!important;}
+  .setup-actions{margin-top:5px!important;}
+  .settings-gear-button{min-height:32px!important;font-size:.6rem!important;padding:5px 8px!important;}
+  .rule-strip{gap:4px!important;margin-top:4px!important;padding-bottom:18px!important;}
+  .rule-strip li{padding:5px 6px!important;font-size:.54rem!important;}
+  .rule-strip li small{font-size:.48rem!important;}
+  .setup-score-floating{gap:3px!important;margin:0 auto 4px!important;}
+  .setup-score>div{min-width:50px!important;padding:4px 5px!important;}
+  .setup-score span{font-size:.48rem!important;}
+  .setup-score strong{font-size:.8rem!important;}
+  .setup-score-floating .reset-score-button{min-height:24px!important;padding:3px 5px!important;font-size:.45rem!important;}
+
+  .game-screen{padding:6px 0 24px!important;}
+  .game-heading{padding-top:3px!important;gap:5px!important;margin-bottom:6px!important;}
+  .game-heading h1{font-size:.9rem!important;line-height:1.15!important;}
+  .game-heading .phase-label{font-size:.48rem!important;}
+  .game-heading-actions{gap:4px!important;}
+  .game-score>div{min-width:42px!important;padding:3px 4px!important;}
+  .game-score span{font-size:.45rem!important;}
+  .game-score strong{font-size:.72rem!important;}
+  .game-heading .text-button{font-size:.5rem!important;padding:5px 6px!important;}
+  .game-layout{gap:6px!important;}
+  .game-top-row{gap:6px!important;}
+  .game-top-row .your-card-panel{padding:6px!important;}
+  .your-card-panel .panel-heading{margin-bottom:3px!important;}
+  .your-card-panel .panel-heading p{font-size:.45rem!important;}
+  .your-card-panel .panel-heading h2{font-size:.68rem!important;}
+  .game-top-row .your-card-panel .playing-card.ygo{width:min(100%,250px)!important;min-height:82px!important;grid-template-columns:58px minmax(0,1fr)!important;gap:6px!important;padding:5px!important;}
+  .game-top-row .your-card-panel .playing-card.ygo .ygo-card-face{width:58px!important;height:74px!important;}
+  .game-top-row .your-card-panel .playing-card.ygo .card-name-jp{font-size:.62rem!important;}
+  .game-top-row .your-card-panel .playing-card.ygo .card-name-en{font-size:.43rem!important;}
+  .game-top-row .your-card-panel .playing-card.ygo .card-info-ja{font-size:.46rem!important;line-height:1.25!important;}
+  .game-top-row .your-card-panel .playing-card.ygo .card-stats{font-size:.48rem!important;}
+  .game-top-row .player-talk-panel{padding:6px!important;}
+  .table-panel{padding:4px!important;border-radius:10px!important;}
+  .table-felt{padding:6px!important;border-radius:8px!important;}
+  .players{gap:4px!important;}
+  .player-seat{min-height:48px!important;padding:5px!important;border-radius:7px!important;}
+  .player-seat strong{font-size:.58rem!important;}
+  .player-seat small{font-size:.46rem!important;}
+  .action-panel{padding:6px!important;border-radius:10px!important;}
+  .action-panel .panel-heading h2{font-size:.72rem!important;}
+  .action-panel .panel-heading p{font-size:.46rem!important;}
+  .clue-choice-layout{gap:6px!important;margin-top:5px!important;}
+  .clue-menu-column,.quick-clue-column{padding:6px!important;border-radius:8px!important;}
+  .clue-menu-column .clue-list-label,.quick-clue-column .clue-list-label{font-size:.56rem!important;margin-bottom:5px!important;}
+  .clue-category-button,.submenu-choice-list .choice-button,.quick-clue-column .choice-button{min-height:38px!important;padding:6px!important;font-size:.58rem!important;}
+  .choice-button span:last-child{font-size:.48rem!important;}
+  .talk-log{padding:8px 2px!important;gap:6px!important;}
+  .log-entry{grid-template-columns:22px 54px 1fr!important;font-size:.55rem!important;}
+  .log-entry p{line-height:1.35!important;}
+  .online-dialog{width:calc(100vw - 12px)!important;max-width:none!important;max-height:calc(100dvh - 12px)!important;padding:9px!important;border-radius:10px!important;}
+  .online-dialog .online-lobby-head{padding:6px 8px!important;}
+  .online-dialog .online-lobby-head strong{font-size:.7rem!important;}
+  .online-dialog .online-lobby-head span{font-size:.55rem!important;}
+  .online-dialog .online-player-list{max-height:22vh!important;}
+  .online-dialog .online-player-row{min-height:34px!important;padding:5px 7px!important;}
+  .online-dialog .online-player-row strong{font-size:.58rem!important;}
+  .online-dialog .online-player-row small{font-size:.48rem!important;}
+  .online-dialog .online-leave-button{padding:5px 8px!important;font-size:.55rem!important;}
+}

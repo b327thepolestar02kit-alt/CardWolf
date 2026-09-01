@@ -1,8 +1,8 @@
-/* CardWolf build v123 */
+/* CardWolf build v124 */
 const firebaseConfig = window.FIREBASE_CONFIG || {};
-if (window.CARDWOLF_BUILD_VERSION !== "v123") { window.CARDWOLF_BUILD_VERSION = "v123"; }
+if (window.CARDWOLF_BUILD_VERSION !== "v124") { window.CARDWOLF_BUILD_VERSION = "v124"; }
 const versionEl = document.querySelector(".build-version");
-if (versionEl) { versionEl.textContent = "v123"; versionEl.setAttribute("aria-label", "ゲームバージョン v123"); }
+if (versionEl) { versionEl.textContent = "v124"; versionEl.setAttribute("aria-label", "ゲームバージョン v124"); }
 
 // Firebase is loaded lazily so a CDN/auth/database problem can never disable
 // the basic game UI. The solo/setup buttons must remain usable even when the
@@ -566,14 +566,14 @@ async function returnToSetup(){
   const mainScroller=document.querySelector("main"); if(mainScroller) mainScroller.scrollTop=0; else window.scrollTo({top:0,behavior:"auto"});
 }
 function openPool(){const activeSize=normalizeCardPoolSize((onlineMode&&onlineGame?.settings?.cardPoolSize)||getSettings().cardPoolSize);renderPoolCount({cardPoolSize:activeSize});poolGrid.innerHTML=CARD_POOL.map((c,i)=>{const active=i<activeSize;const statusLabel=active?"使用カード":"未使用カード";const unusedLabel=active?"":'<small class="pool-unused-label">今回のゲームでは不使用</small>';return `<div class="pool-card ${active?"is-active":"is-unused"}" aria-label="${statusLabel}"><img src="${cardImage(c)}" alt="${escapeHtml(jpName(c))}">${cardDisplay(c)}${unusedLabel}</div>`;}).join("");poolDialog.showModal();}
-// v123: Mobile touch scrolling must not activate a clue/vote button when the finger moved.
+// v124: Mobile touch scrolling must not activate a clue/vote button when the finger moved.
 let cwTouchStart=null;
 actionPanel.addEventListener("pointerdown",e=>{if(e.pointerType!=="touch")return;const b=e.target.closest?.("button");cwTouchStart=b?{button:b,x:e.clientX,y:e.clientY,moved:false}:null;},{capture:true});
 actionPanel.addEventListener("pointermove",e=>{if(!cwTouchStart||e.pointerType!=="touch")return;if(Math.hypot(e.clientX-cwTouchStart.x,e.clientY-cwTouchStart.y)>10)cwTouchStart.moved=true;},{capture:true});
 actionPanel.addEventListener("click",e=>{if(!cwTouchStart)return;if(cwTouchStart.moved&&e.target.closest?.("button")===cwTouchStart.button){e.preventDefault();e.stopImmediatePropagation();}cwTouchStart=null;},{capture:true});
 actionPanel.addEventListener("pointercancel",()=>{cwTouchStart=null;},{capture:true});
 
-// v123: Keep practice clue-menu toggles on a stable parent so re-renders cannot drop the handler.
+// v124: Keep practice clue-menu toggles on a stable parent so re-renders cannot drop the handler.
 actionPanel.addEventListener("pointerdown",(event)=>{
   const neg=event.target.closest?.("[data-clue-negative-category]");
   const pos=event.target.closest?.("[data-clue-positive-category]");
@@ -825,7 +825,15 @@ async function startFreeMatch(){
     clearInterval(freeMatchTimer);freeMatchTimer=null;
     const queueNow=await get(ref(firebaseDb,`freeMatchQueue/${freeMatchModeKey()}`)).catch(()=>null);
     const now=Date.now();
-    const all=Object.values(queueNow?.val()||{}).filter(x=>x&&x.uid&&Number(x.joinedAt)>now-30000&&Number(x.joinedAt)<=now).sort((a,b)=>Number(a.joinedAt)-Number(b.joinedAt)).slice(0,4);
+    // The 30-second deadline belongs to the oldest player in the queue.
+    // Do not discard that player's entry at the exact deadline: a tiny clock
+    // difference was previously making the oldest entry fall outside the
+    // `now - 30000` filter, so the room was treated as a failed one-player
+    // match and everyone was returned to the title screen.
+    const all=Object.values(queueNow?.val()||{})
+      .filter(x=>x&&x.uid&&Number(x.joinedAt)<=now&&Number(x.joinedAt)>now-120000)
+      .sort((a,b)=>Number(a.joinedAt)-Number(b.joinedAt))
+      .slice(0,4);
     renderFreeMatchQueuePlayers(all);
     if(all.length>=2){await createFreeMatchRoom(all,true);return;}
     await finishFreeMatchWait(false);
@@ -839,7 +847,11 @@ async function startFreeMatch(){
   freeMatchQueueUnsubscribe=onValue(ref(firebaseDb,`freeMatchQueue/${freeMatchModeKey()}`),async snap=>{
     if(freeMatchStartedAt!==startedAt)return;
     const now=Date.now();
-    const all=Object.values(snap.val()||{}).filter(x=>x&&x.uid&&Number(x.joinedAt)>now-30000&&Number(x.joinedAt)<=now).sort((a,b)=>Number(a.joinedAt)-Number(b.joinedAt));
+    // Keep the oldest queued player until the first player's 30-second
+    // deadline. Entries older than two minutes are stale and ignored.
+    const all=Object.values(snap.val()||{})
+      .filter(x=>x&&x.uid&&Number(x.joinedAt)<=now&&Number(x.joinedAt)>now-120000)
+      .sort((a,b)=>Number(a.joinedAt)-Number(b.joinedAt));
     renderFreeMatchQueuePlayers(all.slice(0,4));
     const knownRoom=all.find(x=>x.roomCode);
     if(knownRoom?.roomCode){
@@ -1443,7 +1455,7 @@ async function submitOnlineActionOnce(action){
     onlineActionPromises.set(actionId,finish);
     try{
       onValue(resultRef,listener);
-      await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v123",createdAt:Date.now()});
+      await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v124",createdAt:Date.now()});
     }catch(e){console.error("online action write failed",e);finish(false);return;}
     timer=setTimeout(()=>{onlineDebug("action-timeout",{actionId,action});finish(false);},8000);
   });
