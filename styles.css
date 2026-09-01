@@ -2803,6 +2803,53 @@ html[data-debug-mode="true"] .debug-panel button{pointer-events:auto!important;c
 .clue-choice-layout .clue-menu-column{order:2;}
 @media(max-width:760px){.clue-choice-layout .quick-clue-column{order:1;}.clue-choice-layout .clue-menu-column{order:2;}.clue-choice-layout button{touch-action:pan-y;}}
 
-/* v122: Free matching is a fixed 4-player mode; never show the room max-player setting while waiting. */
+/* v123: Free matching is a fixed 4-player mode; never show the room max-player setting while waiting. */
 #onlineDialog.free-match-waiting #onlinePlayerLimitSettingRow,
 #onlineDialog.free-match-waiting #onlinePlayerLimitSettingRow * { display: none !important; }
+
+
+/* v123: mobile viewport compacting. Keep the whole game comfortably inside narrow phone screens. */
+@media (max-width:760px){
+  .site-header{min-height:54px!important;padding:8px 12px!important;}
+  .brand-copy strong{font-size:.82rem!important;}
+  .setup-screen{padding-top:22px!important;gap:22px!important;width:calc(100% - 12px)!important;}
+  .hero-copy h1{font-size:clamp(2rem,9.5vw,3rem)!important;margin:0 0 10px!important;}
+  .hero-lead{font-size:.78rem!important;line-height:1.65!important;margin:0!important;}
+  .setup-card{padding:0!important;transform:none!important;}
+  .setup-inner{padding:18px 16px!important;}
+  .setup-inner h2{font-size:1.25rem!important;margin-bottom:8px!important;}
+  .setup-inner>p:not(.step-label){font-size:.72rem!important;margin:0 0 10px!important;}
+  .name-field{margin:8px 0 12px!important;}
+  .mode-select{gap:7px!important;}
+  .mode-button{min-height:54px!important;padding:9px 11px!important;}
+  .mode-button strong{font-size:.78rem!important;}
+  .mode-button span{font-size:.64rem!important;line-height:1.3!important;}
+  .setup-actions{margin-bottom:4px!important;}
+  .rule-strip{display:grid!important;grid-template-columns:1fr 1fr!important;gap:6px!important;margin-top:4px!important;padding-bottom:70px!important;}
+  .rule-strip li{padding:7px 8px!important;font-size:.68rem!important;}
+  .rule-strip li small{font-size:.58rem!important;}
+  .setup-score-floating{position:static!important;margin:0 auto 8px!important;transform:none!important;}
+  .setup-score>div{min-width:74px!important;padding:6px 8px!important;}
+  .setup-score strong{font-size:1.1rem!important;}
+  .online-dialog{width:min(calc(100vw - 20px),520px)!important;max-height:calc(100dvh - 20px)!important;margin:auto!important;padding:16px!important;}
+  .online-dialog .dialog-note{margin:12px 0!important;}
+  .online-dialog .online-player-list{max-height:28vh!important;overflow:auto!important;}
+  .game-screen{width:calc(100% - 12px)!important;}
+  .game-heading{gap:8px!important;padding-top:8px!important;}
+  .game-heading h1{font-size:1.2rem!important;}
+  .game-heading .phase-label{font-size:.62rem!important;}
+  .game-layout{gap:10px!important;}
+  .game-top-row{gap:9px!important;}
+  .action-panel{padding:10px!important;}
+  .action-panel .choice-list,.action-panel .vote-grid{min-height:0!important;}
+}
+@media (max-width:420px){
+  .setup-screen{padding-top:16px!important;gap:16px!important;}
+  .hero-copy h1{font-size:clamp(1.8rem,9vw,2.5rem)!important;}
+  .hero-lead{font-size:.7rem!important;}
+  .setup-inner{padding:14px 12px!important;}
+  .mode-button{min-height:50px!important;padding:8px 9px!important;}
+  .mode-button strong{font-size:.72rem!important;}
+  .mode-button span{font-size:.59rem!important;}
+  .rule-strip{grid-template-columns:1fr!important;}
+}
