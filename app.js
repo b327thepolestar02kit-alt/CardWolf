@@ -1,8 +1,8 @@
-/* CardWolf build v117 */
+/* CardWolf build v126 */
 const firebaseConfig = window.FIREBASE_CONFIG || {};
-if (window.CARDWOLF_BUILD_VERSION !== "v117") { window.CARDWOLF_BUILD_VERSION = "v117"; }
+if (window.CARDWOLF_BUILD_VERSION !== "v126") { window.CARDWOLF_BUILD_VERSION = "v126"; }
 const versionEl = document.querySelector(".build-version");
-if (versionEl) { versionEl.textContent = "v117"; versionEl.setAttribute("aria-label", "ゲームバージョン v117"); }
+if (versionEl) { versionEl.textContent = "v126"; versionEl.setAttribute("aria-label", "ゲームバージョン v126"); }
 
 // Firebase is loaded lazily so a CDN/auth/database problem can never disable
 // the basic game UI. The solo/setup buttons must remain usable even when the
@@ -137,6 +137,24 @@ const DEF_STAT_BUCKETS=[
   {id:"unknown",label:"？（不明）または－（守備力を持たない）",test:v=>v===-1||v===null||v===undefined||v===""},
   ...ATK_STAT_BUCKETS.slice(1)
 ];
+function positiveClueDefinition(id,label,test){return {id,label,test};}
+function negativeClue(def){return {id:`not-${def.id}`,label:def.label.replace(/です$/, "ではありません"),test:c=>!def.test(c)};}
+function negativeBasicClues(){
+  const positives=[
+    positiveClueDefinition("monster","モンスターカードです",c=>String(c.type||"").includes("Monster")),
+    positiveClueDefinition("normal","通常モンスターカードです",c=>String(c.type||"").includes("Normal")),
+    positiveClueDefinition("effect","効果モンスターです",c=>String(c.type||"").includes("Monster")&&isEffectMonster(c)),
+    positiveClueDefinition("fusion","融合モンスターです",c=>String(c.type||"").includes("Fusion")),
+    positiveClueDefinition("synchro","シンクロモンスターです",c=>String(c.type||"").includes("Synchro")),
+    positiveClueDefinition("xyz","エクシーズモンスターです",c=>/Xyz|XYZ/.test(String(c.type||""))),
+    positiveClueDefinition("link","リンクモンスターです",c=>String(c.type||"").includes("Link")),
+    positiveClueDefinition("extra-deck","デュエル開始時にEXデッキに入るモンスターです",c=>/Fusion|Synchro|Xyz|XYZ|Link/.test(String(c.type||"")))
+  ];
+  return positives.map(d=>negativeClue(d));
+}
+function negativeAttributeClues(){return ATTRIBUTE_OPTIONS.map(([v,l])=>negativeClue(positiveClueDefinition(`attribute-${v.toLowerCase()}`,`${l}属性です`,c=>String(c.attribute||"").toUpperCase()===v)));}
+function negativeRaceClues(){const raceIds={Spellcaster:"spellcaster",Dragon:"dragon",Warrior:"warrior",Fiend:"fiend",Fairy:"fairy",Beast:"beast","Winged-Beast":"winged-beast",Machine:"machine"};return RACE_OPTIONS.filter(([v])=>v!=="minor-race").map(([v,l])=>negativeClue(positiveClueDefinition(raceIds[v],`${l}です`,c=>String(c.race||"")===v)));}
+function negativeClueOptions(category){if(category==="basic")return negativeBasicClues();if(category==="attribute")return negativeAttributeClues();if(category==="race")return negativeRaceClues();return [];}
 function initialCharOptions(){
   const chars=[...new Set(CARD_POOL.map(c=>jpName(c).trim().charAt(0)).filter(Boolean))];
   return chars.sort((a,b)=>a.localeCompare(b,"ja"));
@@ -157,8 +175,7 @@ function featureList(card){
   const list=[
     {id:"monster",label:"モンスターカードです",test:c=>String(c.type||"").includes("Monster")},
     {id:"normal",label:"通常モンスターカードです",test:c=>String(c.type||"").includes("Normal")},
-    {id:"effectless",label:"効果を持たないモンスターです",test:c=>String(c.type||"").includes("Monster")&&!isEffectMonster(c)},
-    {id:"effect",label:"効果モンスターです",test:c=>String(c.type||"").includes("Monster")&&isEffectMonster(c)},
+        {id:"effect",label:"効果モンスターです",test:c=>String(c.type||"").includes("Monster")&&isEffectMonster(c)},
     {id:"fusion",label:"融合モンスターです",test:c=>String(c.type||"").includes("Fusion")},
     {id:"synchro",label:"シンクロモンスターです",test:c=>String(c.type||"").includes("Synchro")},
     {id:"xyz",label:"エクシーズモンスターです",test:c=>/Xyz|XYZ/.test(String(c.type||""))},
@@ -281,6 +298,11 @@ function availableClues(player){
  let falsehoods=shuffle(falseStatementsFor(player.card)).filter(s=>!used.has(s.id));
  const pinned=quickNameClues(player.card).filter(s=>!used.has(s.id));
  let options=[...pinned,...truthful.slice(0,3),...falsehoods.slice(0,2)];
+ // Newly added negative forms participate in the quick suggestions as well.
+ // Pick a small random subset so they appear naturally without dominating the list.
+ const negativeQuick=shuffle([...negativeBasicClues(),...negativeAttributeClues(),...negativeRaceClues()])
+   .filter(s=>!used.has(s.id)&&!options.some(o=>o.id===s.id));
+ options.push(...negativeQuick.slice(0,2));
  if(game.settings.speechRounds>=2 && !(player.clues||[]).some(c=>c.ambiguous)){
    const vague=shuffle(AMBIGUOUS_CLUES).filter(v=>!used.has(v.id));
    options.push(...vague.slice(0,2));
@@ -294,7 +316,6 @@ function clueCategoryOptions(category){
  if(category==="basic") return [
    {id:"monster",label:"モンスターカードです"},
    {id:"normal",label:"通常モンスターカードです"},
-   {id:"effectless",label:"効果を持たないモンスターです"},
    {id:"effect",label:"効果モンスターです"},
    {id:"fusion",label:"融合モンスターです"},
    {id:"synchro",label:"シンクロモンスターです"},
@@ -302,14 +323,14 @@ function clueCategoryOptions(category){
    {id:"link",label:"リンクモンスターです"},
    {id:"extra-deck",label:"デュエル開始時にEXデッキに入るモンスターです"}
  ];
- if(category==="level") return [...LEVEL_LINK_OPTIONS.map(v=>({id:`level-${v}`,label:`レベル／ランク／リンクが${v}です`})),...LEVEL_ONLY_OPTIONS.map(v=>({id:`level-${v}`,label:`レベル／ランクが${v}です`}))];
+ if(category==="level") return [...LEVEL_LINK_OPTIONS.map(v=>({id:`level-${v}`,label:`レベル／ランク／リンクが${v}です` })),...LEVEL_ONLY_OPTIONS.map(v=>({id:`level-${v}`,label:`レベル／ランクが${v}です`}))];
  if(category==="attribute") return ATTRIBUTE_OPTIONS.map(([v,l])=>({id:`attribute-${v.toLowerCase()}`,label:`${l}属性です`}));
- if(category==="race") { const raceIds={Spellcaster:"spellcaster",Dragon:"dragon",Warrior:"warrior",Fiend:"fiend",Fairy:"fairy",Beast:"beast","Winged-Beast":"winged-beast",Machine:"machine"}; return [...RACE_OPTIONS.map(([v,l])=>({id:raceIds[v],label:`${l}です`})),{id:"minor-race",label:"マイナーな種族です"}]; }
+ if(category==="race") { const raceIds={Spellcaster:"spellcaster",Dragon:"dragon",Warrior:"warrior",Fiend:"fiend",Fairy:"fairy",Beast:"beast","Winged-Beast":"winged-beast",Machine:"machine"}; return RACE_OPTIONS.map(([v,l])=>({id:raceIds[v],label:`${l}です`})); }
  if(category==="atk") return ATK_STAT_BUCKETS.map(b=>({id:`atk-${b.id}`,label:`攻撃力が${b.label}です`}));
  if(category==="def") return DEF_STAT_BUCKETS.map(b=>({id:`def-${b.id}`,label:`守備力が${b.label}です`}));
  return [];
 }
-function findClueById(id){try{return [...featureList(game.players[game.order[game.orderIndex]].card),...AMBIGUOUS_CLUES].find(s=>String(s.id)===String(id))||null;}catch(error){console.error("Practice clue lookup failed",error);return null;}}
+function findClueById(id){try{return [...featureList(game.players[game.order[game.orderIndex]].card),...negativeBasicClues(),...negativeAttributeClues(),...negativeRaceClues(),...AMBIGUOUS_CLUES].find(s=>String(s.id)===String(id))||null;}catch(error){console.error("Practice clue lookup failed",error);return null;}}
 function safePracticeClues(player){
   try{
     const opts=availableClues(player);
@@ -340,13 +361,22 @@ function renderCluePhase(){
  if(root==="root"){
    const base=safePracticeClues(current);
    game.currentOptions=base;
-   actionPanel.innerHTML=`<div class="action-heading"><p>${roundLabel}</p><h2>何と発言しますか？</h2><span>左の一覧から詳しい条件を選ぶか、右の「すぐに選べる特徴」から選択できます。${game.settings.liePenalty?"狼が嘘発言を2回するか、曖昧発言と嘘発言をそれぞれ1回すると、逆転チャンスを失います。":"嘘の回数によるペナルティはありません。"}</span></div><div class="clue-choice-layout"><section class="clue-menu-column"><p class="clue-list-label">特徴一覧</p><div class="clue-category-grid">${CLUE_MENU_CATEGORIES.map(c=>`<button class="choice-button clue-category-button" type="button" data-clue-category="${c.id}"><span>${c.label}</span><span>→</span></button>`).join("")}</div></section><section class="quick-clue-column"><p class="clue-list-label">すぐに選べる特徴</p><div class="choice-list basic-clue-list">${base.map(s=>`<button class="choice-button ${clueChoiceClass(s,current.card)}" type="button" data-clue-id="${s.id}"><span>${s.label}</span><span>${s.ambiguous?"曖昧":"→"}</span></button>`).join("")}</div></section></div>`;
+   actionPanel.innerHTML=`<div class="action-heading"><p>${roundLabel}</p><h2>何と発言しますか？</h2><span>左の「すぐに選べる特徴」から選ぶか、右の特徴一覧から詳しい条件を選べます。${game.settings.liePenalty?"狼が嘘発言を2回するか、曖昧発言と嘘発言をそれぞれ1回すると、逆転チャンスを失います。":"嘘の回数によるペナルティはありません。"}</span></div><div class="clue-choice-layout"><section class="quick-clue-column"><p class="clue-list-label">すぐに選べる特徴</p><div class="choice-list basic-clue-list">${base.map(s=>`<button class="choice-button ${clueChoiceClass(s,current.card)}" type="button" data-clue-id="${s.id}"><span>${s.label}</span><span>${s.ambiguous?"曖昧":"→"}</span></button>`).join("")}</div></section><section class="clue-menu-column"><p class="clue-list-label">特徴一覧</p><div class="clue-category-grid">${CLUE_MENU_CATEGORIES.map(c=>`<button class="choice-button clue-category-button" type="button" data-clue-category="${c.id}"><span>${c.label}</span><span>→</span></button>`).join("")}</div></section></div>`;
    actionPanel.querySelectorAll("[data-clue-category]").forEach(b=>b.addEventListener("click",()=>{game.clueMenu=b.dataset.clueCategory;renderCluePhase();}));
+   actionPanel.querySelectorAll("[data-clue-negative-category]").forEach(b=>b.addEventListener("click",()=>{game.clueMenu=`${b.dataset.clueNegativeCategory}-negative`;renderCluePhase();}));
  }else{
-   const options=clueCategoryOptions(root);
-   game.currentOptions=options.map(o=>findClueById(o.id)).filter(Boolean);
+   const initialOptions=clueCategoryOptions(root);
+   game.currentOptions=initialOptions.map(o=>findClueById(o.id)).filter(Boolean);
    const usedIds=new Set(game.usedClueIds||[]);
-   actionPanel.innerHTML=`<div class="action-heading"><p>${roundLabel}</p><h2>${CLUE_MENU_CATEGORIES.find(c=>c.id===root)?.label||"特徴を選択"}</h2><span>一覧から選択してください。ほかのプレイヤーが発言済みの内容は選択できません。</span></div><div class="choice-list submenu-choice-list">${options.map(o=>{const used=usedIds.has(o.id);const statement=findClueById(o.id);return `<button class="choice-button ${used?"choice-used ":""}${statement?clueChoiceClass(statement,current.card):""}" type="button" data-clue-id="${o.id}" ${used?"disabled aria-disabled=\"true\"":""}><span>${o.label}</span><span>${used?"発言済み":statement?.ambiguous?"曖昧":"→"}</span></button>`;}).join("")}</div><button class="secondary-button compact clue-back-button" id="clueBackButton" type="button">← 戻る</button>`;
+   const negativeMode=String(root).endsWith("-negative");
+   const baseCategory=negativeMode?String(root).replace(/-negative$/," ").trim():root;
+   const categoryLabel=CLUE_MENU_CATEGORIES.find(c=>c.id===baseCategory)?.label||"特徴を選択";
+   const options=negativeMode?negativeClueOptions(baseCategory):clueCategoryOptions(baseCategory);
+   const canToggleNegative=(baseCategory==="basic"||baseCategory==="attribute"||baseCategory==="race");
+   const toggleButton=canToggleNegative?(negativeMode
+     ?`<button class="choice-button clue-negative-button" type="button" data-clue-positive-category="${baseCategory}"><span>肯定形選択肢へ</span><span>→</span></button>`
+     :`<button class="choice-button clue-negative-button" type="button" data-clue-negative-category="${baseCategory}"><span>否定形選択肢へ</span><span>→</span></button>`):"";
+   actionPanel.innerHTML=`<div class="action-heading"><p>${roundLabel}</p><h2>${categoryLabel}${negativeMode?"・否定形":""}</h2><span>一覧から選択してください。ほかのプレイヤーが発言済みの内容は選択できません。</span></div><div class="choice-list submenu-choice-list">${options.map(o=>{const used=usedIds.has(o.id);const statement=findClueById(o.id);return `<button class="choice-button ${used?"choice-used ":""}${statement?clueChoiceClass(statement,current.card):""}" type="button" data-clue-id="${o.id}" ${used?"disabled aria-disabled=\"true\"":""}><span>${o.label}</span><span>${used?"発言済み":statement?.ambiguous?"曖昧":"→"}</span></button>`;}).join("")}${toggleButton}</div><button class="secondary-button compact clue-back-button" id="clueBackButton" type="button">← 戻る</button>`;
    actionPanel.querySelector("#clueBackButton").addEventListener("click",()=>{game.clueMenu="root";renderCluePhase();});
  }
  actionPanel.querySelectorAll("[data-clue-id]").forEach(b=>b.addEventListener("click",()=>submitHumanClue(b.dataset.clueId)));
@@ -521,9 +551,11 @@ async function returnToSetup(){
   onlineModeButton.classList.remove("is-selected");
   voiceModeButton.classList.remove("is-selected");
   document.getElementById("freeMatchButton")?.classList.remove("is-selected");
+  document.querySelector(".room-code-card")?.removeAttribute("hidden");
   soloModeButton.setAttribute("aria-pressed","false");
   onlineModeButton.setAttribute("aria-pressed","false");
   voiceModeButton.setAttribute("aria-pressed","false");
+  document.getElementById("freeMatchButton")?.setAttribute("aria-pressed","false");
   document.getElementById("freeMatchButton")?.setAttribute("aria-pressed","false");
   game=null;
   setupScreen.hidden=false;
@@ -534,6 +566,22 @@ async function returnToSetup(){
   const mainScroller=document.querySelector("main"); if(mainScroller) mainScroller.scrollTop=0; else window.scrollTo({top:0,behavior:"auto"});
 }
 function openPool(){const activeSize=normalizeCardPoolSize((onlineMode&&onlineGame?.settings?.cardPoolSize)||getSettings().cardPoolSize);renderPoolCount({cardPoolSize:activeSize});poolGrid.innerHTML=CARD_POOL.map((c,i)=>{const active=i<activeSize;const statusLabel=active?"使用カード":"未使用カード";const unusedLabel=active?"":'<small class="pool-unused-label">今回のゲームでは不使用</small>';return `<div class="pool-card ${active?"is-active":"is-unused"}" aria-label="${statusLabel}"><img src="${cardImage(c)}" alt="${escapeHtml(jpName(c))}">${cardDisplay(c)}${unusedLabel}</div>`;}).join("");poolDialog.showModal();}
+// v126: Mobile touch scrolling must not activate a clue/vote button when the finger moved.
+let cwTouchStart=null;
+actionPanel.addEventListener("pointerdown",e=>{if(e.pointerType!=="touch")return;const b=e.target.closest?.("button");cwTouchStart=b?{button:b,x:e.clientX,y:e.clientY,moved:false}:null;},{capture:true});
+actionPanel.addEventListener("pointermove",e=>{if(!cwTouchStart||e.pointerType!=="touch")return;if(Math.hypot(e.clientX-cwTouchStart.x,e.clientY-cwTouchStart.y)>10)cwTouchStart.moved=true;},{capture:true});
+actionPanel.addEventListener("click",e=>{if(!cwTouchStart)return;if(cwTouchStart.moved&&e.target.closest?.("button")===cwTouchStart.button){e.preventDefault();e.stopImmediatePropagation();}cwTouchStart=null;},{capture:true});
+actionPanel.addEventListener("pointercancel",()=>{cwTouchStart=null;},{capture:true});
+
+// v126: Keep practice clue-menu toggles on a stable parent so re-renders cannot drop the handler.
+actionPanel.addEventListener("pointerdown",(event)=>{
+  const neg=event.target.closest?.("[data-clue-negative-category]");
+  const pos=event.target.closest?.("[data-clue-positive-category]");
+  if(!actionPanel.contains(event.target))return;
+  if(neg){ event.preventDefault(); if(game?.phase!=="clue"||!currentPlayer()?.isHuman)return; game.clueMenu=`${neg.dataset.clueNegativeCategory}-negative`; renderCluePhase(); return; }
+  if(pos){ event.preventDefault(); if(game?.phase!=="clue"||!currentPlayer()?.isHuman)return; game.clueMenu=pos.dataset.cluePositiveCategory; renderCluePhase(); return; }
+},{capture:true});
+
 // v91: Online action buttons are rendered from Firebase snapshots. A snapshot can
 // replace actionPanel.innerHTML between pointer-down and click, which makes the
 // old button's click handler disappear and feels like the button is unresponsive.
@@ -545,6 +593,22 @@ actionPanel.addEventListener("pointerdown", async (event)=>{
     event.preventDefault();
     if(!onlineGame || onlineGame.phase!=="clue" || String(onlineCurrentId())!==String(firebaseUid)) return;
     onlineClueMenu=clueCategory.dataset.onlineClueCategory;
+    renderOnlineClue();
+    return;
+  }
+  const clueNegativeCategory=event.target.closest?.("[data-online-clue-negative-category]");
+  if(clueNegativeCategory && actionPanel.contains(clueNegativeCategory)){
+    event.preventDefault();
+    if(!onlineGame || onlineGame.phase!=="clue" || String(onlineCurrentId())!==String(firebaseUid)) return;
+    onlineClueMenu=`${clueNegativeCategory.dataset.onlineClueNegativeCategory}-negative`;
+    renderOnlineClue();
+    return;
+  }
+  const cluePositiveCategory=event.target.closest?.("[data-online-clue-positive-category]");
+  if(cluePositiveCategory && actionPanel.contains(cluePositiveCategory)){
+    event.preventDefault();
+    if(!onlineGame || onlineGame.phase!=="clue" || String(onlineCurrentId())!==String(firebaseUid)) return;
+    onlineClueMenu=cluePositiveCategory.dataset.onlineCluePositiveCategory;
     renderOnlineClue();
     return;
   }
@@ -632,6 +696,9 @@ let freeMatchMode=false;
 let freeMatchQueueUnsubscribe=null;
 let freeMatchStartedAt=0;
 let freeMatchTimer=null;
+let freeMatchCreationInFlight=false;
+let freeMatchRoomPollTimer=null;
+let onlineFreeMatchedRoom=false;
 let onlineRoomCodeValue="";
 let onlineRoomUnsubscribe=null;
 let onlineActionUnsubscribe=null;
@@ -668,6 +735,7 @@ function setMode(mode){
   soloModeButton.classList.remove("is-selected");
   onlineModeButton.classList.remove("is-selected");
   voiceModeButton.classList.remove("is-selected");
+  document.getElementById("freeMatchButton")?.classList.remove("is-selected");
   soloModeButton.setAttribute("aria-pressed","false");
   onlineModeButton.setAttribute("aria-pressed","false");
   voiceModeButton.setAttribute("aria-pressed","false");
@@ -729,77 +797,178 @@ document.getElementById("freeMatchButton")?.addEventListener("click",()=>setMode
 function freeMatchQueueRef(){return ref(firebaseDb,"freeMatchQueue");}
 function freeMatchModeKey(){return "standard";}
 function freeMatchRoomCode(uids){const text=[...uids].sort().join("|");let h=2166136261;for(let i=0;i<text.length;i++){h^=text.charCodeAt(i);h=Math.imul(h,16777619);}const chars="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";let out="";for(let i=0;i<6;i++){out+=chars[(h>>>((i%4)*5))%chars.length];h=Math.imul(h^i,16777619);}return out;}
-function stopFreeMatch(){if(freeMatchQueueUnsubscribe){freeMatchQueueUnsubscribe();freeMatchQueueUnsubscribe=null;}if(freeMatchTimer){clearInterval(freeMatchTimer);freeMatchTimer=null;}freeMatchStartedAt=0;}
+function stopFreeMatch(){if(freeMatchQueueUnsubscribe){freeMatchQueueUnsubscribe();freeMatchQueueUnsubscribe=null;}if(freeMatchTimer){clearInterval(freeMatchTimer);freeMatchTimer=null;}if(freeMatchRoomPollTimer){clearInterval(freeMatchRoomPollTimer);freeMatchRoomPollTimer=null;}freeMatchStartedAt=0;freeMatchCreationInFlight=false;}
+function renderFreeMatchQueuePlayers(players){
+  if(!onlinePlayerList)return;
+  const list=(players||[]).slice(0,4);
+  if(!list.length){onlinePlayerList.innerHTML="<div class=\"muted\">対戦相手を探しています…</div>";return;}
+  onlinePlayerList.innerHTML=list.map((p,i)=>`<div class="online-player-row"><span class="mini-avatar">${String(p.uid)===String(firebaseUid)?"YOU":"P"}</span><strong>${escapeHtml(p.name||"プレイヤー")}</strong><small>${String(p.uid)===String(firebaseUid)?"あなた":"参加待機中"}</small></div>`).join("");
+}
 async function startFreeMatch(){
   stopFreeMatch();
-  // Open the matching UI and start the local 30-second deadline immediately.
-  // The countdown must not depend on Firebase SDK loading or a successful queue write.
   freeMatchStartedAt=Date.now();
   onlineMode=true;onlineVoicePreset=false;onlineHost=false;onlineRoomCodeValue="";
   createRoomButton.hidden=true;joinRoomButton.hidden=true;roomCodeInput.hidden=true;
-  onlineLobby.hidden=false;onlineLobbyStatus.textContent="マッチング中… 残り30秒";onlinePlayerList.innerHTML="<div class=\"muted\">対戦相手を探しています…</div>";
-  document.getElementById("onlinePlayerLimitSettingRow")?.setAttribute("hidden","");document.getElementById("onlineCpuSettingRow")?.setAttribute("hidden","");document.getElementById("onlineVoiceSettingRow")?.setAttribute("hidden","");onlineStartButton.hidden=true;
+  onlineLobby.hidden=false;onlineLobbyStatus.textContent="マッチング中… 残り30秒";
+  onlineDialog.classList.add("free-match-waiting");onlinePlayerList.innerHTML="<div class=\"muted\">対戦相手を探しています…</div>";
+  document.querySelector(".room-code-card")?.setAttribute("hidden","");
+  const freeLimitRow=document.getElementById("onlinePlayerLimitSettingRow");
+  if(freeLimitRow){ freeLimitRow.hidden=true; freeLimitRow.style.display="none"; }
+  const freeCpuRow=document.getElementById("onlineCpuSettingRow");
+  if(freeCpuRow) freeCpuRow.hidden=true;
+  const freeVoiceRow=document.getElementById("onlineVoiceSettingRow");
+  if(freeVoiceRow) freeVoiceRow.hidden=true;
+  onlineStartButton.hidden=true;
   if(!onlineDialog.open){try{onlineDialog.showModal();}catch{onlineDialog.setAttribute("open","");}}
-  const deadline=freeMatchStartedAt+30000;
+  const startedAt=freeMatchStartedAt, deadline=startedAt+30000;
   freeMatchTimer=setInterval(async()=>{
+    if(freeMatchStartedAt!==startedAt)return;
     const left=Math.max(0,Math.ceil((deadline-Date.now())/1000));
     if(left>0){onlineLobbyStatus.textContent=`マッチング中… 残り${left}秒`;return;}
-    if(freeMatchTimer){clearInterval(freeMatchTimer);freeMatchTimer=null;}
-    if(freeMatchStartedAt!==0){
-      const currentStart=freeMatchStartedAt;
-      freeMatchStartedAt=0;
-      if(freeMatchQueueUnsubscribe){try{freeMatchQueueUnsubscribe();}catch{}freeMatchQueueUnsubscribe=null;}
-      try{if(firebaseDb&&firebaseUid) await remove(ref(firebaseDb,`freeMatchQueue/${freeMatchModeKey()}/${firebaseUid}`));}catch{}
-      onlineLobbyStatus.textContent="マッチングに失敗しました";
-      alert("30秒以内に対戦相手が見つからなかったため、マッチングを終了しました。");
-      returnToSetup();
-    }
+    clearInterval(freeMatchTimer);freeMatchTimer=null;
+    const queueNow=await get(ref(firebaseDb,`freeMatchQueue/${freeMatchModeKey()}`)).catch(()=>null);
+    const now=Date.now();
+    // The 30-second deadline belongs to the oldest player in the queue.
+    // Do not discard that player's entry at the exact deadline: a tiny clock
+    // difference was previously making the oldest entry fall outside the
+    // `now - 30000` filter, so the room was treated as a failed one-player
+    // match and everyone was returned to the title screen.
+    const all=Object.values(queueNow?.val()||{})
+      .filter(x=>x&&x.uid&&Number(x.joinedAt)<=now&&Number(x.joinedAt)>now-120000)
+      .sort((a,b)=>Number(a.joinedAt)-Number(b.joinedAt))
+      .slice(0,4);
+    renderFreeMatchQueuePlayers(all);
+    if(all.length>=2){await createFreeMatchRoom(all,true);return;}
+    await finishFreeMatchWait(false);
   },250);
-  try{await ensureFirebase();}catch(e){
-    if(freeMatchStartedAt){
-      stopFreeMatch();
-      alert(firebaseAuthErrorText(e));
-      returnToSetup();
-    }
-    return;
-  }
-  if(!freeMatchStartedAt) return;
+  try{await ensureFirebase();}catch(e){if(freeMatchStartedAt===startedAt){await finishFreeMatchWait(false);alert(firebaseAuthErrorText(e));}return;}
+  if(freeMatchStartedAt!==startedAt)return;
   const uid=firebaseUid,name=getPlayerName();
   const entryRef=ref(firebaseDb,`freeMatchQueue/${freeMatchModeKey()}/${uid}`);
-  try{await set(entryRef,{uid,name,joinedAt:freeMatchStartedAt,mode:freeMatchModeKey()});}
-  catch(e){
-    stopFreeMatch();
-    const code=String(e?.code||e?.message||"");
-    const msg=code.includes("permission_denied")
-      ? "フリーマッチングの利用権限がFirebase側で許可されていません。管理者は firebase-database-rules.json をRealtime Databaseへデプロイしてください。"
-      : "マッチングサーバーへの接続に失敗しました。時間をおいて再度お試しください。";
-    alert(msg);
-    returnToSetup();
-    return;
-  }
-  freeMatchQueueUnsubscribe=onValue(freeMatchQueueRef(),async snap=>{
-    const all=Object.values(snap.val()?.[freeMatchModeKey()]||{}).filter(x=>x&&x.uid&&Number(x.joinedAt)>Date.now()-30000).sort((a,b)=>Number(a.joinedAt)-Number(b.joinedAt));
+  try{await set(entryRef,{uid,name,joinedAt:startedAt,mode:freeMatchModeKey()});}
+  catch(e){await finishFreeMatchWait(false);const code=String(e?.code||e?.message||"");alert(code.includes("permission_denied")?"フリーマッチングの利用権限がFirebase側で許可されていません。":"マッチングサーバーへの接続に失敗しました。時間をおいて再度お試しください。");return;}
+  freeMatchQueueUnsubscribe=onValue(ref(firebaseDb,`freeMatchQueue/${freeMatchModeKey()}`),async snap=>{
+    if(freeMatchStartedAt!==startedAt)return;
     const now=Date.now();
-    if(!freeMatchStartedAt || now-freeMatchStartedAt>=30000)return;
-    const candidates=all.slice(0,4);
-    if(candidates.length<2 || !candidates.some(x=>String(x.uid)===String(uid)))return;
-    const ids=candidates.map(x=>String(x.uid)).sort();
-    const roomCode=freeMatchRoomCode(ids);const hostUid=ids[0];
-    await update(entryRef,{roomCode,hostUid}).catch(()=>{});
-    if(String(uid)===String(hostUid)){
-      const roomSnap=await get(ref(firebaseDb,`rooms/${roomCode}`));
-      if(!roomSnap.exists()){
-        const players={};candidates.forEach(x=>players[x.uid]={uid:x.uid,name:x.name,host:String(x.uid)===String(hostUid)});
-        const settings={...getSettings(),voiceMode:false,discussionSeconds:120};
-        await set(ref(firebaseDb,`rooms/${roomCode}`),{hostUid,status:"lobby",maxPlayers:4,createdAt:Date.now(),freeMatch:true,settings,players});
-        for(const x of candidates) await set(ref(firebaseDb,`privateCards/${roomCode}/${x.uid}`),{cardName:null});
+    // Keep the oldest queued player until the first player's 30-second
+    // deadline. Entries older than two minutes are stale and ignored.
+    const all=Object.values(snap.val()||{})
+      .filter(x=>x&&x.uid&&Number(x.joinedAt)<=now&&Number(x.joinedAt)>now-120000)
+      .sort((a,b)=>Number(a.joinedAt)-Number(b.joinedAt));
+    renderFreeMatchQueuePlayers(all.slice(0,4));
+    const knownRoom=all.find(x=>x.roomCode);
+    if(knownRoom?.roomCode){
+      const targetRoom=String(knownRoom.roomCode);
+      const roomSnap=await get(ref(firebaseDb,`rooms/${targetRoom}`)).catch(()=>null);
+      if(roomSnap?.exists()){
+        await enterFreeMatchedRoom(targetRoom);
+        return;
       }
     }
-    stopFreeMatch();await remove(entryRef).catch(()=>{});
-    onlineRoomCodeValue=roomCode;onlineHost=String(uid)===String(hostUid);freeMatchMode=false;onlineVoicePreset=false;
-    openOnlineLobby();
-    if(onlineHost){setTimeout(()=>startOnlineHostGame(),500);}
+    const count=Math.min(4,all.length);
+    const oldestJoined=all.length?Number(all[0].joinedAt):startedAt;
+    onlineLobbyStatus.textContent=`マッチング中… ${count}/4人・残り${Math.max(0,Math.ceil((deadline-now)/1000))}秒`;
+    // Wait for a full four-player group. If the oldest queued player reaches 30s first, start with 2-3 humans and fill the room with CPU.
+    if(count>=4) await createFreeMatchRoom(all.slice(0,4),false);
+    else if(count>=2 && now-oldestJoined>=30000) await createFreeMatchRoom(all.slice(0,4),true);
   });
+}
+async function finishFreeMatchWait(success){
+  const uid=firebaseUid;
+  const wasWaiting=Boolean(freeMatchStartedAt);
+  stopFreeMatch();
+  if(uid&&firebaseDb){try{await remove(ref(firebaseDb,`freeMatchQueue/${freeMatchModeKey()}/${uid}`));}catch{}}
+  document.querySelector(".room-code-card")?.removeAttribute("hidden");
+  const limitRow=document.getElementById("onlinePlayerLimitSettingRow"); if(limitRow){ limitRow.hidden=false; limitRow.style.display=""; }
+  onlineDialog.classList.remove("free-match-waiting");
+  onlineFreeMatchedRoom=false;
+  const cpuRow=document.getElementById("onlineCpuSettingRow"); if(cpuRow) cpuRow.hidden=false;
+  const voiceRow=document.getElementById("onlineVoiceSettingRow"); if(voiceRow) voiceRow.hidden=!onlineVoicePreset;
+  document.getElementById("freeMatchButton")?.classList.remove("is-selected");
+  document.getElementById("freeMatchButton")?.setAttribute("aria-pressed","false");
+  if(!success&&wasWaiting){onlineLobbyStatus.textContent="マッチングを終了しました";returnToSetup();}
+}
+async function enterFreeMatchedRoom(roomCode){
+  if(!freeMatchStartedAt)return;
+  const snap=await get(ref(firebaseDb,`rooms/${roomCode}`)).catch(()=>null);
+  if(!snap?.exists())return;
+  const data=snap.val();
+  const players=Object.values(data.players||{});
+  if(!players.some(p=>String(p.uid)===String(firebaseUid))) return;
+  stopFreeMatch();
+  await remove(ref(firebaseDb,`freeMatchQueue/${freeMatchModeKey()}/${firebaseUid}`)).catch(()=>{});
+  onlineRoomCodeValue=roomCode;
+  onlineHost=String(firebaseUid)===String(data.hostUid);
+  freeMatchMode=false;onlineVoicePreset=false;onlineFreeMatchedRoom=true;
+  onlineDialog.classList.remove("free-match-waiting");
+  openOnlineLobby();
+}
+async function createFreeMatchRoom(candidates,forceStart=false){
+  if(!freeMatchStartedAt||candidates.length<2||freeMatchCreationInFlight)return;
+  const startedAt=freeMatchStartedAt;
+  const ordered=[...candidates].filter(x=>x&&x.uid).sort((a,b)=>Number(a.joinedAt)-Number(b.joinedAt)||String(a.uid).localeCompare(String(b.uid))).slice(0,4);
+  const ids=ordered.map(x=>String(x.uid)).sort();
+  const roomCode=freeMatchRoomCode(ids),hostUid=String(ordered[0].uid);
+
+  // The oldest queued player is the only host. Other clients must not attempt
+  // to create the room themselves. They can, however, deterministically derive
+  // the same room code and wait for the host's room to appear. This is important
+  // because the queue Rules intentionally allow each user to write only their
+  // own queue entry, so the host cannot safely write roomCode into everybody's
+  // queue entry.
+  if(String(firebaseUid)!==hostUid){
+    if(freeMatchRoomPollTimer)return;
+    freeMatchRoomPollTimer=setInterval(async()=>{
+      if(freeMatchStartedAt!==startedAt){clearInterval(freeMatchRoomPollTimer);freeMatchRoomPollTimer=null;return;}
+      const snap=await get(ref(firebaseDb,`rooms/${roomCode}`)).catch(()=>null);
+      if(snap?.exists()){
+        clearInterval(freeMatchRoomPollTimer);freeMatchRoomPollTimer=null;
+        await enterFreeMatchedRoom(roomCode);
+      }
+    },250);
+    return;
+  }
+
+  freeMatchCreationInFlight=true;
+  try{
+    const uid=firebaseUid,entryRef=ref(firebaseDb,`freeMatchQueue/${freeMatchModeKey()}/${uid}`);
+    await update(entryRef,{roomCode,hostUid}).catch(e=>{throw e;});
+    let roomSnap=await get(ref(firebaseDb,`rooms/${roomCode}`));
+    if(!roomSnap.exists()){
+      const players={};
+      ordered.forEach(x=>players[x.uid]={uid:x.uid,name:x.name,host:String(x.uid)===hostUid});
+      const settings={...getSettings(),voiceMode:false,discussionSeconds:120};
+      await set(ref(firebaseDb,`rooms/${roomCode}`),{hostUid,status:"lobby",maxPlayers:4,createdAt:Date.now(),freeMatch:true,settings,players});
+      for(const x of ordered) await set(ref(firebaseDb,`privateCards/${roomCode}/${x.uid}`),{cardName:null});
+      roomSnap=await get(ref(firebaseDb,`rooms/${roomCode}`));
+    }
+    if(!roomSnap.exists())throw new Error("free-match-room-create-failed");
+
+    // The room itself contains the complete human roster, so non-host clients
+    // do not need the host to modify their queue entries. The UI never exposes
+    // this internal room code.
+    stopFreeMatch();
+    document.querySelector(".room-code-card")?.setAttribute("hidden","");
+    onlineRoomCodeValue=roomCode;onlineHost=true;freeMatchMode=false;onlineVoicePreset=false;onlineFreeMatchedRoom=true;
+    onlineDialog.classList.add("free-match-waiting");
+    onlineDialog.classList.remove("free-match-waiting");
+    onlineRoomCode.textContent="----";
+    openOnlineLobby();
+    onlineRoomCode.textContent="----";
+
+    // For 2–3 humans the oldest player's 30-second deadline starts the game
+    // immediately with CPU fill. With 4 humans, start as soon as the full room
+    // is assembled.
+    if(forceStart || ordered.length>=4){
+      setTimeout(()=>startOnlineHostGame().catch(e=>console.error("free-match start failed:",e)),250);
+    }
+  }catch(e){
+    console.error("free-match room creation failed:",e);
+    if(freeMatchStartedAt) await finishFreeMatchWait(false);
+    else returnToSetup();
+  }finally{
+    freeMatchCreationInFlight=false;
+  }
 }
 
 function onlineRoomRef(){return ref(firebaseDb,`rooms/${onlineRoomCodeValue}`);}
@@ -812,21 +981,27 @@ function getOnlineLobbySettings(){
 }
 function syncOnlineLobbySettings(data){
   const s=data?.settings||onlineSettings();
+  const isFree=Boolean(data?.freeMatch);
   const timeEl=document.getElementById("onlineDiscussionMinutes"), maxEl=document.getElementById("onlineMaxPlayers"), poolEl=document.getElementById("cardPoolSize");
   const roomIsVoice=Boolean(s.voiceMode);
   const voiceRow=document.getElementById("onlineVoiceSettingRow");
-  if(voiceRow) voiceRow.hidden=!roomIsVoice;
+  if(voiceRow) voiceRow.hidden=isFree || !roomIsVoice;
   if(timeEl) timeEl.value=String(Number(s.discussionSeconds||120));
   if(maxEl) maxEl.value=String(Math.min(8,Math.max(3,Number(data?.maxPlayers||4))));
   if(poolEl) poolEl.value=String(normalizeCardPoolSize(s.cardPoolSize||100));
   renderPoolCount(s);
   if(onlineHost){
-    const cpu=document.getElementById("onlineCpuSettingRow"); if(cpu) cpu.hidden=false;
-    if(maxEl) maxEl.disabled=false;
+    const cpu=document.getElementById("onlineCpuSettingRow"); if(cpu) cpu.hidden=isFree;
+    if(maxEl) { maxEl.disabled=false; if(isFree){ const row=maxEl.closest?.(".online-player-limit-setting"); if(row){ row.hidden=true; row.style.display="none"; } } }
   } else {
     const row=document.getElementById("onlineVoiceSettingRow"); if(row) row.hidden=true;
     const cpu=document.getElementById("onlineCpuSettingRow"); if(cpu) cpu.hidden=true;
     if(maxEl) maxEl.disabled=true;
+  }
+  if(isFree){
+    const limit=document.getElementById("onlinePlayerLimitSettingRow"); if(limit){ limit.hidden=true; limit.style.display="none"; }
+    const cpu=document.getElementById("onlineCpuSettingRow"); if(cpu) cpu.hidden=true;
+    if(voiceRow) voiceRow.hidden=true;
   }
 }
 function onlinePublicPlayers(){
@@ -870,7 +1045,16 @@ async function ensureFirebase(){
 function lobbyPlayersFromValue(v){return Object.values(v?.players||{});}
 function renderOnlineLobby(data){
   const players=lobbyPlayersFromValue(data);
-  onlineRoomCode.textContent=onlineRoomCodeValue||"----";
+  const isFree=Boolean(data?.freeMatch);
+  const roomCard=document.querySelector(".room-code-card");
+  const limitRow=document.getElementById("onlinePlayerLimitSettingRow");
+  const cpuRow=document.getElementById("onlineCpuSettingRow");
+  const voiceRow=document.getElementById("onlineVoiceSettingRow");
+  if(roomCard) roomCard.hidden=isFree;
+  if(limitRow){ limitRow.hidden=isFree; limitRow.style.display=isFree?"none":""; }
+  if(cpuRow) cpuRow.hidden=isFree;
+  if(voiceRow) voiceRow.hidden=isFree || !Boolean(data?.settings?.voiceMode);
+  onlineRoomCode.textContent=(isFree||onlineFreeMatchedRoom)?"----":(onlineRoomCodeValue||"----");
   onlinePlayerList.innerHTML=players.map(p=>`<div class="online-player-row"><span class="mini-avatar">${p.host?"H":"P"}</span><strong>${escapeHtml(p.name)}</strong><small>${p.host?"ホスト":"参加中"}</small></div>`).join("");
   const max=Math.min(8,Math.max(3,Number(data?.maxPlayers||4)));
   const humanCount=players.length;
@@ -879,16 +1063,18 @@ function renderOnlineLobby(data){
   onlineCpuCount.value=String(selected);
   onlineCpuCount.disabled=!onlineHost;
   syncOnlineLobbySettings(data);
-  onlineStartButton.hidden=!onlineHost;
+  onlineStartButton.hidden=isFree || !onlineHost;
   onlineStartButton.disabled=!onlineHost||humanCount<1;
-  onlineLobbyStatus.textContent=`${humanCount}/${max}人・${data?.status==="playing"?"ゲーム中":"待機中"}`;
+  onlineLobbyStatus.textContent=isFree
+    ? `${humanCount}/4人・${data?.status==="playing"?"ゲーム中":"マッチング成立・ゲーム開始準備中"}`
+    : `${humanCount}/${max}人・${data?.status==="playing"?"ゲーム中":"待機中"}`;
 }
 async function createOnlineRoom(){
   await ensureFirebase();
   let code=null;
   for(let i=0;i<12;i++){const c=makeRoomCode();const snap=await get(ref(firebaseDb,`rooms/${c}`));if(!snap.exists()){code=c;break;}}
   if(!code){alert("ルームコードを作成できませんでした。もう一度お試しください。");return;}
-  onlineRoomCodeValue=code;onlineHost=true;
+  onlineRoomCodeValue=code;onlineHost=true;onlineFreeMatchedRoom=false;
   const name=getPlayerName();
   const maxPlayers=Math.min(8,Math.max(3,Number(document.getElementById("onlineMaxPlayers")?.value||4)));
   const room={hostUid:firebaseUid,status:"lobby",maxPlayers,createdAt:Date.now(),settings:getOnlineLobbySettings(),players:{[firebaseUid]:{uid:firebaseUid,name,host:true}}};
@@ -905,7 +1091,7 @@ async function joinOnlineRoom(){
   const data=snap.val(), players=lobbyPlayersFromValue(data);
   if(data.status!=="lobby"){alert("そのルームはすでにゲーム中です。");return;}
   if(players.length>=Math.min(8,Math.max(3,Number(data.maxPlayers||4)))){alert("このルームは満員です。");return;}
-  onlineRoomCodeValue=code;onlineHost=false;
+  onlineRoomCodeValue=code;onlineHost=false;onlineFreeMatchedRoom=false;
   const name=getPlayerName();
   await update(ref(firebaseDb,`rooms/${code}/players/${firebaseUid}`),{uid:firebaseUid,name,host:false});
   await set(ref(firebaseDb,`privateCards/${code}/${firebaseUid}`),{cardName:null});
@@ -914,7 +1100,7 @@ async function joinOnlineRoom(){
 function openOnlineLobby(){
   const listenerEpoch=onlineSessionEpoch;
   const listenerRoom=onlineRoomCodeValue;
-  onlineLobby.hidden=false;onlineRoomCode.textContent=onlineRoomCodeValue;createRoomButton.hidden=true;joinRoomButton.hidden=true;roomCodeInput.hidden=true;
+  onlineLobby.hidden=false;onlineRoomCode.textContent=onlineFreeMatchedRoom?"----":onlineRoomCodeValue;createRoomButton.hidden=true;joinRoomButton.hidden=true;roomCodeInput.hidden=true;
   if(onlineRoomUnsubscribe)onlineRoomUnsubscribe();
   onlineRoomUnsubscribe=onValue(onlineRoomRef(),snap=>{
     // Firebase can deliver an already queued snapshot after off()/unsubscribe().
@@ -997,7 +1183,7 @@ async function leaveOnlineRoom(options={}){
       }
     }
   }catch(e){console.warn("online leave failed",e);}
-  onlineRoomCodeValue="";onlineHost=false;onlineGame=null;onlineTurnReadyKey="";onlineTurnReadyPendingKey="";onlineLoadedGameMatchId="";if(onlineTurnReadyTimer){clearTimeout(onlineTurnReadyTimer);onlineTurnReadyTimer=null;}onlineMyCard=null;onlineClueMenu="root";onlineHostSecrets=null;onlineLastActionId=null;onlinePendingAction=null;
+  onlineRoomCodeValue="";onlineHost=false;onlineFreeMatchedRoom=false;onlineGame=null;onlineTurnReadyKey="";onlineTurnReadyPendingKey="";onlineLoadedGameMatchId="";if(onlineTurnReadyTimer){clearTimeout(onlineTurnReadyTimer);onlineTurnReadyTimer=null;}onlineMyCard=null;onlineClueMenu="root";onlineHostSecrets=null;onlineLastActionId=null;onlinePendingAction=null;
   onlineLobby.hidden=true;createRoomButton.hidden=false;joinRoomButton.hidden=false;roomCodeInput.hidden=false;
   try{onlineDialog.close();}catch{};onlineDialog.removeAttribute("open");
   if(options.returnToSetup) returnToSetup();
@@ -1008,6 +1194,10 @@ function onlineFeatureOptions(card,used,playerClues){
   let falsehoods=shuffle(falseStatementsFor(card)).filter(s=>!usedSet.has(s.id));
   const pinned=quickNameClues(card).filter(s=>!usedSet.has(s.id));
   let options=[...pinned,...truthful.slice(0,3),...falsehoods.slice(0,2)];
+  // Negative basic/attribute/race clues are also eligible for quick suggestions.
+  const negativeQuick=shuffle([...negativeBasicClues(),...negativeAttributeClues(),...negativeRaceClues()])
+    .filter(s=>!usedSet.has(s.id)&&!options.some(o=>o.id===s.id));
+  options.push(...negativeQuick.slice(0,2));
   if((onlineGame?.settings?.speechRounds||2)>=2 && !(playerClues||[]).some(c=>c.ambiguous)){
     const vague=shuffle(AMBIGUOUS_CLUES).filter(v=>!usedSet.has(v.id));
     options.push(...vague.slice(0,2));
@@ -1071,7 +1261,7 @@ async function onlineSubmitClue(id){
   onlineGame.usedClueIds=usedIds;
   // The clicked button and the validation source must never come from two different
   // randomized option lists. Validate against the canonical statement set for this card.
-  const canonical=[...featureList(card),...AMBIGUOUS_CLUES];
+  const canonical=[...featureList(card),...negativeBasicClues(),...negativeAttributeClues(),...negativeRaceClues(),...AMBIGUOUS_CLUES];
   const st=canonical.find(s=>String(s.id)===String(id));
   if(!st){onlineDebug("clue-rejected-client",{reason:"invalid-option",id,used:usedIds,canonicalIds:canonical.map(s=>s.id),menu:onlineClueMenu});renderOnlineClue();return;}
   // A rendered menu can be one Firebase snapshot behind. Never silently discard a click merely because
@@ -1225,16 +1415,21 @@ function renderOnlineClue(){
     actionPanel.innerHTML=`<div class="thinking-state"><span class="thinking-card" aria-hidden="true">?</span><div><p>ONLINE TURN</p><h2>${escapeHtml(current?.name||"プレイヤー")}が発言中</h2><span>前の発言とは違う特徴を選んでいます…</span></div></div>`;return;
   }
   const usedIds=new Set(onlineGame.usedClueIds||[]);
-  const findOnlineClue=id=>[...featureList(onlineMyCard||{}),...AMBIGUOUS_CLUES].find(s=>s.id===id)||null;
+  const findOnlineClue=id=>[...featureList(onlineMyCard||{}),...negativeBasicClues(),...negativeAttributeClues(),...negativeRaceClues(),...AMBIGUOUS_CLUES].find(s=>s.id===id)||null;
   const root=onlineClueMenu||"root";
   if(root==="root"){
     const opts=onlineFeatureOptions(onlineMyCard,onlineGame.usedClueIds,current?.clues);
-    actionPanel.innerHTML=`<div class="action-heading"><p>${roundLabel}</p><h2>何と発言しますか？</h2><span>左の一覧から詳しい条件を選ぶか、右の「すぐに選べる特徴」から選択できます。${onlineGame.settings.liePenalty?"狼が嘘発言を2回するか、曖昧発言と嘘発言をそれぞれ1回すると、逆転チャンスを失います。":"嘘の回数によるペナルティはありません。"}</span></div><div class="clue-choice-layout"><section class="clue-menu-column"><p class="clue-list-label">特徴一覧</p><div class="clue-category-grid">${CLUE_MENU_CATEGORIES.map(c=>`<button class="choice-button clue-category-button" type="button" data-online-clue-category="${c.id}"><span>${c.label}</span><span>→</span></button>`).join("")}</div></section><section class="quick-clue-column"><p class="clue-list-label">すぐに選べる特徴</p><div class="choice-list basic-clue-list">${opts.map(s=>`<button class="choice-button ${clueChoiceClass(s,onlineMyCard)}" type="button" data-online-clue="${s.id}"><span>${s.label}</span><span>${s.ambiguous?"曖昧":"→"}</span></button>`).join("")}</div></section></div>`;
+    actionPanel.innerHTML=`<div class="action-heading"><p>${roundLabel}</p><h2>何と発言しますか？</h2><span>左の「すぐに選べる特徴」から選ぶか、右の特徴一覧から詳しい条件を選べます。${onlineGame.settings.liePenalty?"狼が嘘発言を2回するか、曖昧発言と嘘発言をそれぞれ1回すると、逆転チャンスを失います。":"嘘の回数によるペナルティはありません。"}</span></div><div class="clue-choice-layout"><section class="quick-clue-column"><p class="clue-list-label">すぐに選べる特徴</p><div class="choice-list basic-clue-list">${opts.map(s=>`<button class="choice-button ${clueChoiceClass(s,onlineMyCard)}" type="button" data-online-clue="${s.id}"><span>${s.label}</span><span>${s.ambiguous?"曖昧":"→"}</span></button>`).join("")}</div></section><section class="clue-menu-column"><p class="clue-list-label">特徴一覧</p><div class="clue-category-grid">${CLUE_MENU_CATEGORIES.map(c=>`<button class="choice-button clue-category-button" type="button" data-online-clue-category="${c.id}"><span>${c.label}</span><span>→</span></button>`).join("")}</div></section></div>`;
   }else{
-    const canonical=new Map([...featureList(onlineMyCard||{}),...AMBIGUOUS_CLUES].map(s=>[String(s.id),s]));
-    // Never paint a menu item that the authoritative game rules cannot resolve.
-    const options=clueCategoryOptions(root).filter(o=>canonical.has(String(o.id)));
-    actionPanel.innerHTML=`<div class="action-heading"><p>${roundLabel}</p><h2>${CLUE_MENU_CATEGORIES.find(c=>c.id===root)?.label||"特徴を選択"}</h2><span>一覧から選択してください。ほかのプレイヤーが発言済みの内容は選択できません。</span></div><div class="choice-list submenu-choice-list">${options.map(o=>{const used=usedIds.has(o.id);const statement=canonical.get(String(o.id));return `<button class="choice-button ${used?"choice-used ":""}${statement?clueChoiceClass(statement,onlineMyCard):""}" type="button" data-online-clue="${o.id}" ${used?"disabled aria-disabled=\"true\"":""}><span>${o.label}</span><span>${used?"発言済み":statement?.ambiguous?"曖昧":"→"}</span></button>`;}).join("")}</div><button class="secondary-button compact clue-back-button" id="onlineClueBackButton" type="button">← 戻る</button>`;
+    const canonical=new Map([...featureList(onlineMyCard||{}),...negativeBasicClues(),...negativeAttributeClues(),...negativeRaceClues(),...AMBIGUOUS_CLUES].map(s=>[String(s.id),s]));
+    const negativeMode=String(root).endsWith("-negative");
+    const baseCategory=negativeMode?String(root).replace(/-negative$/," ").trim():root;
+    const options=(negativeMode?negativeClueOptions(baseCategory):clueCategoryOptions(baseCategory)).filter(o=>canonical.has(String(o.id)));
+    const canToggleNegative=(baseCategory==="basic"||baseCategory==="attribute"||baseCategory==="race");
+    const toggleButton=canToggleNegative?(negativeMode
+      ?`<button class="choice-button clue-negative-button" type="button" data-online-clue-positive-category="${baseCategory}"><span>肯定形選択肢へ</span><span>→</span></button>`
+      :`<button class="choice-button clue-negative-button" type="button" data-online-clue-negative-category="${baseCategory}"><span>否定形選択肢へ</span><span>→</span></button>`):"";
+    actionPanel.innerHTML=`<div class="action-heading"><p>${roundLabel}</p><h2>${CLUE_MENU_CATEGORIES.find(c=>c.id===baseCategory)?.label||"特徴を選択"}${negativeMode?"・否定形":""}</h2><span>一覧から選択してください。ほかのプレイヤーが発言済みの内容は選択できません。</span></div><div class="choice-list submenu-choice-list">${options.map(o=>{const used=usedIds.has(o.id);const statement=canonical.get(String(o.id));return `<button class="choice-button ${used?"choice-used ":""}${statement?clueChoiceClass(statement,onlineMyCard):""}" type="button" data-online-clue="${o.id}" ${used?"disabled aria-disabled=\"true\"":""}><span>${o.label}</span><span>${used?"発言済み":statement?.ambiguous?"曖昧":"→"}</span></button>`;}).join("")}${toggleButton}</div><button class="secondary-button compact clue-back-button" id="onlineClueBackButton" type="button">← 戻る</button>`;
     actionPanel.querySelector("#onlineClueBackButton").addEventListener("click",()=>{onlineClueMenu="root";renderOnlineClue();});
   }
 }
@@ -1301,7 +1496,7 @@ async function submitOnlineActionOnce(action){
     onlineActionPromises.set(actionId,finish);
     try{
       onValue(resultRef,listener);
-      await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v117",createdAt:Date.now()});
+      await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v126",createdAt:Date.now()});
     }catch(e){console.error("online action write failed",e);finish(false);return;}
     timer=setTimeout(()=>{onlineDebug("action-timeout",{actionId,action});finish(false);},8000);
   });
@@ -1379,7 +1574,7 @@ async function hostApplyClue(uid,clueId,action={}){
   const player=onlinePlayerById(uid),card=onlineHostSecrets.cards[uid];if(!player||!card)return;
   onlineGame.usedClueIds=Array.isArray(onlineGame.usedClueIds)?onlineGame.usedClueIds:[];
   onlineGame.logs=Array.isArray(onlineGame.logs)?onlineGame.logs:[];
-  let st=[...featureList(card),...AMBIGUOUS_CLUES].find(s=>s.id===clueId);
+  let st=[...featureList(card),...negativeBasicClues(),...negativeAttributeClues(),...negativeRaceClues(),...AMBIGUOUS_CLUES].find(s=>String(s.id)===String(clueId));
   if(!st||onlineGame.usedClueIds.includes(st.id))return false;
   if(st.ambiguous && (player.clues||[]).some(c=>c.ambiguous))return false;
   const truthful=st.ambiguous?true:Boolean(st.test(card));
@@ -1742,6 +1937,7 @@ joinRoomButton.addEventListener("click",()=>{
 });
 leaveRoomButton.addEventListener("click",async(e)=>{
   e.preventDefault(); e.stopPropagation();
+  if(freeMatchStartedAt){ await finishFreeMatchWait(false); return; }
   if(!onlineRoomCodeValue)return;
   if(!confirm("このオンライン対戦の部屋から退出しますか？"))return;
   await leaveOnlineRoom({returnToSetup:true});
