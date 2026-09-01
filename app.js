@@ -1,8 +1,8 @@
-/* CardWolf build v130 */
+/* CardWolf build v131 */
 const firebaseConfig = window.FIREBASE_CONFIG || {};
-if (window.CARDWOLF_BUILD_VERSION !== "v130") { window.CARDWOLF_BUILD_VERSION = "v130"; }
+if (window.CARDWOLF_BUILD_VERSION !== "v131") { window.CARDWOLF_BUILD_VERSION = "v131"; }
 const versionEl = document.querySelector(".build-version");
-if (versionEl) { versionEl.textContent = "v130"; versionEl.setAttribute("aria-label", "ゲームバージョン v130"); }
+if (versionEl) { versionEl.textContent = "v131"; versionEl.setAttribute("aria-label", "ゲームバージョン v131"); }
 
 // Firebase is loaded lazily so a CDN/auth/database problem can never disable
 // the basic game UI. The solo/setup buttons must remain usable even when the
@@ -566,14 +566,14 @@ async function returnToSetup(){
   const mainScroller=document.querySelector("main"); if(mainScroller) mainScroller.scrollTop=0; else window.scrollTo({top:0,behavior:"auto"});
 }
 function openPool(){const activeSize=normalizeCardPoolSize((onlineMode&&onlineGame?.settings?.cardPoolSize)||getSettings().cardPoolSize);renderPoolCount({cardPoolSize:activeSize});poolGrid.innerHTML=CARD_POOL.map((c,i)=>{const active=i<activeSize;const statusLabel=active?"使用カード":"未使用カード";const unusedLabel=active?"":'<small class="pool-unused-label">今回のゲームでは不使用</small>';return `<div class="pool-card ${active?"is-active":"is-unused"}" aria-label="${statusLabel}"><img src="${cardImage(c)}" alt="${escapeHtml(jpName(c))}">${cardDisplay(c)}${unusedLabel}</div>`;}).join("");poolDialog.showModal();}
-// v130: Mobile touch scrolling must not activate a clue/vote button when the finger moved.
+// v131: Mobile touch scrolling must not activate a clue/vote button when the finger moved.
 let cwTouchStart=null;
 actionPanel.addEventListener("pointerdown",e=>{if(e.pointerType!=="touch")return;const b=e.target.closest?.("button");cwTouchStart=b?{button:b,x:e.clientX,y:e.clientY,moved:false}:null;},{capture:true});
 actionPanel.addEventListener("pointermove",e=>{if(!cwTouchStart||e.pointerType!=="touch")return;if(Math.hypot(e.clientX-cwTouchStart.x,e.clientY-cwTouchStart.y)>10)cwTouchStart.moved=true;},{capture:true});
 actionPanel.addEventListener("click",e=>{if(!cwTouchStart)return;if(cwTouchStart.moved&&e.target.closest?.("button")===cwTouchStart.button){e.preventDefault();e.stopImmediatePropagation();}cwTouchStart=null;},{capture:true});
 actionPanel.addEventListener("pointercancel",()=>{cwTouchStart=null;},{capture:true});
 
-// v130: Keep practice clue-menu toggles on a stable parent so re-renders cannot drop the handler.
+// v131: Keep practice clue-menu toggles on a stable parent so re-renders cannot drop the handler.
 actionPanel.addEventListener("pointerdown",(event)=>{
   const neg=event.target.closest?.("[data-clue-negative-category]");
   const pos=event.target.closest?.("[data-clue-positive-category]");
@@ -632,7 +632,7 @@ actionPanel.addEventListener("pointerdown", async (event)=>{
   }
 });
 
-// v130: Reverse-card selection must distinguish a tap from a scroll gesture.
+// v131: Reverse-card selection must distinguish a tap from a scroll gesture.
 // On touch devices, activating on pointerdown makes the first touch of a card
 // select it before the user has had a chance to start scrolling. We therefore
 // remember the touched card and activate only on pointerup when the finger
@@ -1529,7 +1529,7 @@ async function submitOnlineActionOnce(action){
     onlineActionPromises.set(actionId,finish);
     try{
       onValue(resultRef,listener);
-      await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v130",createdAt:Date.now()});
+      await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v131",createdAt:Date.now()});
     }catch(e){console.error("online action write failed",e);finish(false);return;}
     timer=setTimeout(()=>{onlineDebug("action-timeout",{actionId,action});finish(false);},8000);
   });

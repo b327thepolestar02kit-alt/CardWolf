@@ -2803,12 +2803,12 @@ html[data-debug-mode="true"] .debug-panel button{pointer-events:auto!important;c
 .clue-choice-layout .clue-menu-column{order:2;}
 @media(max-width:760px){.clue-choice-layout .quick-clue-column{order:1;}.clue-choice-layout .clue-menu-column{order:2;}.clue-choice-layout button{touch-action:pan-y;}}
 
-/* v130: Free matching is a fixed 4-player mode; never show the room max-player setting while waiting. */
+/* v131: Free matching is a fixed 4-player mode; never show the room max-player setting while waiting. */
 #onlineDialog.free-match-waiting #onlinePlayerLimitSettingRow,
 #onlineDialog.free-match-waiting #onlinePlayerLimitSettingRow * { display: none !important; }
 
 
-/* v130: mobile viewport compacting. Keep the whole game comfortably inside narrow phone screens. */
+/* v131: mobile viewport compacting. Keep the whole game comfortably inside narrow phone screens. */
 @media (max-width:760px){
   .site-header{min-height:54px!important;padding:8px 12px!important;}
   .brand-copy strong{font-size:.82rem!important;}
@@ -2855,7 +2855,7 @@ html[data-debug-mode="true"] .debug-panel button{pointer-events:auto!important;c
 }
 
 
-/* v130: compact mobile layout. Earlier mobile rules were additive and some
+/* v131: compact mobile layout. Earlier mobile rules were additive and some
    late overrides restored desktop-sized cards, headings, and panel spacing.
    Keep the document within the phone viewport while preserving normal scroll. */
 @media (max-width: 600px){
@@ -2946,7 +2946,7 @@ html[data-debug-mode="true"] .debug-panel button{pointer-events:auto!important;c
   .online-dialog .online-leave-button{padding:5px 8px!important;font-size:.55rem!important;}
 }
 
-/* v130: restore reliable document scrolling and remove the oversized mobile
+/* v131: restore reliable document scrolling and remove the oversized mobile
    overrides introduced by the recent viewport experiments. The document is
    the only vertical scroller on phones; no fixed-height main container. */
 @media (max-width: 760px){
@@ -3022,11 +3022,11 @@ html[data-debug-mode="true"] .debug-panel button{pointer-events:auto!important;c
   .mode-button{min-height:46px!important;}
 }
 
-/* v130: a free-match room never displays its generated internal room code. */
+/* v131: a free-match room never displays its generated internal room code. */
 #onlineDialog.free-match-waiting .room-code-card,
 html[data-free-matched-room="true"] #onlineDialog .room-code-card{display:none!important;}
 
-/* v130: definitive mobile layout/scroll restoration.
+/* v131: definitive mobile layout/scroll restoration.
    Earlier revisions accumulated several contradictory mobile rules, including
    a fixed-height <main> scroll container. On iOS that made the page feel
    stuck and also enlarged the setup screen through nested viewport sizing.
@@ -3141,7 +3141,7 @@ html[data-free-matched-room="true"] #onlineDialog .room-code-card{display:none!i
   .mode-button span{font-size:.46rem!important;}
 }
 
-/* v130: mobile viewport/scroll stabilization.
+/* v131: mobile viewport/scroll stabilization.
    The previous mobile rules accumulated conflicting sizes and, more
    importantly, kept the hero text in nowrap/overflow-hidden containers.
    On iOS that made the page feel wider than the viewport and could make a
@@ -3368,7 +3368,7 @@ html[data-free-matched-room="true"] #onlineDialog .room-code-card{display:none!i
 }
 
 
-/* v130: mobile setup width, settings placement, and decorative-corner cleanup */
+/* v131: mobile setup width, settings placement, and decorative-corner cleanup */
 .corner{display:none!important;}
 @media (max-width:760px){
   .site-header,
@@ -3409,7 +3409,7 @@ html[data-free-matched-room="true"] #onlineDialog .room-code-card{display:none!i
   .mode-button span{font-size:.47rem!important;}
 }
 
-/* v130: mobile card presentation/readability. Keep desktop sizing unchanged. */
+/* v131: mobile card presentation/readability. Keep desktop sizing unchanged. */
 @media (max-width: 760px){
   .game-top-row .your-card-panel .playing-card.ygo{
     width:min(100%,320px)!important;
@@ -3466,7 +3466,7 @@ html[data-free-matched-room="true"] #onlineDialog .room-code-card{display:none!i
 }
 
 
-/* v130: slightly narrower mobile shell without changing desktop layout. */
+/* v131: slightly narrower mobile shell without changing desktop layout. */
 @media (max-width:760px){
   .site-header,
   .setup-screen,
@@ -3481,5 +3481,19 @@ html[data-free-matched-room="true"] #onlineDialog .room-code-card{display:none!i
   .game-screen{
     width:calc(100% - 38px)!important;
     max-width:342px!important;
+  }
+}
+
+
+/* v131: use the mobile viewport width; retain the v130 compact layout without side gutters. */
+@media (max-width:760px){
+  .site-header,
+  .setup-screen,
+  .game-screen{
+    width:calc(100% - 12px)!important;
+    max-width:none!important;
+    margin-left:6px!important;
+    margin-right:6px!important;
+    box-sizing:border-box!important;
   }
 }
