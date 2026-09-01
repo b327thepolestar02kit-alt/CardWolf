@@ -2803,12 +2803,12 @@ html[data-debug-mode="true"] .debug-panel button{pointer-events:auto!important;c
 .clue-choice-layout .clue-menu-column{order:2;}
 @media(max-width:760px){.clue-choice-layout .quick-clue-column{order:1;}.clue-choice-layout .clue-menu-column{order:2;}.clue-choice-layout button{touch-action:pan-y;}}
 
-/* v126: Free matching is a fixed 4-player mode; never show the room max-player setting while waiting. */
+/* v127: Free matching is a fixed 4-player mode; never show the room max-player setting while waiting. */
 #onlineDialog.free-match-waiting #onlinePlayerLimitSettingRow,
 #onlineDialog.free-match-waiting #onlinePlayerLimitSettingRow * { display: none !important; }
 
 
-/* v126: mobile viewport compacting. Keep the whole game comfortably inside narrow phone screens. */
+/* v127: mobile viewport compacting. Keep the whole game comfortably inside narrow phone screens. */
 @media (max-width:760px){
   .site-header{min-height:54px!important;padding:8px 12px!important;}
   .brand-copy strong{font-size:.82rem!important;}
@@ -2855,7 +2855,7 @@ html[data-debug-mode="true"] .debug-panel button{pointer-events:auto!important;c
 }
 
 
-/* v126: compact mobile layout. Earlier mobile rules were additive and some
+/* v127: compact mobile layout. Earlier mobile rules were additive and some
    late overrides restored desktop-sized cards, headings, and panel spacing.
    Keep the document within the phone viewport while preserving normal scroll. */
 @media (max-width: 600px){
@@ -2946,7 +2946,7 @@ html[data-debug-mode="true"] .debug-panel button{pointer-events:auto!important;c
   .online-dialog .online-leave-button{padding:5px 8px!important;font-size:.55rem!important;}
 }
 
-/* v126: restore reliable document scrolling and remove the oversized mobile
+/* v127: restore reliable document scrolling and remove the oversized mobile
    overrides introduced by the recent viewport experiments. The document is
    the only vertical scroller on phones; no fixed-height main container. */
 @media (max-width: 760px){
@@ -3022,11 +3022,11 @@ html[data-debug-mode="true"] .debug-panel button{pointer-events:auto!important;c
   .mode-button{min-height:46px!important;}
 }
 
-/* v126: a free-match room never displays its generated internal room code. */
+/* v127: a free-match room never displays its generated internal room code. */
 #onlineDialog.free-match-waiting .room-code-card,
 html[data-free-matched-room="true"] #onlineDialog .room-code-card{display:none!important;}
 
-/* v126: definitive mobile layout/scroll restoration.
+/* v127: definitive mobile layout/scroll restoration.
    Earlier revisions accumulated several contradictory mobile rules, including
    a fixed-height <main> scroll container. On iOS that made the page feel
    stuck and also enlarged the setup screen through nested viewport sizing.
@@ -3139,4 +3139,230 @@ html[data-free-matched-room="true"] #onlineDialog .room-code-card{display:none!i
   .mode-button{min-height:40px!important;padding:5px 7px!important;}
   .mode-button strong{font-size:.57rem!important;}
   .mode-button span{font-size:.46rem!important;}
+}
+
+/* v127: mobile viewport/scroll stabilization.
+   The previous mobile rules accumulated conflicting sizes and, more
+   importantly, kept the hero text in nowrap/overflow-hidden containers.
+   On iOS that made the page feel wider than the viewport and could make a
+   swipe that began over the hero fail to become a document scroll. */
+@media (max-width: 760px){
+  html{
+    width:100%!important;
+    min-width:0!important;
+    max-width:100%!important;
+    height:auto!important;
+    overflow-x:clip!important;
+    overflow-y:visible!important;
+    touch-action:auto!important;
+  }
+  body{
+    width:100%!important;
+    min-width:0!important;
+    max-width:100%!important;
+    height:auto!important;
+    min-height:100vh!important;
+    overflow-x:clip!important;
+    overflow-y:visible!important;
+    touch-action:auto!important;
+    overscroll-behavior-x:none!important;
+    overscroll-behavior-y:auto!important;
+  }
+  main{
+    width:100%!important;
+    min-width:0!important;
+    max-width:100%!important;
+    height:auto!important;
+    min-height:0!important;
+    max-height:none!important;
+    overflow:visible!important;
+    touch-action:auto!important;
+  }
+  .site-header,
+  .setup-screen,
+  .game-screen{
+    width:calc(100% - 16px)!important;
+    max-width:calc(100% - 16px)!important;
+    min-width:0!important;
+    box-sizing:border-box!important;
+  }
+  .site-header{
+    min-height:44px!important;
+    height:auto!important;
+    padding:6px 0!important;
+  }
+  .site-header .brand{
+    min-width:0!important;
+    max-width:calc(100% - 92px)!important;
+    overflow:hidden!important;
+  }
+  .site-header .brand-copy{min-width:0!important;max-width:100%!important;overflow:hidden!important;}
+  .site-header .brand-copy strong{font-size:.68rem!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;}
+  .site-header .text-button{font-size:.54rem!important;padding:5px 0!important;}
+
+  .setup-screen{
+    display:block!important;
+    padding:18px 0 28px!important;
+    margin:0 auto!important;
+    height:auto!important;
+    min-height:0!important;
+    max-height:none!important;
+    overflow:visible!important;
+    touch-action:auto!important;
+  }
+  .setup-screen::before{
+    transform:none!important;
+    pointer-events:none!important;
+  }
+  .setup-screen::after{pointer-events:none!important;}
+
+  .setup-score-floating{
+    top:6px!important;
+    right:0!important;
+    gap:3px!important;
+    max-width:100%!important;
+  }
+  .setup-score-floating>div{min-width:46px!important;padding:3px 4px!important;}
+  .setup-score-floating span{font-size:.43rem!important;}
+  .setup-score-floating strong{font-size:.72rem!important;}
+  .setup-score-floating .reset-score-button{min-height:24px!important;padding:3px 5px!important;font-size:.43rem!important;}
+
+  .hero-copy{
+    width:100%!important;
+    max-width:100%!important;
+    min-width:0!important;
+    margin:0 0 12px!important;
+    padding:0!important;
+    overflow:visible!important;
+    touch-action:auto!important;
+  }
+  .hero-kicker,.hero-copy .kicker{
+    width:100%!important;
+    max-width:100%!important;
+    margin:0 0 5px!important;
+    font-size:.54rem!important;
+    line-height:1.35!important;
+    letter-spacing:.08em!important;
+    white-space:normal!important;
+    overflow-wrap:anywhere!important;
+  }
+  .hero-copy h1{
+    width:100%!important;
+    max-width:100%!important;
+    min-width:0!important;
+    margin:0 0 6px!important;
+    font-size:clamp(1.9rem,8.5vw,3rem)!important;
+    line-height:.98!important;
+    letter-spacing:-.045em!important;
+    overflow:visible!important;
+  }
+  .hero-catch{
+    display:block!important;
+    width:100%!important;
+    max-width:100%!important;
+    min-width:0!important;
+    white-space:normal!important;
+    overflow:visible!important;
+    line-height:.98!important;
+  }
+  .catch-line-one,.catch-line-two{
+    display:block!important;
+    width:100%!important;
+    max-width:100%!important;
+    min-width:0!important;
+    white-space:normal!important;
+    overflow-wrap:anywhere!important;
+    word-break:normal!important;
+  }
+  .hero-copy .hero-lead{
+    width:100%!important;
+    max-width:100%!important;
+    min-width:0!important;
+    margin:7px 0 0!important;
+    font-size:.68rem!important;
+    line-height:1.55!important;
+    overflow:visible!important;
+    overflow-wrap:anywhere!important;
+    word-break:normal!important;
+  }
+  .hero-copy .hero-lead br{display:none!important;}
+
+  .setup-card{
+    width:100%!important;
+    max-width:100%!important;
+    min-width:0!important;
+    min-height:0!important;
+    margin:0!important;
+    padding:5px!important;
+    transform:none!important;
+    box-sizing:border-box!important;
+    overflow:visible!important;
+  }
+  .setup-inner{
+    width:100%!important;
+    max-width:100%!important;
+    min-width:0!important;
+    min-height:0!important;
+    height:auto!important;
+    max-height:none!important;
+    padding:12px 10px 14px!important;
+    overflow:visible!important;
+  }
+  .setup-inner h2{font-size:1.12rem!important;line-height:1.2!important;margin:0 0 3px!important;}
+  .setup-inner>p:not(.step-label){font-size:.62rem!important;line-height:1.4!important;margin:0 0 6px!important;}
+  .name-field{width:100%!important;margin:5px 0 7px!important;gap:3px!important;}
+  .name-field label{width:100%!important;gap:3px!important;}
+  .name-field label strong{font-size:.62rem!important;}
+  .name-field label span{font-size:.49rem!important;}
+  .name-field input{width:100%!important;max-width:100%!important;height:36px!important;font-size:.78rem!important;padding:5px 8px!important;}
+  .mode-select{
+    width:100%!important;
+    max-width:100%!important;
+    min-width:0!important;
+    display:grid!important;
+    grid-template-columns:1fr!important;
+    gap:5px!important;
+    margin:6px 0 8px!important;
+  }
+  .mode-button{
+    width:100%!important;
+    min-width:0!important;
+    min-height:44px!important;
+    height:auto!important;
+    padding:6px 8px!important;
+    border-radius:7px!important;
+    box-sizing:border-box!important;
+    overflow:visible!important;
+  }
+  .mode-button strong{font-size:.62rem!important;line-height:1.2!important;white-space:normal!important;overflow-wrap:anywhere!important;}
+  .mode-button span{font-size:.49rem!important;line-height:1.25!important;white-space:normal!important;overflow-wrap:anywhere!important;}
+  .setup-actions{margin:4px 0!important;}
+  .settings-gear-button{width:auto!important;min-height:32px!important;height:32px!important;font-size:.52rem!important;padding:4px 7px!important;}
+  .rule-strip{width:100%!important;grid-template-columns:1fr 1fr!important;gap:4px!important;margin-top:3px!important;padding:0 0 3px!important;}
+  .rule-strip li{min-width:0!important;padding:4px!important;font-size:.47rem!important;}
+  .rule-strip li small{font-size:.41rem!important;}
+
+  /* Dialogs remain independently scrollable; the page itself stays a normal
+     document scroll container. */
+  .online-dialog,.rules-dialog,.pool-dialog,.settings-dialog{
+    width:calc(100vw - 16px)!important;
+    max-width:calc(100vw - 16px)!important;
+    max-height:calc(100dvh - 16px)!important;
+    box-sizing:border-box!important;
+    overflow:auto!important;
+    touch-action:auto!important;
+    overscroll-behavior:contain!important;
+  }
+}
+@media (max-width:420px){
+  .site-header,.setup-screen,.game-screen{width:calc(100% - 12px)!important;max-width:calc(100% - 12px)!important;}
+  .setup-screen{padding-top:16px!important;}
+  .hero-copy h1{font-size:clamp(1.78rem,8.2vw,2.45rem)!important;}
+  .hero-copy .hero-lead{font-size:.64rem!important;line-height:1.5!important;}
+  .setup-inner{padding:10px 8px 12px!important;}
+  .setup-inner h2{font-size:1.04rem!important;}
+  .mode-button{min-height:42px!important;padding:5px 7px!important;}
+  .mode-button strong{font-size:.59rem!important;}
+  .mode-button span{font-size:.47rem!important;}
+  .rule-strip{grid-template-columns:1fr!important;}
 }
