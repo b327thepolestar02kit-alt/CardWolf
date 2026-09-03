@@ -1,4 +1,4 @@
-CardWolf v133
+CardWolf v136
 
 
 変更点:
@@ -13,7 +13,7 @@ CardWolf v133
 - 公開URLは index.html を使用してください。
 - debug.html は開発・テスト用です。Firebaseの権限を迂回する機能ではありません。
 
-v133 debug mode: debug.html includes a single 「再投票テスト」 button. It forces a controlled tie and runs the real solo vote-resolution path so the automatic revote behavior can be verified.
+v136 debug mode: debug.html includes a single 「再投票テスト」 button. It forces a controlled tie and runs the real solo vote-resolution path so the automatic revote behavior can be verified.
 
 
-v133: ATK/DEF clue choices use 500-point ranges (500以下, 501～1000, 1001～1500, 1501～2000, 2001～2500, 2501以上) while unknown values remain separate. Mobile TABLE TALK uses more horizontal space.
+v136: CPU names are selected from 遊戯・城之内・杏子・ヒロト・獏良・海馬・ペガサス・マリク. Wins award 100 medals and losses award 50 medals. ATK/DEF clue menus first ask for 500/1000/1500-unit statements; 3001以上 and special unknown/no-DEF choices remain available.

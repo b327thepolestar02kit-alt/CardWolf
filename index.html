@@ -10,7 +10,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Kaisei+Decol:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css?v=v133">
+    <link rel="stylesheet" href="styles.css?v=v136">
 </head>
 <body>
     <div class="grain" aria-hidden="true"></div>
@@ -75,12 +75,13 @@
             </div>
 
             <div class="setup-score setup-score-floating" aria-label="戦績">
-                <div><span>勝利</span><strong id="winCount">0</strong></div>
-                <div><span>敗北</span><strong id="lossCount">0</strong></div>
+                <div class="record-item"><span class="record-label"><span class="record-icon" aria-hidden="true">🏆</span>勝利</span><strong id="winCount">0</strong></div>
+                <div class="record-item"><span class="record-label"><span class="record-icon" aria-hidden="true">💀</span>敗北</span><strong id="lossCount">0</strong></div>
+                <div class="record-item"><span class="record-label"><img class="medal-icon" src="assets/medal-icon.png" alt="">メダル</span><strong><span id="medalCount">0</span>枚</strong></div>
                 <button class="reset-score-button" id="resetScoreButton" type="button">戦績をリセット</button>
             </div>
 
-            <span class="build-version" aria-label="ゲームバージョン v133">v133</span>
+            <span class="build-version" aria-label="ゲームバージョン v136">v136</span>
 
 
             <ol class="rule-strip" aria-label="ゲームの流れ">
@@ -99,8 +100,9 @@
                 </div>
                 <div class="game-heading-actions">
                     <div class="game-score" aria-label="戦績">
-                        <div><span>勝利</span><strong id="gameWinCount">0</strong></div>
-                        <div><span>敗北</span><strong id="gameLossCount">0</strong></div>
+                        <div class="record-item"><span class="record-label"><span class="record-icon" aria-hidden="true">🏆</span>勝利</span><strong id="gameWinCount">0</strong></div>
+                        <div class="record-item"><span class="record-label"><span class="record-icon" aria-hidden="true">💀</span>敗北</span><strong id="gameLossCount">0</strong></div>
+                        <div class="record-item"><span class="record-label"><img class="medal-icon" src="assets/medal-icon.png" alt="">メダル</span><strong><span id="gameMedalCount">0</span>枚</strong></div>
                     </div>
                     <button class="text-button" id="restartButton" type="button">部屋を退出</button>
                 </div>
@@ -272,9 +274,9 @@
         <div class="pool-grid" id="poolGrid"></div>
     </dialog>
     <script src="data/cards.js"></script>
-    <script src="firebase-config.js?v=v133"></script>
-    <script src="version-check.js?v=v133"></script>
-    <script src="app.js?v=v133"></script>
-    <script src="debug.js?v=v133"></script>
+    <script src="firebase-config.js?v=v136"></script>
+    <script src="version-check.js?v=v136"></script>
+    <script src="app.js?v=v136"></script>
+    <script src="debug.js?v=v136"></script>
 </body>
 </html>

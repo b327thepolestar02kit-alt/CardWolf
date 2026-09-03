@@ -1,8 +1,8 @@
-/* CardWolf build v133 */
+/* CardWolf build v136 */
 const firebaseConfig = window.FIREBASE_CONFIG || {};
-if (window.CARDWOLF_BUILD_VERSION !== "v133") { window.CARDWOLF_BUILD_VERSION = "v133"; }
+if (window.CARDWOLF_BUILD_VERSION !== "v136") { window.CARDWOLF_BUILD_VERSION = "v136"; }
 const versionEl = document.querySelector(".build-version");
-if (versionEl) { versionEl.textContent = "v133"; versionEl.setAttribute("aria-label", "ゲームバージョン v133"); }
+if (versionEl) { versionEl.textContent = "v136"; versionEl.setAttribute("aria-label", "ゲームバージョン v136"); }
 
 // Firebase is loaded lazily so a CDN/auth/database problem can never disable
 // the basic game UI. The solo/setup buttons must remain usable even when the
@@ -83,18 +83,18 @@ function reverseGuessInfo(card){
   return [type,attr?`${attr}属性`:"",race,level,cardStats(card)].filter(Boolean).join(" / ");
 }
 function cardDisplay(card){return `<div class="card-name-jp">${escapeHtml(jpName(card))}</div><div class="card-info-ja">${escapeHtml(cardInfo(card))}</div>${cardStats(card)?`<div class="card-stats">${escapeHtml(cardStats(card))}</div>`:""}`;}
-const CPU_NAMES=["ミナト","スズ","トキ","アオイ","レン","コハク","ナギ"];
+const CPU_NAMES=["遊戯","城之内","杏子","ヒロト","獏良","海馬","ペガサス","マリク"];
 const setupScreen=document.getElementById("setupScreen"),gameScreen=document.getElementById("gameScreen"),restartButton=document.getElementById("restartButton"),playersElement=document.getElementById("players"),yourCardElement=document.getElementById("yourCard"),actionPanel=document.getElementById("actionPanel"),phaseLabel=document.getElementById("phaseLabel"),phaseTitle=document.getElementById("phaseTitle"),talkLog=document.getElementById("talkLog"),logCount=document.getElementById("logCount"),rulesDialog=document.getElementById("rulesDialog"),poolDialog=document.getElementById("poolDialog"),poolGrid=document.getElementById("poolGrid"),poolCountElement=document.getElementById("poolCount");
 const speechCountSelect=document.getElementById("speechCount"),liePenaltyToggle=document.getElementById("liePenalty"),showLieCountToggle=document.getElementById("showLieCount");
 if(liePenaltyToggle) liePenaltyToggle.checked=false;
 if(showLieCountToggle) showLieCountToggle.checked=false;
-const playerNameInput=document.getElementById("playerName"),winCountElement=document.getElementById("winCount"),lossCountElement=document.getElementById("lossCount"),gameWinCountElement=document.getElementById("gameWinCount"),gameLossCountElement=document.getElementById("gameLossCount");
+const playerNameInput=document.getElementById("playerName"),winCountElement=document.getElementById("winCount"),lossCountElement=document.getElementById("lossCount"),medalCountElement=document.getElementById("medalCount"),gameWinCountElement=document.getElementById("gameWinCount"),gameLossCountElement=document.getElementById("gameLossCount"),gameMedalCountElement=document.getElementById("gameMedalCount");
 const settingsDialog=document.getElementById("settingsDialog"),advancedSettingsButton=document.getElementById("advancedSettingsButton"),closeSettingsButton=document.getElementById("closeSettingsButton"),closeSettingsButtonBottom=document.getElementById("closeSettingsButtonBottom"),resetScoreButton=document.getElementById("resetScoreButton"),practicePlayerCountSelect=document.getElementById("practicePlayerCount"),cardPoolSizeSelect=document.getElementById("cardPoolSize");
 const soloModeButton=document.getElementById("soloModeButton"),onlineModeButton=document.getElementById("onlineModeButton"),voiceModeButton=document.getElementById("voiceModeButton");
 const onlineDialog=document.getElementById("onlineDialog"),closeOnlineButton=document.getElementById("closeOnlineButton"),createRoomButton=document.getElementById("createRoomButton"),joinRoomButton=document.getElementById("joinRoomButton"),roomCodeInput=document.getElementById("roomCodeInput"),onlineLobby=document.getElementById("onlineLobby"),onlineRoomCode=document.getElementById("onlineRoomCode"),onlinePlayerList=document.getElementById("onlinePlayerList"),onlineLobbyStatus=document.getElementById("onlineLobbyStatus"),onlineCpuCount=document.getElementById("onlineCpuCount"),onlineStartButton=document.getElementById("onlineStartButton"),leaveRoomButton=document.getElementById("leaveRoomButton");
 
 let selectedPlayerCount=4,game=null,cpuTimer=null;
-let matchRecord=(()=>{try{const v=JSON.parse(localStorage.getItem("cardwolf.matchRecord")||"null");return {wins:Number(v?.wins)||0,losses:Number(v?.losses)||0};}catch{return {wins:0,losses:0};}})();
+let matchRecord=(()=>{try{const v=JSON.parse(localStorage.getItem("cardwolf.matchRecord")||"null");return {wins:Number(v?.wins)||0,losses:Number(v?.losses)||0,medals:Number(v?.medals)||0};}catch{return {wins:0,losses:0,medals:0};}})();
 function saveMatchRecord(){try{localStorage.setItem("cardwolf.matchRecord",JSON.stringify(matchRecord));}catch{}}
 function shuffle(items){const copy=[...items];for(let i=copy.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[copy[i],copy[j]]=[copy[j],copy[i]];}return copy;}
 function randomItem(items){return items[Math.floor(Math.random()*items.length)];}
@@ -124,21 +124,37 @@ const RACE_OPTIONS=[
 ];
 const LEVEL_LINK_OPTIONS=Array.from({length:7},(_,i)=>i);
 const LEVEL_ONLY_OPTIONS=Array.from({length:7},(_,i)=>i+7);
-// v133: ATK/DEF statements use 500-point ranges instead of cumulative
-// thresholds. Unknown values and 2501+ remain standalone statements.
-const ATK_STAT_BUCKETS=[
-  {id:"unknown",label:"？（不明）",test:v=>v===-1||v===null||v===undefined||v===""},
-  {id:"le500",label:"500以下",test:v=>Number.isFinite(Number(v))&&Number(v)>=0&&Number(v)<=500},
-  {id:"range5011000",label:"501～1000",test:v=>Number.isFinite(Number(v))&&Number(v)>=501&&Number(v)<=1000},
-  {id:"range10011500",label:"1001～1500",test:v=>Number.isFinite(Number(v))&&Number(v)>=1001&&Number(v)<=1500},
-  {id:"range15012000",label:"1501～2000",test:v=>Number.isFinite(Number(v))&&Number(v)>=1501&&Number(v)<=2000},
-  {id:"range20012500",label:"2001～2500",test:v=>Number.isFinite(Number(v))&&Number(v)>=2001&&Number(v)<=2500},
-  {id:"ge2501",label:"2501以上",test:v=>Number.isFinite(Number(v))&&Number(v)>=2501}
-];
-const DEF_STAT_BUCKETS=[
-  {id:"unknown",label:"？（不明）または－（守備力を持たない）",test:v=>v===-1||v===null||v===undefined||v===""},
-  ...ATK_STAT_BUCKETS.slice(1)
-];
+// v136: ATK/DEF clue choices first ask for the statement unit.
+// Special values (unknown / no DEF) and 3001+ are always available.
+const STAT_UNITS=[500,1000,1500];
+function isUnknownStat(card,stat){
+  const v=card?.[stat];
+  if(v!==-1) return false;
+  if(stat==="def" && String(card?.type||"").includes("Link")) return false;
+  return true;
+}
+function isNoDef(card){return String(card?.type||"").includes("Link") && card?.def===-1;}
+function statBuckets(stat,unit=500){
+  const u=STAT_UNITS.includes(Number(unit))?Number(unit):500;
+  const out=[{id:`${stat}-unknown`,label:"？（不明）",test:(v,c)=>isUnknownStat(c,stat)}];
+  if(stat==="def") out.push({id:`${stat}-minus`,label:"－（守備力を持たない）",test:(v,c)=>isNoDef(c)});
+  for(let low=0;low<3000;low+=u){
+    const high=Math.min(low+u,3000);
+    out.push({id:`${stat}-range-${low+1}-${high}`,label:`${low+1}～${high}`,test:v=>Number.isFinite(Number(v))&&Number(v)>=low+1&&Number(v)<=high});
+  }
+  // The first range is displayed as "N以下" for readability.
+  const first=out.find(x=>x.id===`${stat}-range-1-${u}`);
+  if(first) first.label=`${u}以下`;
+  out.push({id:`${stat}-ge3001`,label:"3001以上",test:v=>Number.isFinite(Number(v))&&Number(v)>=3001});
+  return out;
+}
+function statFeatureList(stat,unit){
+  return statBuckets(stat,unit).map(bucket=>({id:bucket.id,label:`${stat==="atk"?"攻撃力":"守備力"}が${bucket.label}です`,test:c=>bucket.test(c?.[stat],c)}));
+}
+function allStatFeatureList(){return STAT_UNITS.flatMap(unit=>[...statFeatureList("atk",unit),...statFeatureList("def",unit)]);}
+function getStatUnitFromSettings(settings){return STAT_UNITS.includes(Number(settings?.statStatementUnit))?Number(settings.statStatementUnit):500;}
+const ATK_STAT_BUCKETS=statBuckets("atk",500);
+const DEF_STAT_BUCKETS=statBuckets("def",500);
 function positiveClueDefinition(id,label,test){return {id,label,test};}
 function negativeClue(def){return {id:`not-${def.id}`,label:def.label.replace(/です$/, "ではありません"),test:c=>!def.test(c)};}
 function negativeBasicClues(){
@@ -173,7 +189,7 @@ function quickNameClues(card){
     {id:`name-ending-${last.codePointAt(0).toString(16)}`,label:`カード名の最後は「${last}」です`,test:c=>jpName(c).trim().endsWith(last)}
   ];
 }
-function featureList(card){
+function featureList(card,settings){
   const list=[
     {id:"monster",label:"モンスターカードです",test:c=>String(c.type||"").includes("Monster")},
     {id:"normal",label:"通常モンスターカードです",test:c=>String(c.type||"").includes("Normal")},
@@ -199,8 +215,8 @@ function featureList(card){
     {id:"level-5-6",label:"レベル5または6のモンスターです。",test:c=>[5,6].includes(Number(c.level))},
     {id:"level-high",label:"レベル7以上のモンスターです。",test:c=>Number(c.level)>=7},
     {id:"level-none",label:"レベルを持たないモンスターです。",test:c=>Number(c.level)===0},
-    ...ATK_STAT_BUCKETS.map(bucket=>({id:`atk-${bucket.id}`,label:`攻撃力が${bucket.label}です`,test:c=>bucket.test(c.atk)})),
-    ...DEF_STAT_BUCKETS.map(bucket=>({id:`def-${bucket.id}`,label:`守備力が${bucket.label}です`,test:c=>bucket.test(c.def)})),
+    ...statFeatureList("atk",getStatUnitFromSettings(settings)),
+    ...statFeatureList("def",getStatUnitFromSettings(settings)),
     {id:"name-blue",label:"「青眼」に関係するカードです",test:c=>c.name.includes("Blue-Eyes")},
     {id:"name-dark",label:"「ブラック」または「ダーク」に関係する名前です",test:c=>c.name.includes("Dark")||c.name.includes("Black")},
     {id:"name-red",label:"「真紅眼」に関係するカードです",test:c=>c.name.includes("Red-Eyes")},
@@ -211,9 +227,9 @@ function featureList(card){
   ];
   return list;
 }
-function statementsFor(card){return featureList(card).filter(f=>{try{return f.test(card);}catch{return false;}});}
-function falseStatementsFor(card){return featureList(card).filter(f=>{try{return !f.test(card);}catch{return false;}});}
-function chooseCardPair(settings){const cards=shuffle(getActiveCardPool(settings));for(let i=0;i<500;i++){const citizen=randomItem(cards),cf=statementsFor(citizen).map(x=>x.id),candidates=cards.filter(c=>c.name!==citizen.name&&statementsFor(c).some(f=>cf.includes(f.id)));if(candidates.length)return[citizen,randomItem(candidates)];}return cards.slice(0,2);}
+function statementsFor(card,settings){return featureList(card,settings).filter(f=>{try{return f.test(card);}catch{return false;}});}
+function falseStatementsFor(card,settings){return featureList(card,settings).filter(f=>{try{return !f.test(card);}catch{return false;}});}
+function chooseCardPair(settings){const cards=shuffle(getActiveCardPool(settings));for(let i=0;i<500;i++){const citizen=randomItem(cards),cf=statementsFor(citizen,settings).map(x=>x.id),candidates=cards.filter(c=>c.name!==citizen.name&&statementsFor(c,settings).some(f=>cf.includes(f.id)));if(candidates.length)return[citizen,randomItem(candidates)];}return cards.slice(0,2);}
 function syncPracticePlayerCount(){
   const value=Number(practicePlayerCountSelect?.value||4);
   selectedPlayerCount=Math.min(8,Math.max(3,value));
@@ -221,13 +237,14 @@ function syncPracticePlayerCount(){
 }
 function getSettings(){return{speechRounds:Number(speechCountSelect.value||2),liePenalty:Boolean(liePenaltyToggle.checked),showLieCount:Boolean(showLieCountToggle&& showLieCountToggle.checked),cardPoolSize:normalizeCardPoolSize(cardPoolSizeSelect?.value||100)};}
 function randomPlayerName(){return randomItem(["ユウ","カイ","レン","アキラ","ナギ","ハヤト","ソラ","ミナ","リク","シン"]);}
+function chooseCpuNames(count){return shuffle(CPU_NAMES).slice(0,Math.max(0,Number(count)||0));}
 function getPlayerName(){const n=(playerNameInput?.value||"").trim();return n||randomPlayerName();}
 function loadPersistentProfile(){try{const n=localStorage.getItem("cardwolf.playerName");if(n&&playerNameInput&&!playerNameInput.value)playerNameInput.value=n;}catch{}}
 playerNameInput?.addEventListener("input",()=>{try{localStorage.setItem("cardwolf.playerName",playerNameInput.value);}catch{}});
 loadPersistentProfile();
 function renderPoolCount(settings=getSettings()){if(poolCountElement){const n=normalizeCardPoolSize(settings?.cardPoolSize);poolCountElement.textContent=String(n);}}
 renderPoolCount();
-function renderRecord(){saveMatchRecord();if(winCountElement)winCountElement.textContent=matchRecord.wins;if(lossCountElement)lossCountElement.textContent=matchRecord.losses;if(gameWinCountElement)gameWinCountElement.textContent=matchRecord.wins;if(gameLossCountElement)gameLossCountElement.textContent=matchRecord.losses;}
+function renderRecord(){saveMatchRecord();if(winCountElement)winCountElement.textContent=matchRecord.wins;if(lossCountElement)lossCountElement.textContent=matchRecord.losses;if(gameWinCountElement)gameWinCountElement.textContent=matchRecord.wins;if(gameLossCountElement)gameLossCountElement.textContent=matchRecord.losses;if(medalCountElement)medalCountElement.textContent=matchRecord.medals;if(gameMedalCountElement)gameMedalCountElement.textContent=matchRecord.medals;} 
 function buildOrder(round){const forward=Array.from({length:selectedPlayerCount},(_,i)=>i);return Number(round)%2===0?forward.slice().reverse():forward;}
 function startGame(){
   clearTimeout(cpuTimer);
@@ -238,8 +255,9 @@ function startGame(){
   const [citizenCard,wolfCard]=chooseCardPair(settings);
   if(!citizenCard||!wolfCard){alert("カードの選出に失敗しました。カードプールを確認してください。");return;}
   const wolfIndex=Math.floor(Math.random()*selectedPlayerCount), humanName=getPlayerName();
-  const players=Array.from({length:selectedPlayerCount},(_,index)=>({id:index,name:index===0?humanName:CPU_NAMES[index-1],isHuman:index===0,isWolf:index===wolfIndex,card:index===wolfIndex?wolfCard:citizenCard,clues:[],lies:0,vote:null}));
-  game={citizenCard,wolfCard,wolfIndex,players,settings,round:1,order:buildOrder(1),orderIndex:0,phase:"clue",logs:[],usedClueIds:[],currentOptions:[],busy:false,tallies:null,eliminatedId:null,result:null,reverseGuess:null,recorded:false,clueMenu:"root"};
+  const cpuNames=chooseCpuNames(selectedPlayerCount-1);
+  const players=Array.from({length:selectedPlayerCount},(_,index)=>({id:index,name:index===0?humanName:cpuNames[index-1],isHuman:index===0,isWolf:index===wolfIndex,card:index===wolfIndex?wolfCard:citizenCard,clues:[],lies:0,vote:null}));
+  game={citizenCard,wolfCard,wolfIndex,players,settings:{...settings,statStatementUnit:500},round:1,order:buildOrder(1),orderIndex:0,phase:"clue",logs:[],usedClueIds:[],currentOptions:[],busy:false,tallies:null,eliminatedId:null,result:null,reverseGuess:null,recorded:false,clueMenu:"root"};
   try{
     setupScreen.hidden=true;
     gameScreen.hidden=false;
@@ -263,7 +281,11 @@ function renderGame(){
     const current=currentPlayer(), fallback=safePracticeClues(current);
     game.currentOptions=fallback;
     actionPanel.innerHTML=`<div class="action-heading"><p>第${game.round}ラウンド</p><h2>何と発言しますか？</h2><span>発言候補を再表示しました。</span></div><div class="choice-list basic-clue-list">${fallback.map(s=>`<button class="choice-button" type="button" data-clue-id="${escapeHtml(String(s.id))}"><span>${escapeHtml(s.label)}</span><span>→</span></button>`).join("")}</div>`;
-    actionPanel.querySelectorAll("[data-clue-id]").forEach(b=>b.addEventListener("click",()=>submitHumanClue(b.dataset.clueId)));
+    actionPanel.querySelectorAll("[data-clue-id]").forEach(b=>b.addEventListener("click",()=>{
+   const id=b.dataset.clueId;
+   if(/^(atk|def)-(500|1000|1500)$/.test(id)){game.clueMenu=id;renderCluePhase();return;}
+   submitHumanClue(id);
+ }));
   }
 }
 function previousPlayer(){if(!game||game.orderIndex<=0)return null;return game.players[game.order[game.orderIndex-1]];}
@@ -293,8 +315,8 @@ const CLUE_MENU_CATEGORIES=[
 ];
 function availableClues(player){
  const used=new Set(game.usedClueIds||[]);
- let truthful=shuffle(statementsFor(player.card)).filter(s=>!used.has(s.id));
- let falsehoods=shuffle(falseStatementsFor(player.card)).filter(s=>!used.has(s.id));
+ let truthful=shuffle(statementsFor(player.card,game.settings)).filter(s=>!used.has(s.id));
+ let falsehoods=shuffle(falseStatementsFor(player.card,game.settings)).filter(s=>!used.has(s.id));
  const pinned=quickNameClues(player.card).filter(s=>!used.has(s.id));
  let options=[...pinned,...truthful.slice(0,3),...falsehoods.slice(0,2)];
  // Newly added negative forms participate in the quick suggestions as well.
@@ -325,11 +347,12 @@ function clueCategoryOptions(category){
  if(category==="level") return [...LEVEL_LINK_OPTIONS.map(v=>({id:`level-${v}`,label:`レベル／ランク／リンクが${v}です` })),...LEVEL_ONLY_OPTIONS.map(v=>({id:`level-${v}`,label:`レベル／ランクが${v}です`}))];
  if(category==="attribute") return ATTRIBUTE_OPTIONS.map(([v,l])=>({id:`attribute-${v.toLowerCase()}`,label:`${l}属性です`}));
  if(category==="race") { const raceIds={Spellcaster:"spellcaster",Dragon:"dragon",Warrior:"warrior",Fiend:"fiend",Fairy:"fairy",Beast:"beast","Winged-Beast":"winged-beast",Machine:"machine"}; return RACE_OPTIONS.map(([v,l])=>({id:raceIds[v],label:`${l}です`})); }
- if(category==="atk") return ATK_STAT_BUCKETS.map(b=>({id:`atk-${b.id}`,label:`攻撃力が${b.label}です`}));
- if(category==="def") return DEF_STAT_BUCKETS.map(b=>({id:`def-${b.id}`,label:`守備力が${b.label}です`}));
+ if(category==="atk"||category==="def") return STAT_UNITS.map(u=>({id:`${category}-${u}`,label:`${u}単位で発言`}));
+ if(/^atk-(500|1000|1500)$/.test(category)) return statFeatureList("atk",Number(category.split("-")[1])).map(s=>({id:s.id,label:s.label}));
+ if(/^def-(500|1000|1500)$/.test(category)) return statFeatureList("def",Number(category.split("-")[1])).map(s=>({id:s.id,label:s.label}));
  return [];
 }
-function findClueById(id){try{return [...featureList(game.players[game.order[game.orderIndex]].card),...negativeBasicClues(),...negativeAttributeClues(),...negativeRaceClues(),...AMBIGUOUS_CLUES].find(s=>String(s.id)===String(id))||null;}catch(error){console.error("Practice clue lookup failed",error);return null;}}
+function findClueById(id){try{return [...featureList(game.players[game.order[game.orderIndex]].card,game.settings),...allStatFeatureList(),...negativeBasicClues(),...negativeAttributeClues(),...negativeRaceClues(),...AMBIGUOUS_CLUES].find(s=>String(s.id)===String(id))||null;}catch(error){console.error("Practice clue lookup failed",error);return null;}}
 function safePracticeClues(player){
   try{
     const opts=availableClues(player);
@@ -337,7 +360,7 @@ function safePracticeClues(player){
   }catch(error){console.error("Practice clue generation failed; using fallback clues",error);}
   const used=new Set(game?.usedClueIds||[]);
   let fallback=[];
-  try{fallback=featureList(player.card).filter(s=>s&&!used.has(s.id)).slice(0,6);}catch(error){console.error("Practice clue fallback failed",error);}
+  try{fallback=featureList(player.card,game.settings).filter(s=>s&&!used.has(s.id)).slice(0,6);}catch(error){console.error("Practice clue fallback failed",error);}
   if(!fallback.length){
     fallback=[
       {id:"monster",label:"モンスターカードです",test:c=>String(c?.type||"").includes("Monster")},
@@ -365,20 +388,26 @@ function renderCluePhase(){
    actionPanel.querySelectorAll("[data-clue-negative-category]").forEach(b=>b.addEventListener("click",()=>{game.clueMenu=`${b.dataset.clueNegativeCategory}-negative`;renderCluePhase();}));
  }else{
    const initialOptions=clueCategoryOptions(root);
+   const isStatUnitMenu=(root==="atk"||root==="def");
+   const isStatRangeMenu=/^(atk|def)-(500|1000|1500)$/.test(root);
    game.currentOptions=initialOptions.map(o=>findClueById(o.id)).filter(Boolean);
    const usedIds=new Set(game.usedClueIds||[]);
    const negativeMode=String(root).endsWith("-negative");
    const baseCategory=negativeMode?String(root).replace(/-negative$/," ").trim():root;
-   const categoryLabel=CLUE_MENU_CATEGORIES.find(c=>c.id===baseCategory)?.label||"特徴を選択";
+   const categoryLabel=isStatUnitMenu?`${root==="atk"?"攻撃力":"守備力"}・発言単位を選択`:isStatRangeMenu?`${root.startsWith("atk-")?"攻撃力":"守備力"}・${root.split("-")[1]}単位`:CLUE_MENU_CATEGORIES.find(c=>c.id===baseCategory)?.label||"特徴を選択";
    const options=negativeMode?negativeClueOptions(baseCategory):clueCategoryOptions(baseCategory);
    const canToggleNegative=(baseCategory==="basic"||baseCategory==="attribute"||baseCategory==="race");
    const toggleButton=canToggleNegative?(negativeMode
      ?`<button class="choice-button clue-negative-button" type="button" data-clue-positive-category="${baseCategory}"><span>肯定形選択肢へ</span><span>→</span></button>`
      :`<button class="choice-button clue-negative-button" type="button" data-clue-negative-category="${baseCategory}"><span>否定形選択肢へ</span><span>→</span></button>`):"";
    actionPanel.innerHTML=`<div class="action-heading"><p>${roundLabel}</p><h2>${categoryLabel}${negativeMode?"・否定形":""}</h2><span>一覧から選択してください。ほかのプレイヤーが発言済みの内容は選択できません。</span></div><div class="choice-list submenu-choice-list">${options.map(o=>{const used=usedIds.has(o.id);const statement=findClueById(o.id);return `<button class="choice-button ${used?"choice-used ":""}${statement?clueChoiceClass(statement,current.card):""}" type="button" data-clue-id="${o.id}" ${used?"disabled aria-disabled=\"true\"":""}><span>${o.label}</span><span>${used?"発言済み":statement?.ambiguous?"曖昧":"→"}</span></button>`;}).join("")}${toggleButton}</div><button class="secondary-button compact clue-back-button" id="clueBackButton" type="button">← 戻る</button>`;
-   actionPanel.querySelector("#clueBackButton").addEventListener("click",()=>{game.clueMenu="root";renderCluePhase();});
+   actionPanel.querySelector("#clueBackButton").addEventListener("click",()=>{game.clueMenu=isStatRangeMenu?root.split("-")[0]:"root";renderCluePhase();});
  }
- actionPanel.querySelectorAll("[data-clue-id]").forEach(b=>b.addEventListener("click",()=>submitHumanClue(b.dataset.clueId)));
+ actionPanel.querySelectorAll("[data-clue-id]").forEach(b=>b.addEventListener("click",()=>{
+   const id=b.dataset.clueId;
+   if(/^(atk|def)-(500|1000|1500)$/.test(id)){game.clueMenu=id;renderCluePhase();return;}
+   submitHumanClue(id);
+ }));
 } catch(error){
    console.error("Practice clue render failed",error);
    const current=currentPlayer();
@@ -409,14 +438,14 @@ function clueChoiceClass(statement, card){
 function availableCpuClues(player){
   const used=new Set(game.usedClueIds||[]);
   // CPU never uses ambiguous statements. They are reserved for the human player.
-  let options=shuffle(featureList(player.card)).filter(s=>!used.has(s.id));
+  let options=shuffle(featureList(player.card,game.settings)).filter(s=>!used.has(s.id));
   if(!options.length){
-    options=shuffle(featureList(player.card));
+    options=shuffle(featureList(player.card,game.settings));
   }
   return options.slice(0,8);
 }
 function cpuFallbackStatement(player,used){
- const candidates=featureList(player.card).filter(s=>!used.has(s.id));
+ const candidates=featureList(player.card,game.settings).filter(s=>!used.has(s.id));
  if(candidates.length)return randomItem(candidates);
  // This should be practically unreachable with the expanded feature pool,
  // but guarantees that a CPU turn can never silently disappear.
@@ -427,8 +456,8 @@ function playNextCpuTurn(){
  const turnRound=game.round,turnIndex=game.orderIndex,player=currentPlayer();
  game.busy=true;
  const used=new Set(game.usedClueIds||[]);
- let truthful=shuffle(statementsFor(player.card)).filter(s=>!used.has(s.id));
- let falsehoods=shuffle(falseStatementsFor(player.card)).filter(s=>!used.has(s.id));
+ let truthful=shuffle(statementsFor(player.card,game.settings)).filter(s=>!used.has(s.id));
+ let falsehoods=shuffle(falseStatementsFor(player.card,game.settings)).filter(s=>!used.has(s.id));
  let statement=null;
  if(!player.isWolf){statement=truthful[0]||cpuFallbackStatement(player,used);}
  else{
@@ -500,8 +529,8 @@ function submitCpuGuess(){
   finishReverseGuess(candidates[0]?.card||game.citizenCard);
 }
 function finishReverseGuess(guess){game.reverseGuess=guess;const correct=guess&&guess.name===game.citizenCard.name;game.result=correct?"wolf-reversal":"citizen";game.logs.push({type:"system",name:"逆転宣言",text:`狼は「${guess?jpName(guess):"不明"}」と宣言しました。`});game.phase="result";renderGame();}
-function recordFinishedGame(){if(!game||game.recorded)return;const wolfWon=game.result==="wolf"||game.result==="wolf-reversal";if(game.players[0].isWolf===wolfWon)matchRecord.wins++;else matchRecord.losses++;game.recorded=true;renderRecord();}
-function renderResultPhase(){recordFinishedGame();phaseLabel.textContent="GAME OVER / 答え合わせ";const wolfWon=game.result==="wolf"||game.result==="wolf-reversal";phaseTitle.textContent=wolfWon?"狼チームの勝利":"市民チームの勝利";const msg={wolf:"選ばれたプレイヤーは市民でした。狼は正体を隠し切りました。","wolf-reversal":`狼が市民カード「${jpName(game.citizenCard)}」を見事に当て、逆転しました。`,citizen:`狼の宣言は「${game.reverseGuess?jpName(game.reverseGuess):"不明"}」。正解は「${jpName(game.citizenCard)}」でした。`}[game.result];actionPanel.innerHTML=`<div class="result-banner ${wolfWon?"wolf-win":"citizen-win"}"><p>${wolfWon?"狼チームの勝利":"市民チームの勝利"}</p><h2>${wolfWon?"狼の勝利":"市民の勝利"}</h2><span>${msg}</span></div><div class="answer-cards"><div><small>市民カード</small><img class="ygo-thumb" src="${cardImage(game.citizenCard)}"><strong>${jpName(game.citizenCard)}</strong><em>${cardInfo(game.citizenCard)}${cardStats(game.citizenCard)?" · "+cardStats(game.citizenCard):""}</em></div><div><small>狼カード</small><img class="ygo-thumb" src="${cardImage(game.wolfCard)}"><strong>${jpName(game.wolfCard)}</strong><em>${cardInfo(game.wolfCard)}${cardStats(game.wolfCard)?" · "+cardStats(game.wolfCard):""}</em></div></div><button class="primary-button compact" id="playAgainButton" type="button"><span>もう一度遊ぶ</span><span>↻</span></button>`;document.getElementById("playAgainButton").addEventListener("click",startGame);}
+function recordFinishedGame(){if(!game||game.recorded)return;const wolfWon=game.result==="wolf"||game.result==="wolf-reversal";const won=game.players[0].isWolf===wolfWon;const reward=won?100:50;if(won){matchRecord.wins++;}else{matchRecord.losses++;}matchRecord.medals+=reward;game.rewardMedals=reward;game.recorded=true;renderRecord();}
+function renderResultPhase(){recordFinishedGame();phaseLabel.textContent="GAME OVER / 答え合わせ";const wolfWon=game.result==="wolf"||game.result==="wolf-reversal";phaseTitle.textContent=wolfWon?"狼チームの勝利":"市民チームの勝利";const msg={wolf:"選ばれたプレイヤーは市民でした。狼は正体を隠し切りました。","wolf-reversal":`狼が市民カード「${jpName(game.citizenCard)}」を見事に当て、逆転しました。`,citizen:`狼の宣言は「${game.reverseGuess?jpName(game.reverseGuess):"不明"}」。正解は「${jpName(game.citizenCard)}」でした。`}[game.result];actionPanel.innerHTML=`<div class="result-banner ${wolfWon?"wolf-win":"citizen-win"}"><p>${wolfWon?"狼チームの勝利":"市民チームの勝利"}</p><h2>${wolfWon?"狼の勝利":"市民の勝利"}</h2><span>${msg}</span><strong class="reward-message"><img class="medal-icon" src="assets/medal-icon.png" alt=""> メダル +${game.rewardMedals||0}枚</strong></div><div class="answer-cards"><div><small>市民カード</small><img class="ygo-thumb" src="${cardImage(game.citizenCard)}"><strong>${jpName(game.citizenCard)}</strong><em>${cardInfo(game.citizenCard)}${cardStats(game.citizenCard)?" · "+cardStats(game.citizenCard):""}</em></div><div><small>狼カード</small><img class="ygo-thumb" src="${cardImage(game.wolfCard)}"><strong>${jpName(game.wolfCard)}</strong><em>${cardInfo(game.wolfCard)}${cardStats(game.wolfCard)?" · "+cardStats(game.wolfCard):""}</em></div></div><button class="primary-button compact" id="playAgainButton" type="button"><span>もう一度遊ぶ</span><span>↻</span></button>`;document.getElementById("playAgainButton").addEventListener("click",startGame);}
 async function returnToSetup(){
   stopFreeMatch();
   clearTimeout(cpuTimer);
@@ -532,7 +561,7 @@ async function returnToSetup(){
   onlineGame=null;
   onlineMyCard=null;
   onlineLastActionId="";
-  onlineScoreRecorded=false;
+  onlineScoreRecorded=false;onlineRewardMedals=0;
   onlineLobby.hidden=true;
   onlineRoomCode.textContent="----";
   onlineLobbyStatus.textContent="新しい部屋を作成するか、ルームコードを入力してください";
@@ -615,7 +644,9 @@ actionPanel.addEventListener("pointerdown", async (event)=>{
   if(clueButton && actionPanel.contains(clueButton)){
     event.preventDefault();
     if(clueButton.disabled)return;
-    await onlineSubmitClue(clueButton.dataset.onlineClue);
+    const clueId=clueButton.dataset.onlineClue;
+    if(/^(atk|def)-(500|1000|1500)$/.test(clueId)){onlineClueMenu=clueId;renderOnlineClue();return;}
+    await onlineSubmitClue(clueId);
     return;
   }
   const voteButton=event.target.closest?.("[data-online-vote]");
@@ -709,7 +740,7 @@ document.addEventListener("click", event=>{
 }, true);
 
 practicePlayerCountSelect?.addEventListener("change",syncPracticePlayerCount);
-restartButton.addEventListener("click",returnToSetup);document.getElementById("rulesButton").addEventListener("click",()=>rulesDialog.showModal());document.getElementById("closeRulesButton").addEventListener("click",()=>rulesDialog.close());document.getElementById("poolButton").addEventListener("click",openPool);document.getElementById("closePoolButton").addEventListener("click",()=>poolDialog.close());advancedSettingsButton.addEventListener("click",()=>settingsDialog.showModal());closeSettingsButton.addEventListener("click",()=>settingsDialog.close());closeSettingsButtonBottom.addEventListener("click",()=>settingsDialog.close());resetScoreButton.addEventListener("click",()=>{matchRecord={wins:0,losses:0};renderRecord();});rulesDialog.addEventListener("click",e=>{if(e.target===rulesDialog)rulesDialog.close();});poolDialog.addEventListener("click",e=>{if(e.target===poolDialog)poolDialog.close();});settingsDialog.addEventListener("click",e=>{if(e.target===settingsDialog)settingsDialog.close();});syncPracticePlayerCount();renderRecord();if(CARD_POOL.length===0)soloModeButton.disabled=true;
+restartButton.addEventListener("click",returnToSetup);document.getElementById("rulesButton").addEventListener("click",()=>rulesDialog.showModal());document.getElementById("closeRulesButton").addEventListener("click",()=>rulesDialog.close());document.getElementById("poolButton").addEventListener("click",openPool);document.getElementById("closePoolButton").addEventListener("click",()=>poolDialog.close());advancedSettingsButton.addEventListener("click",()=>settingsDialog.showModal());closeSettingsButton.addEventListener("click",()=>settingsDialog.close());closeSettingsButtonBottom.addEventListener("click",()=>settingsDialog.close());resetScoreButton.addEventListener("click",()=>{if(confirm("勝利数と敗北数をリセットしますか？\nメダルはリセットされず、そのまま残ります。")){matchRecord.wins=0;matchRecord.losses=0;renderRecord();}});rulesDialog.addEventListener("click",e=>{if(e.target===rulesDialog)rulesDialog.close();});poolDialog.addEventListener("click",e=>{if(e.target===poolDialog)poolDialog.close();});settingsDialog.addEventListener("click",e=>{if(e.target===settingsDialog)settingsDialog.close();});syncPracticePlayerCount();renderRecord();if(CARD_POOL.length===0)soloModeButton.disabled=true;
 
 
 
@@ -742,7 +773,7 @@ let onlineCpuTimer=null;
 let onlineLastActionId="";
 const onlineProcessedActionIds=new Set();
 const onlineActionPromises=new Map();
-let onlineScoreRecorded=false;
+let onlineScoreRecorded=false;let onlineRewardMedals=0;
 let onlinePendingAction=null;
 let onlineDiscussionTimer=null;
 let onlineDiscussionDeadlineAt=0;
@@ -1005,7 +1036,7 @@ async function createFreeMatchRoom(candidates,forceStart=false){
 
 function onlineRoomRef(){return ref(firebaseDb,`rooms/${onlineRoomCodeValue}`);}
 function makeRoomCode(){const chars="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";let s="";for(let i=0;i<4;i++)s+=chars[Math.floor(Math.random()*chars.length)];return s;}
-function onlineSettings(){return {...getSettings(),voiceMode:false,discussionSeconds:120};}
+function onlineSettings(){return {...getSettings(),statStatementUnit:500,voiceMode:false,discussionSeconds:120};}
 function getOnlineLobbySettings(){
   const voice=Boolean(onlineVoicePreset);
   const seconds=Math.max(60,Number(document.getElementById("onlineDiscussionMinutes")?.value||120));
@@ -1222,8 +1253,8 @@ async function leaveOnlineRoom(options={}){
 }
 function onlineFeatureOptions(card,used,playerClues){
   const usedSet=new Set(Array.isArray(used)?used:[]);
-  let truthful=shuffle(statementsFor(card)).filter(s=>!usedSet.has(s.id));
-  let falsehoods=shuffle(falseStatementsFor(card)).filter(s=>!usedSet.has(s.id));
+  let truthful=shuffle(statementsFor(card,onlineGame.settings)).filter(s=>!usedSet.has(s.id));
+  let falsehoods=shuffle(falseStatementsFor(card,onlineGame.settings)).filter(s=>!usedSet.has(s.id));
   const pinned=quickNameClues(card).filter(s=>!usedSet.has(s.id));
   let options=[...pinned,...truthful.slice(0,3),...falsehoods.slice(0,2)];
   // Negative basic/attribute/race clues are also eligible for quick suggestions.
@@ -1235,7 +1266,7 @@ function onlineFeatureOptions(card,used,playerClues){
     options.push(...vague.slice(0,2));
   }
   if(options.length<4){
-    const extra=shuffle(featureList(card)).filter(s=>!usedSet.has(s.id)&&!options.some(o=>o.id===s.id));
+    const extra=shuffle(featureList(card,onlineGame.settings)).filter(s=>!usedSet.has(s.id)&&!options.some(o=>o.id===s.id));
     options.push(...extra.slice(0,4-options.length));
   }
   const pinnedIds=new Set(pinned.map(s=>s.id));
@@ -1293,7 +1324,7 @@ async function onlineSubmitClue(id){
   onlineGame.usedClueIds=usedIds;
   // The clicked button and the validation source must never come from two different
   // randomized option lists. Validate against the canonical statement set for this card.
-  const canonical=[...featureList(card),...negativeBasicClues(),...negativeAttributeClues(),...negativeRaceClues(),...AMBIGUOUS_CLUES];
+  const canonical=[...featureList(card,onlineGame.settings),...allStatFeatureList(),...negativeBasicClues(),...negativeAttributeClues(),...negativeRaceClues(),...AMBIGUOUS_CLUES];
   const st=canonical.find(s=>String(s.id)===String(id));
   if(!st){onlineDebug("clue-rejected-client",{reason:"invalid-option",id,used:usedIds,canonicalIds:canonical.map(s=>s.id),menu:onlineClueMenu});renderOnlineClue();return;}
   // A rendered menu can be one Firebase snapshot behind. Never silently discard a click merely because
@@ -1447,22 +1478,24 @@ function renderOnlineClue(){
     actionPanel.innerHTML=`<div class="thinking-state"><span class="thinking-card" aria-hidden="true">?</span><div><p>ONLINE TURN</p><h2>${escapeHtml(current?.name||"プレイヤー")}が発言中</h2><span>前の発言とは違う特徴を選んでいます…</span></div></div>`;return;
   }
   const usedIds=new Set(onlineGame.usedClueIds||[]);
-  const findOnlineClue=id=>[...featureList(onlineMyCard||{}),...negativeBasicClues(),...negativeAttributeClues(),...negativeRaceClues(),...AMBIGUOUS_CLUES].find(s=>s.id===id)||null;
+  const findOnlineClue=id=>[...featureList(onlineMyCard||{},onlineGame.settings),...allStatFeatureList(),...negativeBasicClues(),...negativeAttributeClues(),...negativeRaceClues(),...AMBIGUOUS_CLUES].find(s=>s.id===id)||null;
   const root=onlineClueMenu||"root";
   if(root==="root"){
     const opts=onlineFeatureOptions(onlineMyCard,onlineGame.usedClueIds,current?.clues);
     actionPanel.innerHTML=`<div class="action-heading"><p>${roundLabel}</p><h2>何と発言しますか？</h2><span>左の「すぐに選べる特徴」から選ぶか、右の特徴一覧から詳しい条件を選べます。${onlineGame.settings.liePenalty?"狼が嘘発言を2回するか、曖昧発言と嘘発言をそれぞれ1回すると、逆転チャンスを失います。":"嘘の回数によるペナルティはありません。"}</span></div><div class="clue-choice-layout"><section class="quick-clue-column"><p class="clue-list-label">すぐに選べる特徴</p><div class="choice-list basic-clue-list">${opts.map(s=>`<button class="choice-button ${clueChoiceClass(s,onlineMyCard)}" type="button" data-online-clue="${s.id}"><span>${s.label}</span><span>${s.ambiguous?"曖昧":"→"}</span></button>`).join("")}</div></section><section class="clue-menu-column"><p class="clue-list-label">特徴一覧</p><div class="clue-category-grid">${CLUE_MENU_CATEGORIES.map(c=>`<button class="choice-button clue-category-button" type="button" data-online-clue-category="${c.id}"><span>${c.label}</span><span>→</span></button>`).join("")}</div></section></div>`;
   }else{
-    const canonical=new Map([...featureList(onlineMyCard||{}),...negativeBasicClues(),...negativeAttributeClues(),...negativeRaceClues(),...AMBIGUOUS_CLUES].map(s=>[String(s.id),s]));
+    const canonical=new Map([...featureList(onlineMyCard||{},onlineGame.settings),...allStatFeatureList(),...negativeBasicClues(),...negativeAttributeClues(),...negativeRaceClues(),...AMBIGUOUS_CLUES].map(s=>[String(s.id),s]));
+    const isStatUnitMenu=(root==="atk"||root==="def");
+    const isStatRangeMenu=/^(atk|def)-(500|1000|1500)$/.test(root);
     const negativeMode=String(root).endsWith("-negative");
     const baseCategory=negativeMode?String(root).replace(/-negative$/," ").trim():root;
-    const options=(negativeMode?negativeClueOptions(baseCategory):clueCategoryOptions(baseCategory)).filter(o=>canonical.has(String(o.id)));
+    const options=(negativeMode?negativeClueOptions(baseCategory):clueCategoryOptions(baseCategory)).filter(o=>canonical.has(String(o.id)) || /^(atk|def)-(500|1000|1500)$/.test(String(o.id)));
     const canToggleNegative=(baseCategory==="basic"||baseCategory==="attribute"||baseCategory==="race");
     const toggleButton=canToggleNegative?(negativeMode
       ?`<button class="choice-button clue-negative-button" type="button" data-online-clue-positive-category="${baseCategory}"><span>肯定形選択肢へ</span><span>→</span></button>`
       :`<button class="choice-button clue-negative-button" type="button" data-online-clue-negative-category="${baseCategory}"><span>否定形選択肢へ</span><span>→</span></button>`):"";
-    actionPanel.innerHTML=`<div class="action-heading"><p>${roundLabel}</p><h2>${CLUE_MENU_CATEGORIES.find(c=>c.id===baseCategory)?.label||"特徴を選択"}${negativeMode?"・否定形":""}</h2><span>一覧から選択してください。ほかのプレイヤーが発言済みの内容は選択できません。</span></div><div class="choice-list submenu-choice-list">${options.map(o=>{const used=usedIds.has(o.id);const statement=canonical.get(String(o.id));return `<button class="choice-button ${used?"choice-used ":""}${statement?clueChoiceClass(statement,onlineMyCard):""}" type="button" data-online-clue="${o.id}" ${used?"disabled aria-disabled=\"true\"":""}><span>${o.label}</span><span>${used?"発言済み":statement?.ambiguous?"曖昧":"→"}</span></button>`;}).join("")}${toggleButton}</div><button class="secondary-button compact clue-back-button" id="onlineClueBackButton" type="button">← 戻る</button>`;
-    actionPanel.querySelector("#onlineClueBackButton").addEventListener("click",()=>{onlineClueMenu="root";renderOnlineClue();});
+    actionPanel.innerHTML=`<div class="action-heading"><p>${roundLabel}</p><h2>${isStatUnitMenu?`${baseCategory==="atk"?"攻撃力":"守備力"}・発言単位を選択`:isStatRangeMenu?`${baseCategory.startsWith("atk-")?"攻撃力":"守備力"}・${baseCategory.split("-")[1]}単位`:CLUE_MENU_CATEGORIES.find(c=>c.id===baseCategory)?.label||"特徴を選択"}${negativeMode?"・否定形":""}</h2><span>一覧から選択してください。ほかのプレイヤーが発言済みの内容は選択できません。</span></div><div class="choice-list submenu-choice-list">${options.map(o=>{const used=usedIds.has(o.id);const statement=canonical.get(String(o.id));return `<button class="choice-button ${used?"choice-used ":""}${statement?clueChoiceClass(statement,onlineMyCard):""}" type="button" data-online-clue="${o.id}" ${used?"disabled aria-disabled=\"true\"":""}><span>${o.label}</span><span>${used?"発言済み":statement?.ambiguous?"曖昧":"→"}</span></button>`;}).join("")}${toggleButton}</div><button class="secondary-button compact clue-back-button" id="onlineClueBackButton" type="button">← 戻る</button>`;
+    actionPanel.querySelector("#onlineClueBackButton").addEventListener("click",()=>{onlineClueMenu=isStatRangeMenu?root.split("-")[0]:"root";renderOnlineClue();});
   }
 }
 
@@ -1505,10 +1538,10 @@ function renderOnlineResult(){
   const citizen=onlineGame.reveal?.citizenCard,wolfCard=onlineGame.reveal?.wolfCard;
   const msg=onlineGame.result==="wolf"? "選ばれたプレイヤーは市民でした。狼は正体を隠し切りました。":onlineGame.result==="wolf-reversal"?`狼が市民カード「${jpName(citizen)}」を見事に当て、逆転しました。`:`狼の宣言は「${jpName(rev||{})}」。正解は「${jpName(citizen||{})}」でした。`;
   const replayButton=onlineHost?`<button class="primary-button compact" id="onlineReplayButton" type="button"><span>同じ部屋でもう一度遊ぶ</span><span>↻</span></button>`:`<div class="online-replay-wait">ホストがもう一度ゲームを開始するのを待っています。</div>`;
-  actionPanel.innerHTML=`<div class="result-banner ${wolfWon?"wolf-win":"citizen-win"}"><p>${wolfWon?"狼チームの勝利":"市民チームの勝利"}</p><h2>${wolfWon?"狼の勝利":"市民の勝利"}</h2><span>${msg}</span></div><div class="answer-cards">${citizen?`<div><small>市民カード</small><img class="ygo-thumb" src="${cardImage(citizen)}"><strong>${jpName(citizen)}</strong><em>${cardInfo(citizen)}${cardStats(citizen)?" · "+cardStats(citizen):""}</em></div>`:""}${wolfCard?`<div><small>狼カード</small><img class="ygo-thumb" src="${cardImage(wolfCard)}"><strong>${jpName(wolfCard)}</strong><em>${cardInfo(wolfCard)}${cardStats(wolfCard)?" · "+cardStats(wolfCard):""}</em></div>`:""}</div>${replayButton}<button class="secondary-button compact" id="onlineBackButton" type="button"><span>ロビーへ戻る</span><span>↩</span></button>`;
+  actionPanel.innerHTML=`<div class="result-banner ${wolfWon?"wolf-win":"citizen-win"}"><p>${wolfWon?"狼チームの勝利":"市民チームの勝利"}</p><h2>${wolfWon?"狼の勝利":"市民の勝利"}</h2><span>${msg}</span><strong class="reward-message"><img class="medal-icon" src="assets/medal-icon.png" alt=""> メダル +${onlineRewardMedals||0}枚</strong></div><div class="answer-cards">${citizen?`<div><small>市民カード</small><img class="ygo-thumb" src="${cardImage(citizen)}"><strong>${jpName(citizen)}</strong><em>${cardInfo(citizen)}${cardStats(citizen)?" · "+cardStats(citizen):""}</em></div>`:""}${wolfCard?`<div><small>狼カード</small><img class="ygo-thumb" src="${cardImage(wolfCard)}"><strong>${jpName(wolfCard)}</strong><em>${cardInfo(wolfCard)}${cardStats(wolfCard)?" · "+cardStats(wolfCard):""}</em></div>`:""}</div>${replayButton}<button class="secondary-button compact" id="onlineBackButton" type="button"><span>ロビーへ戻る</span><span>↩</span></button>`;
   if(onlineHost){document.getElementById("onlineReplayButton").addEventListener("click",async()=>{if(confirm("同じ部屋のメンバーでもう一度ゲームを開始しますか？")){await startOnlineHostGame();}});}
   document.getElementById("onlineBackButton").addEventListener("click",async()=>{if(confirm("オンライン対戦を終了して部屋から退出しますか？")){await leaveOnlineRoom({returnToSetup:true});}});
-  if(!onlineScoreRecorded){const myRole=onlineGame.reveal?.roles?.[firebaseUid];const won=(myRole==="wolf"&&wolfWon)||(myRole==="citizen"&&!wolfWon);if(won)matchRecord.wins++;else matchRecord.losses++;onlineScoreRecorded=true;renderRecord();}
+  if(!onlineScoreRecorded){const myRole=onlineGame.reveal?.roles?.[firebaseUid];const won=(myRole==="wolf"&&wolfWon)||(myRole==="citizen"&&!wolfWon);const reward=won?100:50;if(won){matchRecord.wins++;}else{matchRecord.losses++;}matchRecord.medals+=reward;onlineRewardMedals=reward;onlineScoreRecorded=true;renderRecord();}
 }
 function renderOnlineGame(){
   if(!onlineGame)return;
@@ -1528,7 +1561,7 @@ async function submitOnlineActionOnce(action){
     onlineActionPromises.set(actionId,finish);
     try{
       onValue(resultRef,listener);
-      await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v133",createdAt:Date.now()});
+      await set(actionRef,{...action,matchId:onlineGame.matchId||onlineMatchId||"",uid:firebaseUid,actionId,clientVersion:"v136",createdAt:Date.now()});
     }catch(e){console.error("online action write failed",e);finish(false);return;}
     timer=setTimeout(()=>{onlineDebug("action-timeout",{actionId,action});finish(false);},8000);
   });
@@ -1579,14 +1612,14 @@ function hostChooseCpuVote(voter){
   const candidates=onlineGame.players.filter(p=>String(p.id)!==String(voter.id));
   const voterCard=onlineHostSecrets.cards[voter.id];
   return candidates.map(c=>{
-    const contradictions=(c.clues||[]).filter(cl=>!cl.ambiguous && (()=>{const st=featureList(voterCard).find(x=>x.id===cl.id);return st&&!st.test(voterCard);})()).length;
+    const contradictions=(c.clues||[]).filter(cl=>!cl.ambiguous && (()=>{const st=[...featureList(voterCard,onlineGame.settings),...allStatFeatureList()].find(x=>x.id===cl.id);return st&&!st.test(voterCard);})()).length;
     return {id:c.id,score:contradictions*2.2+Math.random()*1.2};
   }).sort((a,b)=>b.score-a.score)[0]?.id;
 }
 function hostCpuClue(player){
   const card=onlineHostSecrets.cards[player.id],used=new Set(onlineGame.usedClueIds||[]);
-  let truthful=shuffle(statementsFor(card)).filter(s=>!used.has(s.id));
-  let falsehoods=shuffle(falseStatementsFor(card)).filter(s=>!used.has(s.id));
+  let truthful=shuffle(statementsFor(card,onlineGame.settings)).filter(s=>!used.has(s.id));
+  let falsehoods=shuffle(falseStatementsFor(card,onlineGame.settings)).filter(s=>!used.has(s.id));
   let st=null;
   if(!onlineHostSecrets.wolves[player.id]){
     st=truthful[0]||null; // citizens strongly prefer truth
@@ -1606,7 +1639,7 @@ async function hostApplyClue(uid,clueId,action={}){
   const player=onlinePlayerById(uid),card=onlineHostSecrets.cards[uid];if(!player||!card)return;
   onlineGame.usedClueIds=Array.isArray(onlineGame.usedClueIds)?onlineGame.usedClueIds:[];
   onlineGame.logs=Array.isArray(onlineGame.logs)?onlineGame.logs:[];
-  let st=[...featureList(card),...negativeBasicClues(),...negativeAttributeClues(),...negativeRaceClues(),...AMBIGUOUS_CLUES].find(s=>String(s.id)===String(clueId));
+  let st=[...featureList(card,onlineGame.settings),...allStatFeatureList(),...negativeBasicClues(),...negativeAttributeClues(),...negativeRaceClues(),...AMBIGUOUS_CLUES].find(s=>String(s.id)===String(clueId));
   if(!st||onlineGame.usedClueIds.includes(st.id))return false;
   if(st.ambiguous && (player.clues||[]).some(c=>c.ambiguous))return false;
   const truthful=st.ambiguous?true:Boolean(st.test(card));
@@ -1737,7 +1770,7 @@ async function hostEvaluateVotes(){
           const candidates=getActiveCardPool(onlineGame?.settings).filter(c=>c.name!==onlineHostSecrets.wolfCard.name).map(card=>{
             const score=clues.reduce((s,cl)=>{
               if(cl.ambiguous)return s;
-              const st=featureList(card).find(x=>x.id===cl.id);
+              const st=[...featureList(card,onlineGame.settings),...allStatFeatureList()].find(x=>x.id===cl.id);
               return s+(st&&st.test(card)?1:0);
             },0)+Math.random()*0.35;
             return {card,score};
@@ -1897,7 +1930,8 @@ async function startOnlineHostGame(){
   for(let i=0;i<cpuNeeded;i++)ids.push(`cpu-${i}`);
   const wolfUid=randomItem(ids);
   const publicPlayers=humans.map(p=>({id:p.uid,name:p.name,isHuman:true,clues:[],vote:null}));
-  for(let i=0;i<cpuNeeded;i++)publicPlayers.push({id:`cpu-${i}`,name:CPU_NAMES[i]||`CPU${i+1}`,isHuman:false,clues:[],vote:null});
+  const cpuNames=chooseCpuNames(cpuNeeded);
+  for(let i=0;i<cpuNeeded;i++)publicPlayers.push({id:`cpu-${i}`,name:cpuNames[i]||`CPU${i+1}`,isHuman:false,clues:[],vote:null});
   const order=shuffle(ids);
   const cards={},wolves={},lies={};
   ids.forEach(id=>{cards[id]=String(id)===String(wolfUid)?wolfCard:citizenCard;wolves[id]=String(id)===String(wolfUid);lies[id]=0;});
@@ -1915,7 +1949,7 @@ async function startOnlineHostGame(){
   onlineHostActionQueue=Promise.resolve();
   // Keep the host listener frozen until the new Firebase game snapshot has
   // been published. Do not clear this flag during local replay initialization.
-  onlineScoreRecorded=false;
+  onlineScoreRecorded=false;onlineRewardMedals=0;
 
   const matchStartedAt=Date.now();
   const matchId=`${matchStartedAt}-${Math.random().toString(36).slice(2,10)}`;
